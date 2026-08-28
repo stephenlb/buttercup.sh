@@ -1,0 +1,305 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   buttercup.sh — vintage terminal skin.
+   Everything structural lives here: the tab deck, panels, and disclosure
+   behaviour are CSS-only (:checked siblings + <details>). JS never sets style.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --ink:        #f6c66a;   /* amber phosphor            */
+  --ink-hot:    #ffe6b0;   /* highlight / cursor        */
+  --ink-dim:    #a8873f;   /* labels, chrome            */
+  --ink-faint:  #6b552a;
+  --paper:      #14100b;   /* tube glass                */
+  --paper-2:    #1d170f;
+  --paper-3:    #251d13;
+  --rule:       #4a3a1e;
+  --good:       #8ecf6f;
+  --warn:       #f0a24a;
+  --bad:        #e5705c;
+  --user:       #9fd0e8;
+  --mono: "Berkeley Mono", "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas,
+          "DejaVu Sans Mono", monospace;
+  --pad: 0.75rem;
+  color-scheme: dark;
+}
+
+/* A daylight tube for anyone who prefers paper. */
+@media (prefers-color-scheme: light) {
+  :root {
+    --ink: #3b2c10; --ink-hot: #171003; --ink-dim: #6f5a2c; --ink-faint: #a38d5f;
+    --paper: #f2e7cf; --paper-2: #eadcbd; --paper-3: #e2d1ab;
+    --rule: #c3ab7b; --user: #1d5d7d; --good: #2f6b26; --bad: #9c2f1f;
+  }
+  .crt { opacity: .25; }
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; margin: 0; }
+
+body {
+  background: var(--paper);
+  background-image:
+    radial-gradient(120% 90% at 50% 0%, #2a2013 0%, var(--paper) 60%, #0b0906 100%);
+  color: var(--ink);
+  font: 14px/1.5 var(--mono);
+  overflow: hidden;
+}
+
+/* ── CRT dressing ─────────────────────────────────────────────────────────── */
+.crt {
+  position: fixed; inset: 0; z-index: 9; pointer-events: none;
+  opacity: .55;
+  background:
+    repeating-linear-gradient(to bottom,
+      rgba(0,0,0,.22) 0 1px, rgba(0,0,0,0) 1px 3px),
+    radial-gradient(130% 100% at 50% 50%,
+      rgba(0,0,0,0) 55%, rgba(0,0,0,.55) 100%);
+  mix-blend-mode: multiply;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .crt::after {
+    content: ""; position: absolute; inset: -20% 0;
+    background: linear-gradient(to bottom, transparent, rgba(255,225,170,.05), transparent);
+    height: 22%; animation: sweep 9s linear infinite;
+  }
+  @keyframes sweep { from { transform: translateY(-120%); } to { transform: translateY(560%); } }
+}
+
+/* ── machine shell ────────────────────────────────────────────────────────── */
+.machine {
+  position: relative; z-index: 1;
+  height: 100%; max-width: 1500px; margin: 0 auto;
+  display: grid; grid-template-rows: auto minmax(0,1fr) auto;
+  padding: var(--pad); gap: var(--pad);
+}
+
+.titlebar {
+  display: flex; align-items: baseline; gap: .9rem; flex-wrap: wrap;
+  border: 2px solid var(--rule); border-bottom-width: 3px;
+  background: linear-gradient(var(--paper-3), var(--paper-2));
+  padding: .5rem .75rem;
+}
+.titlebar h1 { font-size: 1rem; letter-spacing: .18em; text-transform: uppercase;
+  margin: 0; color: var(--ink-hot); text-shadow: 0 0 12px rgba(246,198,106,.35); }
+.titlebar .rev { color: var(--ink-faint); letter-spacing: .1em; }
+.tagline { margin: 0; color: var(--ink-dim); font-size: .78rem; letter-spacing: .06em; }
+.lamps { display: inline-flex; gap: .4rem; }
+.lamps i { width: .7rem; height: .7rem; border: 1px solid var(--rule); border-radius: 50%;
+  background: var(--paper); display: block; }
+.lamps i:first-child { background: var(--bad); }
+.lamps i:nth-child(2) { background: var(--warn); }
+.lamps i:last-child { background: var(--good); }
+
+.lamp-status {
+  margin-left: auto; font-size: .72rem; letter-spacing: .18em;
+  border: 1px solid var(--rule); padding: .15rem .55rem; color: var(--ink-dim);
+  background: var(--paper);
+}
+.lamp-status[data-state="busy"] { color: var(--paper); background: var(--warn); border-color: var(--warn); }
+.lamp-status[data-state="error"] { color: var(--paper); background: var(--bad); border-color: var(--bad); }
+
+.deck { display: grid; grid-template-columns: minmax(0,1.55fr) minmax(0,1fr);
+  gap: var(--pad); min-height: 0; }
+
+.console, .rack {
+  border: 2px solid var(--rule); background: var(--paper-2);
+  display: grid; min-height: 0;
+}
+.console { grid-template-rows: minmax(0,1fr) auto; }
+
+/* ── transcript ───────────────────────────────────────────────────────────── */
+.scroll { overflow-y: auto; padding: var(--pad) 1rem; scrollbar-width: thin;
+  scrollbar-color: var(--rule) transparent; }
+.scroll::-webkit-scrollbar { width: 10px; }
+.scroll::-webkit-scrollbar-thumb { background: var(--rule); }
+
+.entry { margin: 0 0 1.1rem; }
+.entry pre { margin: 0; white-space: pre-wrap; word-break: break-word;
+  font: inherit; }
+.entry.boot pre { color: var(--ink-dim); }
+.entry p { margin: .4rem 0; color: var(--ink-dim); }
+.entry code { color: var(--ink); }
+
+.who { display: block; font-size: .7rem; letter-spacing: .2em; color: var(--ink-faint);
+  text-transform: uppercase; margin-bottom: .2rem; }
+
+.entry.user { border-left: 3px solid var(--user); padding-left: .7rem; color: var(--user); }
+.entry.user .who { color: var(--user); }
+.entry.model .body { color: var(--ink); }
+.entry.error { border-left: 3px solid var(--bad); padding-left: .7rem; color: var(--bad); }
+.entry.system { color: var(--ink-dim); font-size: .82rem; }
+
+/* streaming caret */
+.entry.model.live .body::after {
+  content: "█"; color: var(--ink-hot); margin-left: 1px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .entry.model.live .body::after { animation: blink 1s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+}
+
+/* markdown-ish niceties the renderer emits */
+.body strong { color: var(--ink-hot); font-weight: 600; }
+.body .fence { display: block; border: 1px dashed var(--rule); background: var(--paper);
+  padding: .5rem .6rem; margin: .5rem 0; overflow-x: auto; color: var(--ink); }
+.body .bullet { display: block; padding-left: 1.1rem; text-indent: -1.1rem; }
+
+/* thinking + tool calls: <details>, styled, zero JS */
+details.think, details.call {
+  border: 1px solid var(--rule); background: var(--paper);
+  margin: .45rem 0; padding: 0 .55rem;
+}
+details.think { border-style: dotted; }
+details > summary {
+  cursor: pointer; list-style: none; padding: .3rem 0;
+  font-size: .74rem; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--ink-dim); display: flex; gap: .5rem; align-items: baseline;
+}
+details > summary::-webkit-details-marker { display: none; }
+details > summary::before { content: "▸"; color: var(--ink-faint); }
+details[open] > summary::before { content: "▾"; }
+details > summary .tname { color: var(--ink); letter-spacing: .04em; text-transform: none; }
+details > summary .tsum { color: var(--ink-faint); text-transform: none; letter-spacing: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+details > summary .tflag { margin-left: auto; }
+details.call.err > summary .tflag { color: var(--bad); }
+details.call.ok > summary .tflag { color: var(--good); }
+details > pre { border-top: 1px dashed var(--rule); padding: .5rem 0; margin: 0;
+  color: var(--ink-dim); font-size: .84rem; max-height: 22rem; overflow: auto; }
+details.think > pre { font-style: italic; }
+
+/* approval strip */
+.approve { border: 1px solid var(--warn); background: var(--paper);
+  padding: .5rem .6rem; margin: .5rem 0; }
+.approve p { margin: 0 0 .45rem; color: var(--warn); }
+.approve .btns { display: flex; gap: .4rem; flex-wrap: wrap; }
+
+/* ── prompt ───────────────────────────────────────────────────────────────── */
+.prompt {
+  display: grid; grid-template-columns: auto minmax(0,1fr) auto auto;
+  align-items: end; gap: .5rem;
+  border-top: 2px solid var(--rule); background: var(--paper-3); padding: .6rem;
+}
+.sigil { color: var(--ink-hot); font-weight: 700; padding-bottom: .35rem; }
+.prompt textarea {
+  font: inherit; color: var(--ink-hot); background: var(--paper);
+  border: 1px solid var(--rule); padding: .45rem .5rem; resize: none;
+  max-height: 9rem; min-height: 2.1rem;
+}
+.prompt textarea:focus-visible, .settings input:focus-visible,
+.settings select:focus-visible { outline: 2px solid var(--ink); outline-offset: -1px; }
+
+button, .settings select, .settings input {
+  font: inherit; color: var(--ink); background: var(--paper-3);
+  border: 1px solid var(--rule); padding: .35rem .7rem;
+}
+button { cursor: pointer; letter-spacing: .12em; text-transform: uppercase;
+  font-size: .74rem; }
+button:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
+button:disabled { opacity: .4; cursor: not-allowed; }
+button.mini { padding: .18rem .5rem; font-size: .68rem; }
+button.danger { border-color: var(--bad); color: var(--bad); }
+button.danger:hover { background: var(--bad); color: var(--paper); }
+
+/* ── tab deck (CSS-only) ──────────────────────────────────────────────────── */
+.rack { grid-template-rows: auto minmax(0,1fr); }
+.tabs > input[type="radio"] { position: absolute; opacity: 0; pointer-events: none; }
+.tabbar { display: flex; border-bottom: 2px solid var(--rule); background: var(--paper-3); }
+.tabbar label {
+  flex: 1; text-align: center; padding: .45rem .3rem; cursor: pointer;
+  font-size: .7rem; letter-spacing: .16em; color: var(--ink-faint);
+  border-right: 1px solid var(--rule);
+}
+.tabbar label:last-child { border-right: 0; }
+.tabbar label:hover { color: var(--ink); }
+.panel { display: none; overflow-y: auto; padding: var(--pad); min-height: 0;
+  scrollbar-width: thin; scrollbar-color: var(--rule) transparent; }
+#tab-files:checked   ~ #panel-files,
+#tab-tools:checked   ~ #panel-tools,
+#tab-preview:checked ~ #panel-preview,
+#tab-keys:checked    ~ #panel-keys { display: block; }
+#tab-files:checked   ~ .tabbar label[for="tab-files"],
+#tab-tools:checked   ~ .tabbar label[for="tab-tools"],
+#tab-preview:checked ~ .tabbar label[for="tab-preview"],
+#tab-keys:checked    ~ .tabbar label[for="tab-keys"] {
+  color: var(--paper); background: var(--ink);
+}
+/* preview needs to fill its panel */
+#tab-preview:checked ~ #panel-preview { display: grid; grid-template-rows: auto auto 1fr; }
+
+.panel-head { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
+  border-bottom: 1px dashed var(--rule); padding-bottom: .35rem; margin-bottom: .6rem; }
+.panel-head h2 { font-size: .78rem; letter-spacing: .18em; text-transform: uppercase;
+  margin: 0; color: var(--ink-hot); }
+.panel-head .mini:first-of-type { margin-left: auto; }
+.note { color: var(--ink-faint); font-size: .78rem; margin: 0 0 .7rem; }
+.dim { color: var(--ink-faint); }
+.linky { color: var(--ink-hot); text-decoration: underline dotted; cursor: pointer; }
+
+/* ── file tree ────────────────────────────────────────────────────────────── */
+.tree { list-style: none; margin: 0; padding: 0; }
+.tree li { display: flex; gap: .5rem; align-items: baseline; padding: .1rem 0; }
+.tree button { all: unset; cursor: pointer; color: var(--ink); flex: 1;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tree button:hover { color: var(--ink-hot); text-decoration: underline; }
+.tree .size { color: var(--ink-faint); font-size: .72rem; }
+.tree .glyph { color: var(--ink-faint); }
+
+.viewer { margin-top: .8rem; border: 1px solid var(--rule); background: var(--paper); }
+.viewer-head { display: flex; gap: .5rem; align-items: center; padding: .3rem .5rem;
+  border-bottom: 1px dashed var(--rule); }
+.viewer-head code { flex: 1; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; color: var(--ink-hot); }
+.viewer pre { margin: 0; padding: .55rem; max-height: 26rem; overflow: auto;
+  white-space: pre; font-size: .82rem; color: var(--ink-dim); }
+
+/* ── tool catalogue ───────────────────────────────────────────────────────── */
+.tools { list-style: none; margin: 0; padding: 0; }
+.tools > li { border: 1px solid var(--rule); margin-bottom: .4rem; background: var(--paper); }
+.tools > li > details { border: 0; margin: 0; }
+.tools .tag { font-size: .64rem; letter-spacing: .12em; border: 1px solid var(--rule);
+  padding: 0 .3rem; color: var(--ink-faint); }
+.tools .tag.write { color: var(--warn); border-color: var(--warn); }
+.tools .tag.exec  { color: var(--bad);  border-color: var(--bad); }
+.tools .tag.net   { color: var(--user); border-color: var(--user); }
+.tools dl { margin: 0; padding: .45rem 0; border-top: 1px dashed var(--rule);
+  font-size: .8rem; }
+.tools dt { color: var(--ink-hot); }
+.tools dd { margin: 0 0 .35rem; color: var(--ink-faint); }
+.tools dd .req { color: var(--warn); }
+.tools .desc { margin: .3rem 0; color: var(--ink-dim); font-size: .82rem; }
+
+/* ── preview frame ────────────────────────────────────────────────────────── */
+#preview { width: 100%; height: 100%; min-height: 18rem; border: 1px solid var(--rule);
+  background: #fff; }
+
+/* ── settings ─────────────────────────────────────────────────────────────── */
+.settings fieldset { border: 1px solid var(--rule); margin: 0 0 .7rem; padding: .5rem .6rem; }
+.settings legend { font-size: .7rem; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--ink-faint); padding: 0 .3rem; }
+.settings .row { display: grid; grid-template-columns: 6.5rem minmax(0,1fr);
+  align-items: center; gap: .5rem; margin-bottom: .4rem; }
+.settings .row > span { font-size: .74rem; letter-spacing: .1em; color: var(--ink-dim);
+  text-transform: uppercase; }
+.settings .row input, .settings .row select { width: 100%; }
+.settings .check { display: flex; gap: .5rem; align-items: center; margin-bottom: .3rem;
+  font-size: .82rem; color: var(--ink-dim); cursor: pointer; }
+.settings .check input { accent-color: var(--ink); }
+
+/* ── status bar ───────────────────────────────────────────────────────────── */
+.statusbar { display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;
+  border: 2px solid var(--rule); background: var(--paper-3);
+  padding: .3rem .75rem; font-size: .72rem; letter-spacing: .1em;
+  color: var(--ink-faint); text-transform: uppercase; }
+.statusbar .grow { flex: 1; }
+
+/* ── narrow tubes ─────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  body { overflow: auto; }
+  .machine { height: auto; min-height: 100%; }
+  .deck { grid-template-columns: 1fr; }
+  .console { min-height: 60vh; }
+  .rack { min-height: 24rem; }
+  .tagline { display: none; }
+}

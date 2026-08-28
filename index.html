@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>buttercup.sh — web agent harness</title>
+<meta name="description" content="A 100% static, no-backend terminal harness whose tools build AI agents that run in the browser.">
+<link rel="stylesheet" href="css/buttercup.css">
+<!-- Inline so the harness stays a self-contained set of text files. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%2314100b'/%3E%3Ctext x='2' y='12' font-family='monospace' font-size='11' fill='%23f6c66a'%3E%26gt;%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+
+<!-- ══ CRT overlay: decoration only, pure CSS ══════════════════════════════ -->
+<div class="crt" aria-hidden="true"></div>
+
+<main class="machine">
+
+  <!-- ══ title bar ═════════════════════════════════════════════════════════ -->
+  <header class="titlebar">
+    <span class="lamps" aria-hidden="true"><i></i><i></i><i></i></span>
+    <h1>buttercup.sh<span class="rev"> rev.1</span></h1>
+    <p class="tagline">pure vintage charm &middot; aggressively anti&#8209;dystopian</p>
+    <output class="lamp-status" id="status" aria-live="polite">READY</output>
+  </header>
+
+  <div class="deck">
+
+    <!-- ══ left: transcript + prompt ═══════════════════════════════════════ -->
+    <section class="console" aria-label="Session transcript">
+      <div class="scroll" id="log" role="log" aria-live="polite">
+        <article class="entry boot">
+<pre>
+ ┌────────────────────────────────────────────────┐
+ │  B U T T E R C U P   AGENT WORKS   ·   rev.1   │
+ │  a harness for building agents, in a browser   │
+ └────────────────────────────────────────────────┘
+</pre>
+          <p>No server. No build step. No telemetry. Your keys stay in this
+             browser's <code>localStorage</code>; model traffic goes straight
+             from this tab to the vendor you pick.</p>
+          <p>Open <label for="tab-keys" class="linky">KEYS</label> to paste an API key,
+             then ask for an agent. Try:
+             <em>&ldquo;scaffold a blocks.ai research agent, then run it&rdquo;</em>.</p>
+        </article>
+      </div>
+
+      <form class="prompt" id="prompt-form" autocomplete="off">
+        <label class="sigil" for="prompt-input" aria-hidden="true">&gt;</label>
+        <textarea id="prompt-input" name="prompt" rows="1" spellcheck="false"
+          placeholder="describe the agent you want built…"></textarea>
+        <button type="submit" id="send">RUN</button>
+        <button type="button" id="stop" disabled>STOP</button>
+      </form>
+    </section>
+
+    <!-- ══ right: CSS-only tab deck ════════════════════════════════════════ -->
+    <section class="rack tabs" aria-label="Harness panels">
+      <input type="radio" name="rackTab" id="tab-files" checked>
+      <input type="radio" name="rackTab" id="tab-tools">
+      <input type="radio" name="rackTab" id="tab-preview">
+      <input type="radio" name="rackTab" id="tab-keys">
+
+      <nav class="tabbar">
+        <label for="tab-files">FILES</label>
+        <label for="tab-tools">TOOLS</label>
+        <label for="tab-preview">PREVIEW</label>
+        <label for="tab-keys">KEYS</label>
+      </nav>
+
+      <div class="panel" id="panel-files">
+        <div class="panel-head">
+          <h2>workspace <code>/</code></h2>
+          <button type="button" id="download-zip" class="mini">EXPORT .ZIP</button>
+          <button type="button" id="wipe" class="mini danger">WIPE</button>
+        </div>
+        <ul class="tree" id="tree"><li class="dim">empty workspace</li></ul>
+        <div class="viewer" id="viewer" hidden>
+          <div class="viewer-head"><code id="viewer-path"></code>
+            <button type="button" id="viewer-close" class="mini">CLOSE</button></div>
+          <pre id="viewer-body"></pre>
+        </div>
+      </div>
+
+      <div class="panel" id="panel-tools">
+        <div class="panel-head"><h2>tool definitions</h2>
+          <span class="dim" id="tool-count"></span></div>
+        <p class="note">Handed to the model verbatim on every turn. Each one is a
+           plain JS function in <code>js/tools.js</code> — no server touches them.</p>
+        <ul class="tools" id="tools"></ul>
+      </div>
+
+      <div class="panel" id="panel-preview">
+        <div class="panel-head"><h2>agent preview</h2>
+          <span class="dim">sandboxed iframe</span></div>
+        <p class="note" id="preview-empty">Nothing mounted. The
+           <code>preview</code> tool points this frame at a file in the
+           workspace; <code>run_agent</code> executes one and reports back.</p>
+        <iframe id="preview" title="Agent preview"
+          sandbox="allow-scripts allow-forms allow-modals allow-popups" hidden></iframe>
+      </div>
+
+      <div class="panel" id="panel-keys">
+        <div class="panel-head"><h2>completion backend</h2></div>
+        <form id="settings-form" class="settings" autocomplete="off">
+          <fieldset>
+            <legend>provider</legend>
+            <label class="row"><span>vendor</span>
+              <select name="provider" id="provider">
+                <option value="anthropic">Anthropic — Claude</option>
+                <option value="openai">OpenAI — Codex / GPT</option>
+                <option value="google">Google — Gemini</option>
+              </select></label>
+            <label class="row"><span>model</span>
+              <input name="model" id="model" list="model-list" spellcheck="false"></label>
+            <datalist id="model-list"></datalist>
+            <label class="row"><span>api key</span>
+              <input name="key" id="key" type="password" spellcheck="false" autocomplete="new-password"
+                placeholder="sk-… / stays in this browser"></label>
+            <label class="row"><span>effort</span>
+              <select name="effort" id="effort">
+                <option value="low">low</option>
+                <option value="medium">medium</option>
+                <option value="high">high</option>
+                <option value="xhigh" selected>xhigh</option>
+                <option value="max">max</option>
+              </select></label>
+          </fieldset>
+          <fieldset>
+            <legend>harness</legend>
+            <label class="check"><input type="checkbox" name="yolo" id="yolo" checked>
+              <span>auto&#8209;approve tool calls</span></label>
+            <label class="check"><input type="checkbox" name="showThinking" id="showThinking" checked>
+              <span>show reasoning</span></label>
+            <label class="row"><span>max steps</span>
+              <input name="maxSteps" id="maxSteps" type="number" min="1" max="200" value="40"></label>
+          </fieldset>
+          <div class="panel-head">
+            <button type="submit" class="mini">SAVE</button>
+            <button type="button" id="forget" class="mini danger">FORGET KEY</button>
+            <button type="button" id="reset-session" class="mini">NEW SESSION</button>
+          </div>
+          <p class="note">A key in <code>localStorage</code> is readable by anything
+             that can run script in this origin. Use a scoped, revocable key, and
+             prefer a key you don't mind rotating.</p>
+        </form>
+      </div>
+    </section>
+  </div>
+
+  <footer class="statusbar">
+    <span id="stat-provider">—</span>
+    <span id="stat-tokens">0 tok</span>
+    <span id="stat-steps">step 0</span>
+    <span id="stat-files">0 files</span>
+    <span class="grow"></span>
+    <span>buttercup.sh &middot; static html/css/js</span>
+  </footer>
+</main>
+
+<script src="js/vfs.js"></script>
+<script src="js/zip.js"></script>
+<script src="js/frameworks.js"></script>
+<script src="js/sandbox.js"></script>
+<script src="js/tools.js"></script>
+<script src="js/llm.js"></script>
+<script src="js/agent.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
