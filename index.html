@@ -170,55 +170,95 @@
         </form>
       </div>
 
-      <!-- ══ mascot: bottom of the rack, monochrome, CSS-animated ═══════════ -->
+      <!-- ══ mascot: bottom of the rack, monochrome, CSS-animated ═══════════
+           Pixel art, not a line drawing: every coordinate below is a whole
+           cell on a 30×28 grid, every shape is a fill (no strokes, which
+           would straddle cell edges), and every animation swaps or steps by
+           a whole cell — so the sprite never renders a half-lit pixel. ══ -->
       <figure class="mascot" aria-hidden="true">
-        <svg class="cup" viewBox="0 0 120 108" role="presentation">
+        <svg class="cup" viewBox="0 0 30 28" role="presentation">
+          <defs>
+            <!-- a 3×3 plus, the classic pixel twinkle -->
+            <path id="sparkle" d="M1 0h1v1h1v1h-1v1h-1v-1h-1v-1h1z"/>
+          </defs>
           <g class="rig">
-            <!-- sparkles: faint at rest, lit while the agent is working -->
-            <defs>
-              <path id="sparkle" d="M0-5Q1-1 5 0Q1 1 0 5Q-1 1-5 0Q-1-1 0-5Z"/>
-            </defs>
+            <!-- sparkles: dark at rest, blinking while the agent works -->
             <g class="spark">
-              <g transform="translate(60 10)scale(1.1)"><use href="#sparkle"/></g>
-              <g transform="translate(25 29)scale(.85)"><use href="#sparkle"/></g>
-              <g transform="translate(95 29)scale(.85)"><use href="#sparkle"/></g>
-              <g transform="translate(13 45)scale(.55)"><use href="#sparkle"/></g>
-              <g transform="translate(107 45)scale(.55)"><use href="#sparkle"/></g>
-              <g transform="translate(42 17)scale(.5)"><use href="#sparkle"/></g>
-              <g transform="translate(78 17)scale(.5)"><use href="#sparkle"/></g>
+              <g transform="translate(14 1)"><use class="big" href="#sparkle"/><rect class="dot" x="1" y="1" width="1" height="1"/></g>
+              <g transform="translate(2 8)"><use class="big" href="#sparkle"/><rect class="dot" x="1" y="1" width="1" height="1"/></g>
+              <g transform="translate(24 6)"><use class="big" href="#sparkle"/><rect class="dot" x="1" y="1" width="1" height="1"/></g>
+              <g transform="translate(1 11)"><use class="big" href="#sparkle"/><rect class="dot" x="1" y="1" width="1" height="1"/></g>
+              <g transform="translate(26 12)"><use class="big" href="#sparkle"/><rect class="dot" x="1" y="1" width="1" height="1"/></g>
+              <g transform="translate(9 2)"><use class="big" href="#sparkle"/><rect class="dot" x="1" y="1" width="1" height="1"/></g>
+              <g transform="translate(19 2)"><use class="big" href="#sparkle"/><rect class="dot" x="1" y="1" width="1" height="1"/></g>
             </g>
 
-            <!-- arms, thrown up in a wave -->
-            <g class="arm left">
-              <path d="M29 74C18 74 12 68 12 60"/>
-              <circle cx="12" cy="57" r="3.4"/>
-            </g>
-            <g class="arm right">
-              <path d="M91 74C102 74 108 68 108 60"/>
-              <circle cx="108" cy="57" r="3.4"/>
+            <!-- arms: two poses, cross-faded frame by frame into a wave -->
+            <g class="arms">
+              <g class="pose a">
+                <rect x="3" y="18" width="1" height="1"/>
+                <rect x="2" y="19" width="1" height="1"/>
+                <rect x="1" y="20" width="1" height="1"/>
+                <rect x="0" y="21" width="2" height="2"/>
+                <rect x="26" y="18" width="1" height="1"/>
+                <rect x="27" y="19" width="1" height="1"/>
+                <rect x="28" y="20" width="1" height="1"/>
+                <rect x="28" y="21" width="2" height="2"/>
+              </g>
+              <g class="pose b">
+                <rect x="3" y="17" width="1" height="1"/>
+                <rect x="2" y="16" width="1" height="1"/>
+                <rect x="1" y="15" width="1" height="1"/>
+                <rect x="0" y="13" width="2" height="2"/>
+                <rect x="26" y="17" width="1" height="1"/>
+                <rect x="27" y="16" width="1" height="1"/>
+                <rect x="28" y="15" width="1" height="1"/>
+                <rect x="28" y="13" width="2" height="2"/>
+              </g>
             </g>
 
-            <!-- buttery dome -->
-            <path class="dome" d="M28 70C26 42 40 26 60 26S94 42 92 70Z"/>
+            <!-- buttery dome: ink silhouette, then a one-cell-inset interior -->
+            <path class="ink" d="M5 16V11h1V9h1V7h2V6h2V5h2V4h4v1h2v1h2v1h2v2h1v2h1v5z"/>
+            <path class="paper" d="M6 16V12h1v-2h1V8h2V7h2V6h2V5h2v1h2v1h2v1h2v2h1v2h1v4z"/>
 
             <!-- fluted wrapper -->
-            <path class="body" d="M26 68 33 94Q60 100 87 94L94 68Z"/>
+            <path class="ink" d="M4 16h22v3h-1v3h-1v2h-1v1H7v-1H6v-2H5v-3H4z"/>
+            <path class="paper" d="M5 16h20v3h-1v3h-1v2H7v-2H6v-3H5z"/>
             <g class="ridges">
-              <path d="M40 70 44.8 91"/>
-              <path d="M53 70 54.7 92"/>
-              <path d="M67 70 65.3 92"/>
-              <path d="M80 70 75.2 91"/>
+              <rect x="8" y="17" width="1" height="6"/>
+              <rect x="12" y="17" width="1" height="6"/>
+              <rect x="17" y="17" width="1" height="6"/>
+              <rect x="21" y="17" width="1" height="6"/>
             </g>
 
             <!-- face -->
             <g class="face">
-              <circle class="eye" cx="50" cy="50" r="3.4"/>
-              <circle class="eye" cx="70" cy="50" r="3.4"/>
-              <path class="mouth grin" d="M50 57q10 9 20 0"/>
-              <path class="mouth oh" d="M54 60a6 5 0 1 0 12 0a6 5 0 1 0-12 0"/>
-              <path class="mouth flat" d="M51 61h18"/>
-              <path class="blush" d="M38 58q2 3 4 0"/>
-              <path class="blush" d="M78 58q2 3 4 0"/>
+              <g class="eyes open">
+                <rect x="10" y="9" width="2" height="2"/>
+                <rect x="18" y="9" width="2" height="2"/>
+              </g>
+              <g class="eyes shut">
+                <rect x="10" y="10" width="2" height="1"/>
+                <rect x="18" y="10" width="2" height="1"/>
+              </g>
+              <g class="mouth grin">
+                <rect x="11" y="12" width="1" height="1"/>
+                <rect x="18" y="12" width="1" height="1"/>
+                <rect x="12" y="13" width="2" height="1"/>
+                <rect x="16" y="13" width="2" height="1"/>
+                <rect x="14" y="14" width="2" height="1"/>
+              </g>
+              <g class="mouth oh">
+                <rect x="13" y="12" width="4" height="1"/>
+                <rect x="13" y="13" width="1" height="1"/>
+                <rect x="16" y="13" width="1" height="1"/>
+                <rect x="13" y="14" width="4" height="1"/>
+              </g>
+              <rect class="mouth flat" x="12" y="13" width="6" height="1"/>
+              <g class="blush">
+                <rect x="7" y="11" width="2" height="1"/>
+                <rect x="21" y="11" width="2" height="1"/>
+              </g>
             </g>
           </g>
         </svg>
