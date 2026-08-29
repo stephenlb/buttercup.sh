@@ -216,8 +216,8 @@ button.danger:hover { background: var(--bad); color: var(--paper); }
    and can never claim any when there is none, so a busy session hides it
    without a line of JS.
 
-   Four scenes live in here and one is shown per load: js/scenes.js writes a
-   name to `data-scene` and the rules below reveal that scene. The other three
+   Seven scenes live in here and one is shown per load: js/scenes.js writes a
+   name to `data-scene` and the rules below reveal that scene. The other six
    are `display: none`, which also parks their animations. `?scene=woods` pins
    one for a screenshot.
 
@@ -226,10 +226,13 @@ button.danger:hover { background: var(--bad); color: var(--paper); }
    ─────────────────────────────────────────────────────────────────────────── */
 .scenes { flex: 1 1 0; min-height: 0; position: relative; overflow: hidden; }
 .scene { position: absolute; inset: 0; overflow: hidden; display: none; }
-.scenes[data-scene="beach"] .beach,
-.scenes[data-scene="city"]  .city,
-.scenes[data-scene="woods"] .woods,
-.scenes[data-scene="orbit"] .orbit { display: block; }
+.scenes[data-scene="beach"]   .beach,
+.scenes[data-scene="city"]    .city,
+.scenes[data-scene="woods"]   .woods,
+.scenes[data-scene="orbit"]   .orbit,
+.scenes[data-scene="reef"]    .reef,
+.scenes[data-scene="rails"]   .rails,
+.scenes[data-scene="volcano"] .volcano { display: block; }
 
 /* ── scene: the beach ─────────────────────────────────────────────────────────
    True pixel art, which sets two rules. Every edge is horizontal or vertical:
@@ -1555,6 +1558,855 @@ button.danger:hover { background: var(--bad); color: var(--paper); }
 
 .orbit::before { animation: star-flicker 3.9s steps(1, end) infinite alternate; }
 .orbit::after  { animation: star-flicker 5.7s steps(1, end) infinite alternate; }
+
+/* ── scene: the reef ──────────────────────────────────────────────────────────
+   The woods' snowfall, upside down. Each bubble column is one `repeat-y` tile a
+   pixel wide and N deep, slid *up* exactly N — its own period, so the loop is
+   seamless — and the columns run on near-prime periods over durations that share
+   no factor, so no two ever pulse together. The seabed is the band trick: two
+   ranks of coral on periods of 11 and 17, which tile across a box of any width
+   and never line up into wallpaper.
+
+   The light is three dim vertical shafts. Nothing here is a diagonal, because
+   nothing here may be: a shaft that leaned would need an anti-aliased edge.
+   ─────────────────────────────────────────────────────────────────────────── */
+.reef {
+  --px: 6px;
+  --bed: calc(var(--px) * 8);                      /* depth of the seabed */
+  --foam:    color-mix(in srgb, var(--ink) 50%, transparent);
+  --foam-lo: color-mix(in srgb, var(--ink) 24%, transparent);
+  --silt:    color-mix(in srgb, var(--ink) 32%, transparent);
+  --shaft:   color-mix(in srgb, var(--ink) 7%, transparent);
+  /* opaque, for the reason spelled out over the city: stacked bands */
+  --floor:    color-mix(in srgb, var(--ink) 20%, var(--paper));
+  --coral:    color-mix(in srgb, var(--ink) 34%, var(--paper));
+  --coral-lo: color-mix(in srgb, var(--ink) 17%, var(--paper));
+
+  --bub1: 0px; --bub2: 0px; --bub3: 0px;
+  --bub4: 0px; --bub5: 0px; --bub6: 0px;
+
+  background-repeat:
+    repeat-y, repeat-y, repeat-y,                  /* the six bubble columns */
+    repeat-y, repeat-y, repeat-y,
+    no-repeat, no-repeat, no-repeat,               /* everything else        */
+    no-repeat, no-repeat, no-repeat,
+    no-repeat, no-repeat, no-repeat,
+    no-repeat, no-repeat, no-repeat, no-repeat;
+  background-image:
+    /* rising bubbles. The deep columns hold two lit pixels per tile at uneven
+       depths, the shallow ones only one — two flecks in a short tile reads as a
+       dotted line rather than as bubbles. Near columns lit, far ones dim. */
+    linear-gradient(var(--foam) 0 var(--px), transparent var(--px)),
+    linear-gradient(var(--foam-lo) 0 var(--px), transparent var(--px) calc(var(--px) * 9), var(--foam-lo) calc(var(--px) * 9) calc(var(--px) * 10), transparent calc(var(--px) * 10)),
+    linear-gradient(var(--foam) 0 var(--px), transparent var(--px)),
+    linear-gradient(var(--foam-lo) 0 var(--px), transparent var(--px) calc(var(--px) * 11), var(--foam-lo) calc(var(--px) * 11) calc(var(--px) * 12), transparent calc(var(--px) * 12)),
+    linear-gradient(var(--foam-lo) 0 var(--px), transparent var(--px) calc(var(--px) * 13), var(--foam-lo) calc(var(--px) * 13) calc(var(--px) * 14), transparent calc(var(--px) * 14)),
+    linear-gradient(var(--foam) 0 var(--px), transparent var(--px)),
+    /* silt stipple in the bed, three rows, no two on the same rhythm */
+    repeating-linear-gradient(90deg, var(--silt) 0 var(--px), transparent var(--px) calc(var(--px) * 5)),
+    repeating-linear-gradient(90deg, var(--silt) 0 calc(var(--px) * 2), transparent calc(var(--px) * 2) calc(var(--px) * 9)),
+    repeating-linear-gradient(90deg, var(--silt) 0 var(--px), transparent var(--px) calc(var(--px) * 7)),
+    /* near coral, band by band, on a period of thirteen: a broad head with a
+       stack and a finger growing out of it, and clear water either side */
+    repeating-linear-gradient(90deg,
+      var(--coral) 0 calc(var(--px) * 5), transparent calc(var(--px) * 5) calc(var(--px) * 9),
+      var(--coral) calc(var(--px) * 9) calc(var(--px) * 12), transparent calc(var(--px) * 12) calc(var(--px) * 13)),
+    repeating-linear-gradient(90deg,
+      transparent 0 var(--px), var(--coral) var(--px) calc(var(--px) * 4),
+      transparent calc(var(--px) * 4) calc(var(--px) * 13)),
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 2), var(--coral) calc(var(--px) * 2) calc(var(--px) * 3),
+      transparent calc(var(--px) * 3) calc(var(--px) * 13)),
+    /* the seabed */
+    linear-gradient(var(--floor), var(--floor)),
+    /* far coral, taller and dimmer, on a period of nineteen */
+    repeating-linear-gradient(90deg,
+      var(--coral-lo) 0 calc(var(--px) * 7), transparent calc(var(--px) * 7) calc(var(--px) * 13),
+      var(--coral-lo) calc(var(--px) * 13) calc(var(--px) * 17), transparent calc(var(--px) * 17) calc(var(--px) * 19)),
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 2), var(--coral-lo) calc(var(--px) * 2) calc(var(--px) * 5),
+      transparent calc(var(--px) * 5) calc(var(--px) * 19)),
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 3), var(--coral-lo) calc(var(--px) * 3) calc(var(--px) * 4),
+      transparent calc(var(--px) * 4) calc(var(--px) * 19)),
+    /* three shafts of light, right to the surface */
+    linear-gradient(var(--shaft), var(--shaft)),
+    linear-gradient(var(--shaft), var(--shaft)),
+    linear-gradient(var(--shaft), var(--shaft));
+  background-size:
+    var(--px) calc(var(--px) * 13),                /* bubbles: tile = period */
+    var(--px) calc(var(--px) * 17),
+    var(--px) calc(var(--px) * 11),
+    var(--px) calc(var(--px) * 19),
+    var(--px) calc(var(--px) * 23),
+    var(--px) calc(var(--px) * 15),
+    100% var(--px),                                /* silt                   */
+    100% var(--px),
+    100% var(--px),
+    100% calc(var(--px) * 3),                      /* near coral             */
+    100% calc(var(--px) * 6),
+    100% calc(var(--px) * 9),
+    100% var(--bed),                               /* the seabed             */
+    100% calc(var(--px) * 4),                      /* far coral              */
+    100% calc(var(--px) * 8),
+    100% calc(var(--px) * 12),
+    calc(var(--px) * 3) 100%,                      /* the shafts             */
+    calc(var(--px) * 2) 100%,
+    calc(var(--px) * 4) 100%;
+  background-position:
+    /* Half the columns are anchored left and half right, so the field stays
+       spread across a box of any width: a narrow box crops the outermost. */
+    left  calc(var(--px) * 7)  top calc(0px - var(--bub1)),
+    left  calc(var(--px) * 26) top calc(0px - var(--bub2)),
+    left  calc(var(--px) * 52) top calc(0px - var(--bub3)),
+    right calc(var(--px) * 14) top calc(0px - var(--bub4)),
+    right calc(var(--px) * 38) top calc(0px - var(--bub5)),
+    right calc(var(--px) * 66) top calc(0px - var(--bub6)),
+    bottom var(--px) left 0,
+    bottom calc(var(--px) * 3) left calc(var(--px) * 2),
+    bottom calc(var(--px) * 5) left calc(var(--px) * 5),
+    bottom var(--bed) left 0,
+    bottom var(--bed) left 0,
+    bottom var(--bed) left 0,
+    bottom left,
+    /* the far rank stands two pixels further up the page, five over */
+    bottom calc(var(--bed) + var(--px) * 2) left calc(var(--px) * 5),
+    bottom calc(var(--bed) + var(--px) * 2) left calc(var(--px) * 5),
+    bottom calc(var(--bed) + var(--px) * 2) left calc(var(--px) * 5),
+    bottom var(--bed) left calc(var(--px) * 18),
+    bottom var(--bed) right calc(var(--px) * 30),
+    bottom var(--bed) right calc(var(--px) * 9);
+}
+
+/* A school of minnows, one pixel each, and specks of drift in the water. */
+.reef::before {
+  content: ""; position: absolute;
+  left: calc(var(--px) * 20); bottom: calc(var(--bed) + var(--px) * 26);
+  width: var(--px); height: var(--px); background: var(--ink-dim);
+  box-shadow:
+    calc(var(--px) * 3) var(--px) 0 var(--ink-dim),
+    calc(var(--px) * 5) calc(var(--px) * -2) 0 var(--ink-dim),
+    calc(var(--px) * 8) 0 0 var(--ink-dim),
+    calc(var(--px) * 11) calc(var(--px) * 2) 0 var(--ink-dim);
+}
+.reef::after {
+  content: ""; position: absolute;
+  right: calc(var(--px) * 22); bottom: calc(var(--bed) + var(--px) * 34);
+  width: var(--px); height: var(--px); background: var(--ink-faint);
+  box-shadow:
+    calc(var(--px) * -9) calc(var(--px) * 6) 0 var(--ink-faint),
+    calc(var(--px) * -18) calc(var(--px) * -3) 0 var(--ink-faint),
+    calc(var(--px) * -27) calc(var(--px) * 9) 0 var(--ink-faint),
+    calc(var(--px) * -36) calc(var(--px) * 2) 0 var(--ink-faint);
+}
+
+/* Kelp, one box-shadow pixel at a time from this map — a stalk that wanders a
+   column either side of true, with fronds where it turns:
+
+     ..#..
+     .##..
+     .#...
+     ##...
+     .#...
+     .##..
+     ..#..
+     ..##.
+     ...#.
+     ..##.
+     ..#..
+     .##..
+     ..#..
+     ..#..
+     ..##.
+     ..#..
+
+   The element is pixel (0,0) and shadows fall down and to the right, so
+   `bottom` is the top of the art, 16 rows of it. */
+.reef .kelp {
+  --kp: calc(var(--px) * 2);                    /* the near kelp is double-size */
+  --frond: color-mix(in srgb, var(--ink) 42%, var(--paper));
+  position: absolute; z-index: 1; left: calc(var(--px) * 9);
+  bottom: calc(var(--bed) + var(--kp) * 15);
+  width: var(--kp); height: var(--kp);
+  box-shadow:
+    calc(var(--kp) * 2) 0 0 var(--frond),
+    var(--kp) var(--kp) 0 var(--frond),
+    calc(var(--kp) * 2) var(--kp) 0 var(--frond),
+    var(--kp) calc(var(--kp) * 2) 0 var(--frond),
+    0 calc(var(--kp) * 3) 0 var(--frond),
+    var(--kp) calc(var(--kp) * 3) 0 var(--frond),
+    var(--kp) calc(var(--kp) * 4) 0 var(--frond),
+    var(--kp) calc(var(--kp) * 5) 0 var(--frond),
+    calc(var(--kp) * 2) calc(var(--kp) * 5) 0 var(--frond),
+    calc(var(--kp) * 2) calc(var(--kp) * 6) 0 var(--frond),
+    calc(var(--kp) * 2) calc(var(--kp) * 7) 0 var(--frond),
+    calc(var(--kp) * 3) calc(var(--kp) * 7) 0 var(--frond),
+    calc(var(--kp) * 3) calc(var(--kp) * 8) 0 var(--frond),
+    calc(var(--kp) * 2) calc(var(--kp) * 9) 0 var(--frond),
+    calc(var(--kp) * 3) calc(var(--kp) * 9) 0 var(--frond),
+    calc(var(--kp) * 2) calc(var(--kp) * 10) 0 var(--frond),
+    var(--kp) calc(var(--kp) * 11) 0 var(--frond),
+    calc(var(--kp) * 2) calc(var(--kp) * 11) 0 var(--frond),
+    calc(var(--kp) * 2) calc(var(--kp) * 12) 0 var(--frond),
+    calc(var(--kp) * 2) calc(var(--kp) * 13) 0 var(--frond),
+    calc(var(--kp) * 2) calc(var(--kp) * 14) 0 var(--frond),
+    calc(var(--kp) * 3) calc(var(--kp) * 14) 0 var(--frond),
+    calc(var(--kp) * 2) calc(var(--kp) * 15) 0 var(--frond);
+}
+/* The second stand is drawn at single size in a dimmer ink, which is the whole
+   of the distance between them. */
+.reef .kelp:nth-of-type(2) {
+  --kp: var(--px);
+  --frond: color-mix(in srgb, var(--ink) 22%, var(--paper));
+  left: auto; right: calc(var(--px) * 26); z-index: 0;
+}
+
+/* A fish, snout left because that is the way it is swimming, drawn one solid bar
+   per row with the eye punched back out in paper and the tail forked:
+
+     .......#.....      dorsal fin
+     ....#####...#
+     ..#■#######.#
+     .###########.      snout, and the root of the tail
+     ..#########.#
+     ....#####...#
+     .......#.....      ventral fin
+
+   The two fork halves are one bar each, which is the whole tail: leave the row
+   between them dark and the eye reads it as a fork.
+   ─────────────────────────────────────────────────────────────────────────── */
+.reef .fish {
+  --fp: calc(var(--px) * 2);                      /* the fish is double-size */
+  --scale: color-mix(in srgb, var(--ink) 46%, var(--paper));
+  --fin:   color-mix(in srgb, var(--ink) 28%, var(--paper));
+  position: absolute; z-index: 1;
+  right: calc(var(--fp) * -14); bottom: calc(var(--bed) + var(--px) * 17);
+  width: calc(var(--fp) * 13); height: calc(var(--fp) * 7);
+  background-repeat: no-repeat;
+  background-image:
+    linear-gradient(var(--paper), var(--paper)),        /* the eye         */
+    linear-gradient(var(--fin), var(--fin)),            /* dorsal fin      */
+    linear-gradient(var(--fin), var(--fin)),            /* ventral fin     */
+    linear-gradient(var(--fin), var(--fin)),            /* tail, upper     */
+    linear-gradient(var(--fin), var(--fin)),            /* tail, lower     */
+    linear-gradient(var(--scale), var(--scale)),        /* body, row 1     */
+    linear-gradient(var(--scale), var(--scale)),        /* row 2           */
+    linear-gradient(var(--scale), var(--scale)),        /* row 3, snout    */
+    linear-gradient(var(--scale), var(--scale)),        /* row 4           */
+    linear-gradient(var(--scale), var(--scale));        /* row 5           */
+  background-size:
+    var(--fp) var(--fp),
+    var(--fp) var(--fp),
+    var(--fp) var(--fp),
+    var(--fp) calc(var(--fp) * 2),
+    var(--fp) calc(var(--fp) * 2),
+    calc(var(--fp) * 5) var(--fp),
+    calc(var(--fp) * 9) var(--fp),
+    calc(var(--fp) * 11) var(--fp),
+    calc(var(--fp) * 9) var(--fp),
+    calc(var(--fp) * 5) var(--fp);
+  background-position:
+    top calc(var(--fp) * 2) left calc(var(--fp) * 3),
+    top 0 left calc(var(--fp) * 7),
+    top calc(var(--fp) * 6) left calc(var(--fp) * 7),
+    top var(--fp) right 0,
+    top calc(var(--fp) * 4) right 0,
+    top var(--fp) left calc(var(--fp) * 4),
+    top calc(var(--fp) * 2) left calc(var(--fp) * 2),
+    top calc(var(--fp) * 3) left var(--fp),
+    top calc(var(--fp) * 4) left calc(var(--fp) * 2),
+    top calc(var(--fp) * 5) left calc(var(--fp) * 4);
+}
+
+/* ── the reef, moving ─────────────────────────────────────────────────────── */
+@property --bub1 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --bub2 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --bub3 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --bub4 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --bub5 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --bub6 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+
+/* Every column rises exactly one tile — its own period — in `steps(period)`, so
+   a bubble climbs a whole pixel each step and the reset lands on an identical
+   frame. The near columns rise faster than the far ones, which is the parallax. */
+.reef {
+  animation:
+    rise-1 3.1s steps(13, end) infinite,
+    rise-2 5.3s steps(17, end) infinite,
+    rise-3 2.4s steps(11, end) infinite,
+    rise-4 6.2s steps(19, end) infinite,
+    rise-5 8.1s steps(23, end) infinite,
+    rise-6 3.6s steps(15, end) infinite;
+}
+@keyframes rise-1 { to { --bub1: calc(var(--px) * 13); } }
+@keyframes rise-2 { to { --bub2: calc(var(--px) * 17); } }
+@keyframes rise-3 { to { --bub3: calc(var(--px) * 11); } }
+@keyframes rise-4 { to { --bub4: calc(var(--px) * 19); } }
+@keyframes rise-5 { to { --bub5: calc(var(--px) * 23); } }
+@keyframes rise-6 { to { --bub6: calc(var(--px) * 15); } }
+
+/* The kelp leans a pixel with the current and back, the far stand a beat behind
+   the near one — the same trick the palm and the fir use. */
+.reef .kelp { animation: kelp-sway 11s steps(1, end) infinite; }
+.reef .kelp:nth-of-type(2) { animation-duration: 15s; animation-delay: -4s; }
+@keyframes kelp-sway {
+  0%, 100% { transform: translateX(0); }
+  33%      { transform: translateX(var(--px)); }
+  66%      { transform: translateX(calc(var(--px) * -1)); }
+}
+
+/* The fish crosses the whole box and keeps going, which is why this does not
+   `alternate`: at the end of the run it is off the left edge, so the jump back
+   to off the right edge happens where nobody can see it. */
+.reef .fish { animation: fish-swim 54s steps(220, end) infinite; }
+@keyframes fish-swim { to { transform: translateX(calc(var(--px) * -220)); } }
+
+/* The school shoulders along the other way; the drift just glitters. */
+.reef::before { animation: school 23s steps(9, end) infinite alternate; }
+@keyframes school { to { transform: translate(calc(var(--px) * 9), calc(var(--px) * -2)); } }
+.reef::after { animation: star-flicker 4.6s steps(1, end) infinite alternate; }
+
+/* ── scene: the rails ─────────────────────────────────────────────────────────
+   Prairie at night with a night train on it. Two things here are the band trick
+   the city uses: the hills, two ranks on periods of 31 and 43, and the telegraph
+   line — a pole is one bar of a period-23 band, its crossarm a second band one
+   row above the pole tops, so the line marches off in both directions at any
+   width without a sprite in sight.
+
+   The track is four rows: ballast, a rank of sleepers, the near rail, and the
+   far rail a couple of pixels up the page in a dimmer ink.
+   ─────────────────────────────────────────────────────────────────────────── */
+.rails {
+  --px: 6px;
+  --bed: calc(var(--px) * 5);                        /* depth of the ballast */
+  --grit:    color-mix(in srgb, var(--ink) 30%, transparent);
+  /* opaque, for the reason spelled out over the city: stacked bands */
+  --gravel:  color-mix(in srgb, var(--ink) 18%, var(--paper));
+  --tie:     color-mix(in srgb, var(--ink) 34%, var(--paper));
+  --rail:    color-mix(in srgb, var(--ink) 62%, var(--paper));
+  --rail-lo: color-mix(in srgb, var(--ink) 30%, var(--paper));
+  --wire:    color-mix(in srgb, var(--ink) 26%, var(--paper));
+  --hill:    color-mix(in srgb, var(--ink) 15%, var(--paper));
+  --hill-lo: color-mix(in srgb, var(--ink) 9%, var(--paper));
+
+  background-repeat: no-repeat;
+  background-image:
+    /* the near rail, then the far one */
+    linear-gradient(var(--rail), var(--rail)),
+    linear-gradient(var(--rail-lo), var(--rail-lo)),
+    /* sleepers: two lit, two dark, all the way along */
+    repeating-linear-gradient(90deg, var(--tie) 0 calc(var(--px) * 2), transparent calc(var(--px) * 2) calc(var(--px) * 4)),
+    /* grit in the ballast, two rows on different rhythms */
+    repeating-linear-gradient(90deg, var(--grit) 0 var(--px), transparent var(--px) calc(var(--px) * 5)),
+    repeating-linear-gradient(90deg, var(--grit) 0 var(--px), transparent var(--px) calc(var(--px) * 8)),
+    /* the ballast */
+    linear-gradient(var(--gravel), var(--gravel)),
+    /* the telegraph line: crossarms, then the poles under them */
+    repeating-linear-gradient(90deg, var(--wire) 0 calc(var(--px) * 3), transparent calc(var(--px) * 3) calc(var(--px) * 23)),
+    repeating-linear-gradient(90deg,
+      transparent 0 var(--px), var(--wire) var(--px) calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 23)),
+    /* near hills, four bands on a period of thirty-one: 4, 8, 12 and 16 tall,
+       each one narrower than the band under it. Three steps still reads as a
+       stack of plateaus; the fourth is what makes it a hill:
+
+         ......#................#.......      16 tall
+         .....###..............###......      12
+         ...#######.........#######.....       8
+         #############...#########......       4
+       ------------------------------------------------------------------- */
+    repeating-linear-gradient(90deg,
+      var(--hill) 0 calc(var(--px) * 13), transparent calc(var(--px) * 13) calc(var(--px) * 19),
+      var(--hill) calc(var(--px) * 19) calc(var(--px) * 28), transparent calc(var(--px) * 28) calc(var(--px) * 31)),
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 3), var(--hill) calc(var(--px) * 3) calc(var(--px) * 10),
+      transparent calc(var(--px) * 10) calc(var(--px) * 21), var(--hill) calc(var(--px) * 21) calc(var(--px) * 26),
+      transparent calc(var(--px) * 26) calc(var(--px) * 31)),
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 5), var(--hill) calc(var(--px) * 5) calc(var(--px) * 8),
+      transparent calc(var(--px) * 8) calc(var(--px) * 22), var(--hill) calc(var(--px) * 22) calc(var(--px) * 25),
+      transparent calc(var(--px) * 25) calc(var(--px) * 31)),
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 6), var(--hill) calc(var(--px) * 6) calc(var(--px) * 7),
+      transparent calc(var(--px) * 7) calc(var(--px) * 23), var(--hill) calc(var(--px) * 23) calc(var(--px) * 24),
+      transparent calc(var(--px) * 24) calc(var(--px) * 31)),
+    /* far hills, taller and dimmer, on a period of forty-three */
+    repeating-linear-gradient(90deg,
+      var(--hill-lo) 0 calc(var(--px) * 18), transparent calc(var(--px) * 18) calc(var(--px) * 26),
+      var(--hill-lo) calc(var(--px) * 26) calc(var(--px) * 38), transparent calc(var(--px) * 38) calc(var(--px) * 43)),
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 5), var(--hill-lo) calc(var(--px) * 5) calc(var(--px) * 14),
+      transparent calc(var(--px) * 14) calc(var(--px) * 29), var(--hill-lo) calc(var(--px) * 29) calc(var(--px) * 35),
+      transparent calc(var(--px) * 35) calc(var(--px) * 43)),
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 8), var(--hill-lo) calc(var(--px) * 8) calc(var(--px) * 11),
+      transparent calc(var(--px) * 11) calc(var(--px) * 30), var(--hill-lo) calc(var(--px) * 30) calc(var(--px) * 33),
+      transparent calc(var(--px) * 33) calc(var(--px) * 43)),
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 9), var(--hill-lo) calc(var(--px) * 9) calc(var(--px) * 10),
+      transparent calc(var(--px) * 10) calc(var(--px) * 31), var(--hill-lo) calc(var(--px) * 31) calc(var(--px) * 32),
+      transparent calc(var(--px) * 32) calc(var(--px) * 43));
+  background-size:
+    100% var(--px),                            /* near rail                  */
+    100% var(--px),                            /* far rail                   */
+    100% var(--px),                            /* sleepers                   */
+    100% var(--px),                            /* grit, low row              */
+    100% var(--px),                            /* grit, high row             */
+    100% var(--bed),                           /* the ballast                */
+    100% var(--px),                            /* crossarms                  */
+    100% calc(var(--px) * 11),                 /* poles                      */
+    100% calc(var(--px) * 4),                  /* near hills, base to crest  */
+    100% calc(var(--px) * 8),
+    100% calc(var(--px) * 12),
+    100% calc(var(--px) * 16),
+    100% calc(var(--px) * 7),                  /* far hills, base to crest   */
+    100% calc(var(--px) * 12),
+    100% calc(var(--px) * 17),
+    100% calc(var(--px) * 22);
+  background-position:
+    bottom var(--bed) left 0,
+    bottom calc(var(--bed) + var(--px) * 2) left 0,
+    bottom calc(var(--px) * 4) left 0,
+    bottom var(--px) left 0,
+    bottom calc(var(--px) * 3) left calc(var(--px) * 3),
+    bottom left,
+    bottom calc(var(--bed) + var(--px) * 12) left calc(var(--px) * 13),
+    bottom calc(var(--bed) + var(--px) * 2) left calc(var(--px) * 13),
+    bottom var(--bed) left 0,
+    bottom var(--bed) left 0,
+    bottom var(--bed) left 0,
+    bottom var(--bed) left 0,
+    /* the far rank stands three pixels further up the page, seven over */
+    bottom calc(var(--bed) + var(--px) * 3) left calc(var(--px) * 7),
+    bottom calc(var(--bed) + var(--px) * 3) left calc(var(--px) * 7),
+    bottom calc(var(--bed) + var(--px) * 3) left calc(var(--px) * 7),
+    bottom calc(var(--bed) + var(--px) * 3) left calc(var(--px) * 7);
+}
+
+/* Stars over the prairie. */
+.rails::before {
+  content: ""; position: absolute;
+  right: calc(var(--px) * 15); bottom: calc(var(--bed) + var(--px) * 36);
+  width: var(--px); height: var(--px); background: var(--ink-dim);
+  box-shadow:
+    calc(var(--px) * 6) calc(var(--px) * 5) 0 var(--ink-faint),
+    calc(var(--px) * -7) calc(var(--px) * -3) 0 var(--ink-dim),
+    calc(var(--px) * -15) calc(var(--px) * 8) 0 var(--ink-faint),
+    calc(var(--px) * -23) calc(var(--px) * 1) 0 var(--ink-dim),
+    calc(var(--px) * -30) calc(var(--px) * 12) 0 var(--ink-faint),
+    calc(var(--px) * -38) calc(var(--px) * -2) 0 var(--ink-dim),
+    calc(var(--px) * -47) calc(var(--px) * 7) 0 var(--ink-faint);
+}
+
+/* A signal beside the track: three pixels of mast, and a lamp on top. The lamp
+   is the element, so the mast keeps its own colour while the lamp changes. */
+.rails::after {
+  content: ""; position: absolute;
+  left: calc(var(--px) * 6); bottom: calc(var(--bed) + var(--px) * 4);
+  width: var(--px); height: var(--px); background: var(--ink-hot);
+  box-shadow:
+    0 var(--px) 0 var(--ink-dim),
+    0 calc(var(--px) * 2) 0 var(--ink-dim),
+    0 calc(var(--px) * 3) 0 var(--ink-dim);
+}
+
+/* The train: a locomotive at the head with its stack and cab, two cars behind
+   it, lit windows in all three.
+
+     ........................#.        stack
+     ..................####..#.        cab roof
+     ########.########.########        roof line
+     ##■##■##.##■##■##.#■######        windows
+     ########.########.########
+     .#.#..#...#.#..#...#.#..#.        wheels
+
+   Ten background bars for the body, the nine wheels as `box-shadow` pixels on
+   `::after`, and the plume on `::before` so it travels with the engine. Drawn
+   double-size, and in an ink well clear of the hills — the engine has to read as
+   a silhouette crossing them, not as another lump of the ridge.
+   ─────────────────────────────────────────────────────────────────────────── */
+.rails .train {
+  --tp: calc(var(--px) * 2);                    /* the train is double-size */
+  --iron: color-mix(in srgb, var(--ink) 58%, var(--paper));
+  position: absolute; z-index: 1; left: 0;
+  bottom: calc(var(--bed) + var(--px));
+  width: calc(var(--tp) * 26); height: calc(var(--tp) * 6);
+  background-repeat: no-repeat;
+  background-image:
+    linear-gradient(var(--ink-hot), var(--ink-hot)),    /* car A, window 1    */
+    linear-gradient(var(--ink-hot), var(--ink-hot)),    /* car A, window 2    */
+    linear-gradient(var(--ink-hot), var(--ink-hot)),    /* car B, window 1    */
+    linear-gradient(var(--ink-hot), var(--ink-hot)),    /* car B, window 2    */
+    linear-gradient(var(--ink-hot), var(--ink-hot)),    /* the cab window     */
+    linear-gradient(var(--iron), var(--iron)),          /* the stack          */
+    linear-gradient(var(--iron), var(--iron)),          /* the cab roof       */
+    linear-gradient(var(--iron), var(--iron)),          /* car A              */
+    linear-gradient(var(--iron), var(--iron)),          /* car B              */
+    linear-gradient(var(--iron), var(--iron));          /* the locomotive     */
+  background-size:
+    var(--tp) var(--tp),
+    var(--tp) var(--tp),
+    var(--tp) var(--tp),
+    var(--tp) var(--tp),
+    var(--tp) var(--tp),
+    var(--tp) calc(var(--tp) * 2),
+    calc(var(--tp) * 4) var(--tp),
+    calc(var(--tp) * 8) calc(var(--tp) * 3),
+    calc(var(--tp) * 8) calc(var(--tp) * 3),
+    calc(var(--tp) * 8) calc(var(--tp) * 3);
+  background-position:
+    top calc(var(--tp) * 3) left calc(var(--tp) * 2),
+    top calc(var(--tp) * 3) left calc(var(--tp) * 5),
+    top calc(var(--tp) * 3) left calc(var(--tp) * 11),
+    top calc(var(--tp) * 3) left calc(var(--tp) * 14),
+    top calc(var(--tp) * 3) left calc(var(--tp) * 19),
+    top 0 left calc(var(--tp) * 24),
+    top var(--tp) left calc(var(--tp) * 18),
+    top calc(var(--tp) * 2) left 0,
+    top calc(var(--tp) * 2) left calc(var(--tp) * 9),
+    top calc(var(--tp) * 2) left calc(var(--tp) * 18);
+}
+.rails .train::before {
+  content: ""; position: absolute;
+  left: calc(var(--tp) * 24); top: calc(var(--tp) * -3);
+  width: var(--tp); height: var(--tp); background: var(--ink-faint);
+  box-shadow:
+    calc(var(--tp) * -2) calc(var(--tp) * -1) 0 var(--ink-faint),
+    calc(var(--tp) * -5) calc(var(--tp) * -2) 0 var(--ink-faint),
+    calc(var(--tp) * -9) calc(var(--tp) * -3) 0 var(--ink-faint),
+    calc(var(--tp) * -14) calc(var(--tp) * -3) 0 var(--ink-faint);
+}
+.rails .train::after {
+  content: ""; position: absolute;
+  left: var(--tp); top: calc(var(--tp) * 5);
+  width: var(--tp); height: var(--tp); background: var(--ink-dim);
+  box-shadow:
+    calc(var(--tp) * 2) 0 0 var(--ink-dim),
+    calc(var(--tp) * 5) 0 0 var(--ink-dim),
+    calc(var(--tp) * 9) 0 0 var(--ink-dim),
+    calc(var(--tp) * 11) 0 0 var(--ink-dim),
+    calc(var(--tp) * 14) 0 0 var(--ink-dim),
+    calc(var(--tp) * 18) 0 0 var(--ink-dim),
+    calc(var(--tp) * 20) 0 0 var(--ink-dim),
+    calc(var(--tp) * 23) 0 0 var(--ink-dim);
+}
+
+/* ── the rails, moving ─────────────────────────────────────────────────────────
+   The train runs one pixel at a time from off the left edge to well past the
+   right one, and does not `alternate` — a train that reversed back across the
+   prairie would be a different scene. The reset happens off screen. */
+.rails .train { animation: train-run 68s steps(280, end) infinite; }
+@keyframes train-run {
+  from { transform: translateX(calc(var(--px) * -30)); }
+  to   { transform: translateX(calc(var(--px) * 250)); }
+}
+
+/* Steam: up a pixel and back, on its own clock, so the plume boils while the
+   engine travels. */
+.rails .train::before { animation: steam 1.8s steps(1, end) infinite alternate; }
+@keyframes steam {
+  from { transform: translate(0, 0); opacity: .9; }
+  to   { transform: translate(calc(var(--px) * -1), calc(var(--px) * -1)); opacity: .5; }
+}
+
+.rails::before { animation: star-flicker 4.1s steps(1, end) infinite alternate; }
+
+/* The signal holds green a long while, then drops to a dark lamp for a beat. */
+.rails::after { animation: signal 7.3s steps(1, end) infinite; }
+@keyframes signal {
+  0%, 78%   { background: var(--ink-hot); }
+  79%, 100% { background: var(--ink-faint); }
+}
+
+/* ── scene: the volcano ───────────────────────────────────────────────────────
+   A cinder cone over a cracked lava field. Ash falls the way snow does in the
+   woods — one `repeat-y` column per fall, each sliding its own period — only
+   slower and dimmer, because ash drifts down rather than dropping. Two ridges
+   behind it are bands on periods of 19 and 29.
+
+   The heat is the only place in any of these scenes where `--ink-hot` does real
+   work: the crater lip, a runnel down the flank, the cracks in the field and the
+   embers going up. Nothing about it glows — a glow is a gradient ramp, which the
+   rules forbid — it is lit pixels next to unlit ones, blinking.
+   ─────────────────────────────────────────────────────────────────────────── */
+.volcano {
+  --px: 6px;
+  --field: calc(var(--px) * 7);                      /* the lava field */
+  --ash:    color-mix(in srgb, var(--ink) 30%, transparent);
+  --ash-lo: color-mix(in srgb, var(--ink) 15%, transparent);
+  --cinder: color-mix(in srgb, var(--ink) 26%, transparent);
+  /* opaque, for the reason spelled out over the city: stacked bands */
+  --crust:   color-mix(in srgb, var(--ink) 26%, var(--paper));
+  /* both ranks sit under the cone's own 34%, so the cone reads as the near
+     thing and the ridges as distance rather than as more cones */
+  --rock:    color-mix(in srgb, var(--ink) 23%, var(--paper));
+  --rock-lo: color-mix(in srgb, var(--ink) 13%, var(--paper));
+  --lava:    color-mix(in srgb, var(--ink-hot) 42%, var(--paper));
+
+  --ash1: 0px; --ash2: 0px; --ash3: 0px;
+  --ash4: 0px; --ash5: 0px; --ash6: 0px;
+
+  background-repeat:
+    repeat-y, repeat-y, repeat-y,                    /* the six ash columns */
+    repeat-y, repeat-y, repeat-y,
+    no-repeat, no-repeat, no-repeat,                 /* everything else     */
+    no-repeat, no-repeat, no-repeat,
+    no-repeat, no-repeat, no-repeat, no-repeat,
+    no-repeat, no-repeat;
+  background-image:
+    /* falling ash: the deep columns hold two flecks at uneven depths, the
+       shallow ones one, or a short tile reads as a dotted line */
+    linear-gradient(var(--ash) 0 var(--px), transparent var(--px)),
+    linear-gradient(var(--ash-lo) 0 var(--px), transparent var(--px) calc(var(--px) * 11), var(--ash-lo) calc(var(--px) * 11) calc(var(--px) * 12), transparent calc(var(--px) * 12)),
+    linear-gradient(var(--ash-lo) 0 var(--px), transparent var(--px) calc(var(--px) * 13), var(--ash-lo) calc(var(--px) * 13) calc(var(--px) * 14), transparent calc(var(--px) * 14)),
+    linear-gradient(var(--ash) 0 var(--px), transparent var(--px)),
+    linear-gradient(var(--ash-lo) 0 var(--px), transparent var(--px) calc(var(--px) * 16), var(--ash-lo) calc(var(--px) * 16) calc(var(--px) * 17), transparent calc(var(--px) * 17)),
+    linear-gradient(var(--ash) 0 var(--px), transparent var(--px)),
+    /* two ranks of cracks in the crust, glowing from underneath */
+    repeating-linear-gradient(90deg, var(--lava) 0 calc(var(--px) * 3), transparent calc(var(--px) * 3) calc(var(--px) * 13)),
+    repeating-linear-gradient(90deg, var(--lava) 0 calc(var(--px) * 2), transparent calc(var(--px) * 2) calc(var(--px) * 17)),
+    /* cinder stipple, so the field is not a flat wash */
+    repeating-linear-gradient(90deg, var(--cinder) 0 var(--px), transparent var(--px) calc(var(--px) * 6)),
+    /* the field */
+    linear-gradient(var(--crust), var(--crust)),
+    /* near ridge, four bands on a period of nineteen. Two peaks per period, each
+       band a couple of pixels narrower than the one under it — four steps is
+       what separates a mountain from a plateau:
+
+         ...#..........#....      16 tall
+         ..###........###...      12
+         .######.....#####..       8
+         #########..#######.       4
+       ------------------------------------------------------------------- */
+    repeating-linear-gradient(90deg,
+      var(--rock) 0 calc(var(--px) * 9), transparent calc(var(--px) * 9) calc(var(--px) * 11),
+      var(--rock) calc(var(--px) * 11) calc(var(--px) * 18), transparent calc(var(--px) * 18) calc(var(--px) * 19)),
+    repeating-linear-gradient(90deg,
+      transparent 0 var(--px), var(--rock) var(--px) calc(var(--px) * 7),
+      transparent calc(var(--px) * 7) calc(var(--px) * 12), var(--rock) calc(var(--px) * 12) calc(var(--px) * 17),
+      transparent calc(var(--px) * 17) calc(var(--px) * 19)),
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 2), var(--rock) calc(var(--px) * 2) calc(var(--px) * 5),
+      transparent calc(var(--px) * 5) calc(var(--px) * 13), var(--rock) calc(var(--px) * 13) calc(var(--px) * 16),
+      transparent calc(var(--px) * 16) calc(var(--px) * 19)),
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 3), var(--rock) calc(var(--px) * 3) calc(var(--px) * 4),
+      transparent calc(var(--px) * 4) calc(var(--px) * 14), var(--rock) calc(var(--px) * 14) calc(var(--px) * 15),
+      transparent calc(var(--px) * 15) calc(var(--px) * 19)),
+    /* far ridge, taller and dimmer, on a period of twenty-nine */
+    repeating-linear-gradient(90deg,
+      var(--rock-lo) 0 calc(var(--px) * 13), transparent calc(var(--px) * 13) calc(var(--px) * 17),
+      var(--rock-lo) calc(var(--px) * 17) calc(var(--px) * 27), transparent calc(var(--px) * 27) calc(var(--px) * 29)),
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 2), var(--rock-lo) calc(var(--px) * 2) calc(var(--px) * 10),
+      transparent calc(var(--px) * 10) calc(var(--px) * 19), var(--rock-lo) calc(var(--px) * 19) calc(var(--px) * 25),
+      transparent calc(var(--px) * 25) calc(var(--px) * 29)),
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 4), var(--rock-lo) calc(var(--px) * 4) calc(var(--px) * 8),
+      transparent calc(var(--px) * 8) calc(var(--px) * 20), var(--rock-lo) calc(var(--px) * 20) calc(var(--px) * 23),
+      transparent calc(var(--px) * 23) calc(var(--px) * 29)),
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 5), var(--rock-lo) calc(var(--px) * 5) calc(var(--px) * 7),
+      transparent calc(var(--px) * 7) calc(var(--px) * 29));
+  background-size:
+    var(--px) calc(var(--px) * 15),            /* ash: tile depth = period   */
+    var(--px) calc(var(--px) * 19),
+    var(--px) calc(var(--px) * 23),
+    var(--px) calc(var(--px) * 13),
+    var(--px) calc(var(--px) * 29),
+    var(--px) calc(var(--px) * 17),
+    100% var(--px),                            /* cracks, low rank           */
+    100% var(--px),                            /* cracks, high rank          */
+    100% var(--px),                            /* cinder stipple             */
+    100% var(--field),                         /* the field                  */
+    100% calc(var(--px) * 4),                  /* near ridge, base to peak   */
+    100% calc(var(--px) * 8),
+    100% calc(var(--px) * 12),
+    100% calc(var(--px) * 16),
+    100% calc(var(--px) * 8),                  /* far ridge, base to peak    */
+    100% calc(var(--px) * 13),
+    100% calc(var(--px) * 18),
+    100% calc(var(--px) * 23);
+  background-position:
+    left  calc(var(--px) * 11) top var(--ash1),
+    left  calc(var(--px) * 33) top var(--ash2),
+    left  calc(var(--px) * 58) top var(--ash3),
+    right calc(var(--px) * 19) top var(--ash4),
+    right calc(var(--px) * 47) top var(--ash5),
+    right calc(var(--px) * 72) top var(--ash6),
+    bottom calc(var(--px) * 2) left 0,
+    bottom calc(var(--px) * 4) left calc(var(--px) * 5),
+    bottom var(--px) left calc(var(--px) * 2),
+    bottom left,
+    bottom var(--field) left 0,
+    bottom var(--field) left 0,
+    bottom var(--field) left 0,
+    bottom var(--field) left 0,
+    /* the far rank stands two pixels further up the page, nine over */
+    bottom calc(var(--field) + var(--px) * 2) left calc(var(--px) * 9),
+    bottom calc(var(--field) + var(--px) * 2) left calc(var(--px) * 9),
+    bottom calc(var(--field) + var(--px) * 2) left calc(var(--px) * 9),
+    bottom calc(var(--field) + var(--px) * 2) left calc(var(--px) * 9);
+}
+
+/* The plume, standing over the crater and leaning off it. */
+.volcano::before {
+  content: ""; position: absolute;
+  right: calc(var(--px) * 44); bottom: calc(var(--field) + var(--px) * 25);
+  width: var(--px); height: var(--px); background: var(--ink-faint);
+  box-shadow:
+    var(--px) calc(var(--px) * -2) 0 var(--ink-faint),
+    calc(var(--px) * -1) calc(var(--px) * -4) 0 var(--ink-faint),
+    calc(var(--px) * -3) calc(var(--px) * -7) 0 var(--ink-faint),
+    calc(var(--px) * -2) calc(var(--px) * -10) 0 var(--ink-faint),
+    calc(var(--px) * -6) calc(var(--px) * -13) 0 var(--ink-faint),
+    calc(var(--px) * -5) calc(var(--px) * -17) 0 var(--ink-faint),
+    calc(var(--px) * -10) calc(var(--px) * -20) 0 var(--ink-faint);
+}
+
+/* One rank of cracks that goes with the field's pulse rather than sitting still,
+   which is what stops the crust reading as printed. */
+.volcano::after {
+  content: ""; position: absolute; left: 0; right: 0;
+  bottom: calc(var(--px) * 3); height: var(--px);
+  background-image: repeating-linear-gradient(90deg,
+    var(--ink-hot) 0 calc(var(--px) * 2), transparent calc(var(--px) * 2) calc(var(--px) * 31));
+}
+
+/* The cone, drawn double-size, one solid bar per row, with the crater lit and a
+   runnel of lava stepping down the flank:
+
+     .........###.........      the crater
+     ........#####........
+     .......#######.......
+     .......#######.......
+     ......#########......
+     .....###########.....
+     .....###########.....
+     ....#############....
+     ...###############...
+     ..#################..
+     .###################.
+     #####################
+   ─────────────────────────────────────────────────────────────────────────── */
+.volcano .cone {
+  --cp: calc(var(--px) * 2);                   /* the cone is drawn double-size */
+  --flank: color-mix(in srgb, var(--ink) 34%, var(--paper));
+  position: absolute; z-index: 1; right: calc(var(--px) * 22);
+  bottom: var(--field);
+  width: calc(var(--cp) * 21); height: calc(var(--cp) * 12);
+  background-repeat: no-repeat;
+  background-image:
+    linear-gradient(var(--ink-hot), var(--ink-hot)),    /* runnel, row 2      */
+    linear-gradient(var(--ink-hot), var(--ink-hot)),    /* runnel, row 3      */
+    linear-gradient(var(--ink-hot), var(--ink-hot)),    /* runnel, row 4      */
+    linear-gradient(var(--ink-hot), var(--ink-hot)),    /* the crater lip     */
+    linear-gradient(var(--flank), var(--flank)),        /* row 1              */
+    linear-gradient(var(--flank), var(--flank)),        /* row 2              */
+    linear-gradient(var(--flank), var(--flank)),        /* row 3              */
+    linear-gradient(var(--flank), var(--flank)),        /* row 4              */
+    linear-gradient(var(--flank), var(--flank)),        /* row 5              */
+    linear-gradient(var(--flank), var(--flank)),        /* row 6              */
+    linear-gradient(var(--flank), var(--flank)),        /* row 7              */
+    linear-gradient(var(--flank), var(--flank)),        /* row 8              */
+    linear-gradient(var(--flank), var(--flank)),        /* row 9              */
+    linear-gradient(var(--flank), var(--flank)),        /* row 10             */
+    linear-gradient(var(--flank), var(--flank));        /* row 11             */
+  background-size:
+    var(--cp) var(--cp),
+    var(--cp) var(--cp),
+    var(--cp) var(--cp),
+    calc(var(--cp) * 3) var(--cp),
+    calc(var(--cp) * 5) var(--cp),
+    calc(var(--cp) * 7) var(--cp),
+    calc(var(--cp) * 7) var(--cp),
+    calc(var(--cp) * 9) var(--cp),
+    calc(var(--cp) * 11) var(--cp),
+    calc(var(--cp) * 11) var(--cp),
+    calc(var(--cp) * 13) var(--cp),
+    calc(var(--cp) * 15) var(--cp),
+    calc(var(--cp) * 17) var(--cp),
+    calc(var(--cp) * 19) var(--cp),
+    calc(var(--cp) * 21) var(--cp);
+  background-position:
+    top calc(var(--cp) * 2) left calc(var(--cp) * 12),
+    top calc(var(--cp) * 3) left calc(var(--cp) * 12),
+    top calc(var(--cp) * 4) left calc(var(--cp) * 13),
+    top 0 left calc(var(--cp) * 9),
+    top var(--cp) left calc(var(--cp) * 8),
+    top calc(var(--cp) * 2) left calc(var(--cp) * 7),
+    top calc(var(--cp) * 3) left calc(var(--cp) * 7),
+    top calc(var(--cp) * 4) left calc(var(--cp) * 6),
+    top calc(var(--cp) * 5) left calc(var(--cp) * 5),
+    top calc(var(--cp) * 6) left calc(var(--cp) * 5),
+    top calc(var(--cp) * 7) left calc(var(--cp) * 4),
+    top calc(var(--cp) * 8) left calc(var(--cp) * 3),
+    top calc(var(--cp) * 9) left calc(var(--cp) * 2),
+    top calc(var(--cp) * 10) left var(--cp),
+    top calc(var(--cp) * 11) left 0;
+}
+
+/* Embers: one pixel each, thrown out of the crater and gone by the top of the
+   arc. Three of them, on three clocks. */
+.volcano .ember {
+  position: absolute; z-index: 1; right: calc(var(--px) * 42);
+  bottom: calc(var(--field) + var(--px) * 24);
+  width: var(--px); height: var(--px); background: var(--ink-hot);
+}
+.volcano .ember:nth-of-type(2) { right: calc(var(--px) * 44); }
+.volcano .ember:nth-of-type(3) { right: calc(var(--px) * 40); }
+
+/* ── the volcano, moving ──────────────────────────────────────────────────── */
+@property --ash1 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --ash2 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --ash3 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --ash4 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --ash5 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --ash6 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+
+/* Each column falls one tile — its own period — a whole pixel per step, on
+   durations that share no factor with each other's. */
+.volcano {
+  animation:
+    drift-1 6.4s  steps(15, end) infinite,
+    drift-2 8.3s  steps(19, end) infinite,
+    drift-3 11.1s steps(23, end) infinite,
+    drift-4 5.2s  steps(13, end) infinite,
+    drift-5 13.4s steps(29, end) infinite,
+    drift-6 7.1s  steps(17, end) infinite;
+}
+@keyframes drift-1 { to { --ash1: calc(var(--px) * 15); } }
+@keyframes drift-2 { to { --ash2: calc(var(--px) * 19); } }
+@keyframes drift-3 { to { --ash3: calc(var(--px) * 23); } }
+@keyframes drift-4 { to { --ash4: calc(var(--px) * 13); } }
+@keyframes drift-5 { to { --ash5: calc(var(--px) * 29); } }
+@keyframes drift-6 { to { --ash6: calc(var(--px) * 17); } }
+
+/* The plume leans two pixels off the crater and back, slower than anything else
+   in the scene. */
+.volcano::before { animation: plume 21s steps(1, end) infinite alternate; }
+@keyframes plume {
+  from { transform: translateX(0); }
+  to   { transform: translateX(calc(var(--px) * -2)); }
+}
+
+/* The field breathes: the cracks are lit, then they are not. */
+.volcano::after { animation: crack-glow 3.7s steps(1, end) infinite alternate; }
+@keyframes crack-glow { from { opacity: .9; } to { opacity: .25; } }
+
+/* An ember climbs in five steps and is out before the sixth, which is why the
+   opacity lands on 0 rather than fading: a fade is a ramp. */
+.volcano .ember { animation: ember-fly 5.6s steps(1, end) infinite; }
+.volcano .ember:nth-of-type(2) { animation-duration: 7.3s; animation-delay: -3.1s; }
+.volcano .ember:nth-of-type(3) { animation-duration: 4.4s; animation-delay: -1.7s; }
+@keyframes ember-fly {
+  0%   { transform: translate(0, 0); opacity: 1; }
+  20%  { transform: translate(var(--px), calc(var(--px) * -4)); opacity: 1; }
+  40%  { transform: translate(calc(var(--px) * 2), calc(var(--px) * -7)); opacity: 1; }
+  60%  { transform: translate(calc(var(--px) * 4), calc(var(--px) * -9)); opacity: .6; }
+  80%  { transform: translate(calc(var(--px) * 7), calc(var(--px) * -10)); opacity: .3; }
+  100% { transform: translate(calc(var(--px) * 10), calc(var(--px) * -10)); opacity: 0; }
+}
 
 /* ── tab deck (CSS-only) ──────────────────────────────────────────────────── */
 .rack { grid-template-rows: auto minmax(0,1fr) auto; }

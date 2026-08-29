@@ -27,8 +27,8 @@ no bundler, no dependencies, nothing to compile.
 
 | File | Lines | What it is |
 | --- | --- | --- |
-| `index.html` | 321 | The entire UI. Structure only — no styles, no logic. |
-| `css/buttercup.css` | 1694 | Amber-phosphor CRT skin, layout, tab deck, and the four scenes. |
+| `index.html` | 329 | The entire UI. Structure only — no styles, no logic. |
+| `css/buttercup.css` | 2636 | Amber-phosphor CRT skin, layout, tab deck, and the seven scenes. |
 | `js/vfs.js` | 147 | Virtual filesystem: path → text, persisted in `localStorage`. |
 | `js/checkpoints.js` | 64 | The undo stack: conversation + workspace, frozen together. |
 | `js/sandbox.js` | 243 | Sandboxed execution + a hand-written ES-module linker. |
@@ -287,19 +287,24 @@ memory and keeps the files, **WIPE** (`/wipe`) does the opposite.
 The prompt bar sits directly under the last line of the transcript and only parks
 at the bottom edge once the transcript has grown that far — flexbox, no JS. While
 it is still high up, the room below it shows a low-resolution monochrome scene —
-a **beach**, a **city** at night, snow in the **woods**, or a ringed planet in
-**orbit**, one of the four at random on every load (`?scene=city` pins one).
+a **beach**, a **city** at night, snow in the **woods**, a ringed planet in
+**orbit**, a **reef** with a fish crossing it, a night train on the **rails**, or
+an erupting **volcano** — one of the seven at random on every load (`?scene=city`
+pins one).
 
-All four are true pixel art, which means every edge is horizontal or vertical (no
+All seven are true pixel art, which means every edge is horizontal or vertical (no
 diagonals, no circles, nothing the browser can anti-alias into a soft fringe), no
 grid is drawn over the top, and shape comes from which pixels are lit rather than
 from a gradient ramp. The sea is stippled crests and the sun a nine-pixel disc
-built one solid row at a time; the skyline and both treelines are cut from
-`repeating-linear-gradient` bands, so they tile across a box of any width; the
-palm, the fir, the cabin, the blimp and the station are sprites drawn from ASCII
-maps kept in the stylesheet beside them. Every offset is a multiple of one CSS
-pixel variable, so browser zoom scales the scene instead of resampling it, and
-every animation is timed in `steps()` so nothing ever renders a half-lit pixel.
+built one solid row at a time; the skyline, both treelines, the coral, the prairie
+hills and the volcanic ridges are cut from `repeating-linear-gradient` bands, so
+they tile across a box of any width; the palm, the fir, the cabin, the blimp, the
+station, the fish, the train and the cone are sprites drawn from ASCII maps kept
+in the stylesheet beside them. Snow, bubbles and ashfall are `repeat-y` columns
+travelling exactly one tile, so the loop is seamless. Every offset is a multiple
+of one CSS pixel variable, so browser zoom scales the scene instead of resampling
+it, and every animation is timed in `steps()` so nothing ever renders a half-lit
+pixel.
 
 ---
 
@@ -313,7 +318,7 @@ Zero dependencies. It reads `index.html`, follows that file's own
 `<link>`/`<script src>` order, strips comments and indentation (never renames
 anything, so a stack trace still means something), inlines the result, and
 syntax-checks every minified script with `node:vm` before writing — a corrupted
-bundle fails the build instead of shipping. One file, ~122 kB, ~38 kB gzipped.
+bundle fails the build instead of shipping. One file, ~208 kB, ~50 kB gzipped.
 Point Pages at `public/` and that's the deploy.
 
 ---

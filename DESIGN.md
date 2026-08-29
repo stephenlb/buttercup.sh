@@ -311,19 +311,32 @@ line of monospace explanation.
 ### The scenes
 
 The empty room under a short transcript is a view out the window, not padding:
-a low-resolution monochrome scene, 100% CSS, `aria-hidden`. There are four of
-them — `beach`, `city`, `woods`, `orbit` — and which one you get is a coin toss
-per load. `js/scenes.js` writes the name to `data-scene` on the container and
-stops there; `.scenes[data-scene="city"] .city { display: block }` does the rest,
-which also parks the other three scenes' animations. `?scene=woods` pins one for
-a screenshot. Adding a fifth is a `<div class="scene …">`, a block of CSS, and a
-string in the array — nothing else knows the list exists.
+a low-resolution monochrome scene, 100% CSS, `aria-hidden`. There are seven of
+them — `beach`, `city`, `woods`, `orbit`, `reef`, `rails`, `volcano` — and which
+one you get is a coin toss per load. `js/scenes.js` writes the name to
+`data-scene` on the container and stops there;
+`.scenes[data-scene="city"] .city { display: block }` does the rest, which also
+parks the other six scenes' animations. `?scene=woods` pins one for a screenshot.
+Adding an eighth is a `<div class="scene …">`, a block of CSS, and a string in
+the array — nothing else knows the list exists.
 
 True pixel art sets two rules. **Every edge is horizontal or vertical** — no
 diagonals, no circles, nothing the browser can anti-alias into a soft fringe —
 and **no grid is drawn over the top**, so pixels sit flush against their
 neighbours the way they do on a real low-res display and solid areas read as
 solid. Shape comes from which pixels are lit, never from a gradient ramp.
+
+| Scene | What is out the window |
+| --- | --- |
+| `beach` | Stippled sea, breaking surf, a nine-pixel sun, a palm, two gulls. |
+| `city` | A two-rank skyline at night, lit windows, a beacon, a blimp crossing. |
+| `woods` | Two treelines, a cabin with smoke, snow falling in six columns. |
+| `orbit` | A ringed planet over banded mesas, a moonlet, a station passing. |
+| `reef` | Coral in two ranks, kelp swaying, a fish crossing, bubbles rising through light shafts. |
+| `rails` | Prairie hills, a telegraph line, a signal lamp, a train running the length of the box. |
+| `volcano` | A cone with a lit crater and a lava runnel, banded ridges, ashfall, embers, glowing crust. |
+
+The beach is the reference implementation — the one to read first:
 
 | Element | Technique |
 | --- | --- |
@@ -335,13 +348,14 @@ solid. Shape comes from which pixels are lit, never from a gradient ramp.
 | clouds | two pixel rows each, offset |
 | palm, gulls | `box-shadow` sprites; the palm is drawn from an ASCII map kept in the comment above it |
 
-The other three lean on two more techniques, both of which fall out of the rules
+The other six lean on three more techniques, all of which fall out of the rules
 above rather than around them:
 
 | Technique | Where | How |
 | --- | --- | --- |
-| bands | city skyline, both treelines, the mesas in orbit | Each horizontal band of a silhouette is one `repeating-linear-gradient` whose bars are the shapes tall enough to reach it. Stack the bands and the towers (or firs, or mesas) appear, cut from a pattern that tiles across a box of any width. Two ranks run on coprime periods — 24 and 31 in the city, 9 and 13 in the woods — so the joins never line up into wallpaper. |
-| bars, not shadows | fir, cabin, blimp, station, planet | A sprite whose every row is a single run of pixels is cheaper and more legible as one solid `background` bar per row than as N `box-shadow` pixels. Scattered pixels — lit windows, stars, gulls — stay `box-shadow`. |
+| bands | city skyline, both treelines, the mesas in orbit, the coral, the prairie hills, the volcanic ridges | Each horizontal band of a silhouette is one `repeating-linear-gradient` whose bars are the shapes tall enough to reach it. Stack the bands and the towers (or firs, or mesas) appear, cut from a pattern that tiles across a box of any width. Two ranks run on coprime periods — 24 and 31 in the city, 9 and 13 in the woods, 19 and 29 on the volcano — so the joins never line up into wallpaper. A rank needs **four** bands to read as a hill or a peak: with three the taper is coarse enough that each shape reads as a plateau. |
+| bars, not shadows | fir, cabin, blimp, station, planet, fish, train, cone | A sprite whose every row is a single run of pixels is cheaper and more legible as one solid `background` bar per row than as N `box-shadow` pixels. Scattered pixels — lit windows, stars, gulls, embers — stay `box-shadow`. |
+| tiled columns | snow in the woods, bubbles in the reef, ashfall on the volcano | A `repeat-y` column whose tile holds one or two flecks, animated down (or up) by exactly its own period, so the loop is seamless. Six columns on coprime periods read as weather; a shallow period with two flecks reads as a dotted line, so short tiles carry one. |
 
 One consequence worth writing down: the tones in the band scenes are **opaque**
 mixes against `--paper`, not mixes with `transparent`. Bands of one rank overlap
