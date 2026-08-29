@@ -496,7 +496,6 @@ window.Tools = (function () {
   return {
     hooks,
     defs: DEFS,
-    get: (name) => byName[name],
 
     /** Tool declarations in the shape every provider adapter starts from. */
     schemas() {

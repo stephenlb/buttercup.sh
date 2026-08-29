@@ -188,7 +188,7 @@ scroll horizontally with a visible, styled scrollbar.
 
 ```
 ┌────────────────────────────────────────────────────────────────────┐
-│ ●●●  🥜 ButterCup  buttercup.sh rev.1        pure vintage charm ·  │  titlebar
+│ ●●●  🥜 ButterCup  buttercup.sh rev.2        pure vintage charm ·  │  titlebar
 │                                                    READY ●         │  (auto)
 ├──────────────────────────────────────┬─────────────────────────────┤
 │                                      │ FILES TOOLS PREVIEW KEYS    │  tabbar
@@ -201,8 +201,10 @@ scroll horizontally with a visible, styled scrollbar.
 │  │ ▸ write  handler.js     ● OK │    │                             │
 │  └──────────────────────────────┘    │                             │
 │                                      │                             │
+│ >  ask for what you want…   RUN STOP │                             │  prompt
+│ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~  │                             │  beach
 ├──────────────────────────────────────┼─────────────────────────────┤
-│ >  ask for what you want…   RUN STOP │ (\_/)  warm and idle        │  mascot
+│                                      │ (\_/)  warm and idle        │  mascot
 └──────────────────────────────────────┴─────────────────────────────┘  (auto)
    minmax(0,1fr)                          clamp(300px, 32%, 460px)
 ```
@@ -212,6 +214,11 @@ scroll horizontally with a visible, styled scrollbar.
 - Rack: `grid-template-rows: auto minmax(0,1fr) auto` — tab bar, active panel,
   mascot shelf. The shelf is the visual foot of the right column, matching the
   prompt bar's foot on the left.
+- Console column: a flex column, not a grid. The scroller is `flex: 0 1 auto`
+  (may shrink, never grows past its content) so the prompt bar sits directly
+  under the last line of the transcript and only parks at the bottom edge once
+  the transcript has grown that far. The beach below it is `flex: 1 1 0`: it
+  takes the leftover room and collapses to nothing when there is none.
 - Below `960px` the deck stacks; the rack collapses to a `<details>` drawer that
   overlays the transcript. The prompt bar stays pinned.
 - Only the transcript scroll region and each panel body scroll. `body` never does.
@@ -225,10 +232,21 @@ scroll horizontally with a visible, styled scrollbar.
 ### Title bar
 
 Three lamps (`--jam`, `--caramel`, `--pistachio`) as 8px discs with a 1px
-`--cocoa-5` ring — decorative, `aria-hidden`. Wordmark in rounded 28px, `rev.1`
+`--cocoa-5` ring — decorative, `aria-hidden`. Wordmark in rounded 28px, `rev.2`
 in 11px `--pb-dim`. Status lamp right-aligned: `<output aria-live="polite">`,
-11px letterspaced, dot + word, colored by state (`READY` pistachio, `THINKING`
-mallow, `RUNNING` caramel, `ERROR` jam).
+11px letterspaced, dot + word, colored by state. The lamp reports one thing
+only — whether this tab can actually reach a model:
+
+| State | Reads | Colour | When |
+| --- | --- | --- | --- |
+| `notready` | `NOT READY` | jam, filled | No key, or a key the vendor rejected. The default at boot. |
+| `check` | `CHECKING KEY` | caramel outline | A validation request is in flight. |
+| `ready` | `READY` | pistachio, filled | The vendor accepted the key against its model list. |
+| `busy` | `WORKING · STEP n` | caramel, filled | A turn is running. |
+| `error` | `ERROR` | jam, filled | The last turn failed. |
+
+`READY` is never optimistic: it is set from a real response, not from the
+presence of a string in the key field.
 
 ### Transcript entries
 
@@ -289,6 +307,43 @@ The sandboxed iframe sits in a "wrapper": 12px `--cocoa-2` padding with a
 fluted inner edge, so agent output is visibly *inside* something and visibly not
 part of the chrome. Empty state is a centered cup mark at 20% opacity with one
 line of monospace explanation.
+
+### The beach
+
+The empty room under a short transcript is a view out the window, not padding:
+a low-resolution monochrome beach, 100% CSS, `aria-hidden`.
+
+True pixel art sets two rules. **Every edge is horizontal or vertical** — no
+diagonals, no circles, nothing the browser can anti-alias into a soft fringe —
+and **no grid is drawn over the top**, so pixels sit flush against their
+neighbours the way they do on a real low-res display and solid areas read as
+solid. Shape comes from which pixels are lit, never from a gradient ramp.
+
+| Element | Technique |
+| --- | --- |
+| sand | a flat band, then six one-pixel stipple rows, no two on the same rhythm |
+| sea | a flat band, then eight ranks of dash "crests" thinning towards the horizon |
+| surf | one rank of wider dashes on the shoreline row |
+| horizon | a single darker pixel row where the sea meets the sky |
+| sun | a nine-pixel disc, one solid bar per row, plus three pixels of glint on the water below it |
+| clouds | two pixel rows each, offset |
+| palm, gulls | `box-shadow` sprites; the palm is drawn from an ASCII map kept in the comment above it |
+
+One ink, one pixel. `--px` is the size of a single pixel of the art and *every*
+offset is `calc(var(--px) * n)` — including the palm, which draws at
+`--pp: calc(var(--px) * 2)` for a chunkier read. Browser zoom scales the CSS
+pixel, so the whole scene scales with it and stays on its own grid instead of
+resampling. The art is bottom-anchored: a short box crops the sky rather than
+squashing the water.
+
+### Slash commands
+
+Commands are typed into the same prompt as everything else and answered by the
+tab — no model call, no tokens, no round trip. They echo as a `system` entry, in
+`--pb-mid` at 82%, so a command is visibly not a turn. `/help` prints the table,
+`/mode` switches the system prompt (and the `mode` select mirrors it, both
+directions), `/clear` empties the conversation and the transcript, `/wipe` takes
+the files too and asks first.
 
 ### Mascot shelf
 

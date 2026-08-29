@@ -59,6 +59,11 @@ window.UI = (function () {
       entry("error", "harness").appendChild(el("pre", null, text));
     },
 
+    /** Drop every transcript entry, including the boot banner. */
+    clearLog() { log.replaceChildren(); },
+
+    closeViewer() { $("viewer").hidden = true; },
+
     /** Open a live assistant entry; returns a handle for streaming into. */
     assistant() {
       const node = entry("model live", "buttercup");
@@ -160,8 +165,9 @@ window.UI = (function () {
       document.body.dataset.agent = state;
     },
 
-    stats({ provider, model, tokens, steps }) {
+    stats({ provider, model, mode, tokens, steps }) {
       $("stat-provider").textContent = `${provider} · ${model}`;
+      $("stat-mode").textContent = mode;
       $("stat-tokens").textContent = `${tokens} tok`;
       $("stat-steps").textContent = `step ${steps}`;
       $("stat-files").textContent = `${VFS.count()} files`;

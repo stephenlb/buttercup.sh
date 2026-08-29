@@ -17,23 +17,48 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LLM = (function () {
 
+  /* `api` selects the wire format; `url` is the base a chat-completions vendor
+     hangs /chat/completions and /models off, and the user can override it in the
+     KEYS panel — that is what makes an unfamiliar OpenAI-compatible gateway work
+     without a code change. */
   const MODELS = {
     anthropic: {
-      label: "Anthropic",
+      label: "Anthropic — Claude", api: "anthropic", keyHint: "sk-ant-…",
       models: ["claude-opus-5", "claude-sonnet-5", "claude-opus-4-8", "claude-haiku-4-5"],
-      keyHint: "sk-ant-…",
     },
     openai: {
-      label: "OpenAI",
+      label: "OpenAI — Codex / GPT", api: "chat", keyHint: "sk-…",
+      url: "https://api.openai.com/v1", effortKnob: true,
       models: ["gpt-5.6", "gpt-5.6-codex", "gpt-5.1", "o4-mini"],
-      keyHint: "sk-…",
+    },
+    xai: {
+      // Grok always reasons on the 4 series and rejects reasoning_effort there.
+      label: "xAI — Grok", api: "chat", keyHint: "xai-…",
+      url: "https://api.x.ai/v1",
+      models: ["grok-4.1", "grok-4.1-fast", "grok-4", "grok-4-fast-reasoning", "grok-code-fast-1"],
     },
     google: {
-      label: "Google",
+      label: "Google — Gemini", api: "google", keyHint: "AIza…",
       models: ["gemini-3-pro", "gemini-2.5-pro", "gemini-2.5-flash"],
-      keyHint: "AIza…",
+    },
+    openrouter: {
+      label: "OpenRouter — any model", api: "chat", keyHint: "sk-or-v1-…",
+      url: "https://openrouter.ai/api/v1", probe: "key", effortKnob: true,
+      models: [
+        "anthropic/claude-opus-4.5", "openai/gpt-5.1", "x-ai/grok-4.1-fast",
+        "google/gemini-3-pro", "deepseek/deepseek-chat",
+      ],
+    },
+    freebuff: {
+      // An OpenAI-compatible gateway: base URL and model names are whatever the
+      // account is issued, so both fields are yours to set in the KEYS panel.
+      label: "FreeBuff — OpenAI-compatible", api: "chat", keyHint: "gateway key",
+      url: "https://api.freebuff.ai/v1", effortKnob: false, models: [],
     },
   };
+
+  const baseOf = (provider, override) =>
+    String(override || MODELS[provider]?.url || "").trim().replace(/\/+$/, "");
 
   /* ── shared plumbing ────────────────────────────────────────────────────── */
 
@@ -67,7 +92,8 @@ window.LLM = (function () {
       const json = JSON.parse(detail);
       detail = json.error?.message || json.error?.[0]?.message || json.message || detail;
     } catch (_) { /* plain text */ }
-    const hint = res.status === 401 ? " — check the API key in the KEYS panel"
+    const hint = res.status === 401 || res.status === 403 ? " — check the API key in the KEYS panel"
+      : res.status === 404 ? " — check the model name and base url in the KEYS panel"
       : res.status === 429 ? " — rate limited; wait and retry"
       : res.status === 0 ? " — blocked before it left the browser (CORS?)" : "";
     throw new Error(`${provider} HTTP ${res.status}${hint}\n${detail.slice(0, 1200)}`);
@@ -225,9 +251,15 @@ window.LLM = (function () {
     return { parts, stopReason, usage };
   }
 
-  /* ── OpenAI ─────────────────────────────────────────────────────────────── */
+  /* ── OpenAI-compatible: OpenAI, xAI/Grok, OpenRouter, any gateway ───────────
+     They all speak chat-completions verbatim, so one adapter covers them; the
+     only divergences are the base URL and whether `reasoning_effort` is
+     accepted (some vendors 400 on it for models that always reason).
+     ------------------------------------------------------------------------- */
 
-  async function openai({ model, apiKey, system, messages, tools, effort, signal, on }) {
+  async function chat({ provider, baseUrl, model, apiKey, system, messages, tools, effort, signal, on }) {
+    const label = provider;
+    const effortKnob = MODELS[provider]?.effortKnob;
     const wire = [];
     if (system) wire.push({ role: "system", content: system });
     for (const m of messages) {
@@ -257,9 +289,9 @@ window.LLM = (function () {
       stream: true,
       stream_options: { include_usage: true },
       max_completion_tokens: 32000,
-      // Reasoning-model knob; harmless to send and ignored by older models.
-      reasoning_effort: effort === "xhigh" || effort === "max" ? "high" : effort,
     };
+    // Reasoning-model knob; harmless on OpenAI, a 400 on some Grok models.
+    if (effortKnob) body.reasoning_effort = effort === "xhigh" || effort === "max" ? "high" : effort;
     if (tools.length) {
       body.tools = tools.map((t) => ({
         type: "function",
@@ -267,12 +299,12 @@ window.LLM = (function () {
       }));
     }
 
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    const res = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
       signal, body: JSON.stringify(body),
     });
-    if (!res.ok) await fail(res, "openai");
+    if (!res.ok) await fail(res, label);
 
     let text = "";
     const calls = [];
@@ -308,7 +340,7 @@ window.LLM = (function () {
       parts.push({ type: "tool_use", id: c.id || `call_${parts.length}`, name: c.name, input: safeJson(c.json) });
     }
     return { parts, stopReason, usage };
-  }
+  };
 
   /* ── Google ─────────────────────────────────────────────────────────────── */
 
@@ -386,22 +418,73 @@ window.LLM = (function () {
     try { return JSON.parse(raw); } catch (_) { return { __unparsed: raw }; }
   }
 
-  const ADAPTERS = { anthropic, openai, google };
+  const ADAPTERS = { anthropic, google, chat };
+
+  /* ── key validation ─────────────────────────────────────────────────────────
+     Each vendor has a model-listing endpoint that costs no tokens, so the KEYS
+     panel can prove a key works before the first real turn instead of failing
+     mid-build. A rejection here is the truth about the key; a network error is
+     the truth about CORS or connectivity, and the two read differently.
+     ------------------------------------------------------------------------- */
+
+  const PROBES = {
+    anthropic: (key) => ["https://api.anthropic.com/v1/models?limit=1", {
+      "x-api-key": key,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+    }],
+    google: (key) => [
+      `https://generativelanguage.googleapis.com/v1beta/models?pageSize=1&key=${encodeURIComponent(key)}`, {},
+    ],
+    // A gateway's /models is often public, so ask about the key itself where the
+    // vendor offers that; otherwise listing models still proves authorisation.
+    chat: (key, base, spec) => [`${base}/${spec.probe || "models"}`, { authorization: `Bearer ${key}` }],
+  };
+
+  /** Resolve `{ok:true}` when the vendor accepts the key, `{ok:false, error}` otherwise. */
+  async function validate({ provider, apiKey, baseUrl, signal }) {
+    const spec = MODELS[provider];
+    if (!spec) return { ok: false, error: `unknown provider: ${provider}` };
+    let key;
+    try { key = checkedKey(provider, apiKey); } catch (err) { return { ok: false, error: err.message }; }
+    const base = baseOf(provider, baseUrl);
+    if (spec.api === "chat" && !base) return { ok: false, error: `${provider}: set a base url in the KEYS panel` };
+    const [url, headers] = PROBES[spec.api](key, base, spec);
+    try {
+      const res = await fetch(url, { headers, signal });
+      if (res.ok) return { ok: true };
+      await fail(res, provider);
+    } catch (err) {
+      if (err.name === "AbortError") throw err;
+      if (err instanceof TypeError) {
+        return { ok: false, error: `${provider} unreachable from this tab (${err.message}) — offline, or the vendor refuses cross-origin browser calls` };
+      }
+      return { ok: false, error: String(err.message || err) };
+    }
+  }
 
   return {
     providers: MODELS,
-    defaultModel: (provider) => MODELS[provider].models[0],
+    defaultModel: (provider) => MODELS[provider]?.models[0] || "",
+    /** Endpoint base for the providers that have one; "" for the rest. */
+    defaultUrl: (provider) => MODELS[provider]?.url || "",
     cleanKey,
+    validate,
 
     /**
      * One assistant turn, streamed.
      * @returns {Promise<{parts: object[], stopReason: string|null, usage: {input:number,output:number}}>}
      */
-    complete({ provider, model, apiKey, system, messages, tools = [], effort = "high", signal, on = {} }) {
-      const adapter = ADAPTERS[provider];
-      if (!adapter) throw new Error(`unknown provider: ${provider}`);
+    complete({ provider, model, apiKey, baseUrl, system, messages, tools = [], effort = "high", signal, on = {} }) {
+      const spec = MODELS[provider];
+      if (!spec) throw new Error(`unknown provider: ${provider}`);
       const key = checkedKey(provider, apiKey);
-      return adapter({ model, apiKey: key, system, messages, tools, effort, signal, on });
+      const base = baseOf(provider, baseUrl);
+      if (spec.api === "chat" && !base) throw new Error(`${provider}: no base url — set one in the KEYS panel`);
+      if (!model) throw new Error(`${provider}: no model name — type one in the KEYS panel`);
+      return ADAPTERS[spec.api]({
+        provider, baseUrl: base, model, apiKey: key, system, messages, tools, effort, signal, on,
+      });
     },
   };
 })();

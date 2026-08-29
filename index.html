@@ -19,9 +19,9 @@
   <!-- ══ title bar ═════════════════════════════════════════════════════════ -->
   <header class="titlebar">
     <span class="lamps" aria-hidden="true"><i></i><i></i><i></i></span>
-    <h1>buttercup.sh<span class="rev"> rev.1</span></h1>
+    <h1>buttercup.sh<span class="rev"> rev.2</span></h1>
     <p class="tagline">pure vintage charm &middot; aggressively anti&#8209;dystopian</p>
-    <output class="lamp-status" id="status" aria-live="polite">READY</output>
+    <output class="lamp-status" id="status" data-state="notready" aria-live="polite">NOT READY</output>
   </header>
 
   <div class="deck">
@@ -32,7 +32,7 @@
         <article class="entry boot">
 <pre>
  ┌────────────────────────────────────────────────┐
- │  B U T T E R C U P   AGENT WORKS   ·   rev.1   │
+ │  B U T T E R C U P   AGENT WORKS   ·   rev.2   │
  │  a harness for building agents, in a browser   │
  └────────────────────────────────────────────────┘
 </pre>
@@ -42,16 +42,24 @@
           <p>Open <label for="tab-keys" class="linky">KEYS</label> to paste an API key,
              then ask for an agent. Try:
              <em>&ldquo;scaffold a blocks.ai research agent, then run it&rdquo;</em>.</p>
+          <p>Type <code>/help</code> for the commands this tab handles itself
+             — <code>/mode</code>, <code>/clear</code>, <code>/wipe</code>.</p>
         </article>
       </div>
 
       <form class="prompt" id="prompt-form" autocomplete="off">
         <label class="sigil" for="prompt-input" aria-hidden="true">&gt;</label>
         <textarea id="prompt-input" name="prompt" rows="1" spellcheck="false"
-          placeholder="describe the agent you want built…"></textarea>
+          placeholder="describe the agent you want built…   /help"></textarea>
         <button type="submit" id="send">RUN</button>
         <button type="button" id="stop" disabled>STOP</button>
       </form>
+
+      <!-- ══ the view out the window: only visible while the transcript is
+              short enough that the prompt has not reached the bottom. Pure
+              CSS — gradients for the water and sand, box-shadow pixels for
+              the palm and the gulls. ══════════════════════════════════════ -->
+      <div class="beach" aria-hidden="true"><i class="palm"></i></div>
     </section>
 
     <!-- ══ right: CSS-only tab deck ════════════════════════════════════════ -->
@@ -109,11 +117,17 @@
               <select name="provider" id="provider">
                 <option value="anthropic">Anthropic — Claude</option>
                 <option value="openai">OpenAI — Codex / GPT</option>
+                <option value="xai">xAI — Grok</option>
                 <option value="google">Google — Gemini</option>
+                <option value="openrouter">OpenRouter — any model</option>
+                <option value="freebuff">FreeBuff — OpenAI-compatible</option>
               </select></label>
             <label class="row"><span>model</span>
               <input name="model" id="model" list="model-list" spellcheck="false"></label>
             <datalist id="model-list"></datalist>
+            <label class="row" id="row-base"><span>base url</span>
+              <input name="baseUrl" id="baseUrl" spellcheck="false"
+                placeholder="https://host/v1"></label>
             <label class="row"><span>api key</span>
               <input name="key" id="key" type="password" spellcheck="false" autocomplete="new-password"
                 placeholder="sk-… / stays in this browser"></label>
@@ -128,6 +142,11 @@
           </fieldset>
           <fieldset>
             <legend>harness</legend>
+            <label class="row"><span>mode</span>
+              <select name="mode" id="mode">
+                <option value="agent-builder">agent-builder — build AI agents</option>
+                <option value="general">general — build anything</option>
+              </select></label>
             <label class="check"><input type="checkbox" name="yolo" id="yolo" checked>
               <span>auto&#8209;approve tool calls</span></label>
             <label class="check"><input type="checkbox" name="showThinking" id="showThinking" checked>
@@ -140,6 +159,11 @@
             <button type="button" id="forget" class="mini danger">FORGET KEY</button>
             <button type="button" id="reset-session" class="mini">NEW SESSION</button>
           </div>
+          <p class="note">SAVE checks the key against the vendor's model list — no
+             tokens spent — and the lamp in the title bar turns READY only when the
+             vendor accepts it. <code>base url</code> appears for OpenAI-compatible
+             backends, so any gateway that speaks
+             <code>/chat/completions</code> works without a code change.</p>
           <p class="note">A key in <code>localStorage</code> is readable by anything
              that can run script in this origin. Use a scoped, revocable key, and
              prefer a key you don't mind rotating.</p>
@@ -205,6 +229,7 @@
 
   <footer class="statusbar">
     <span id="stat-provider">—</span>
+    <span id="stat-mode">—</span>
     <span id="stat-tokens">0 tok</span>
     <span id="stat-steps">step 0</span>
     <span id="stat-files">0 files</span>
@@ -220,6 +245,7 @@
 <script src="js/tools.js"></script>
 <script src="js/llm.js"></script>
 <script src="js/agent.js"></script>
+<script src="js/commands.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/main.js"></script>
 </body>

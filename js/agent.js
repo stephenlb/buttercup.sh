@@ -8,16 +8,21 @@
 window.Agent = (function () {
   const SESSION_KEY = "buttercup.session.v1";
 
-  const SYSTEM = `You are buttercup.sh — a coding agent that builds *other* AI agents, running entirely inside a browser tab.
+  const PLACE = `# Where you are
+No server, no shell, no node. Your workspace is a virtual filesystem in this browser's localStorage, and your tools are plain JavaScript functions in this page. What you build must therefore run in a browser too: static HTML/CSS/ES modules, \`fetch\` to CORS-friendly endpoints, localStorage or IndexedDB for state. Read \`framework_docs {"framework":"harness"}\` once per session for how the sandbox behaves.`;
 
-# Where you are
-No server, no shell, no node. Your workspace is a virtual filesystem in this browser's localStorage, and your tools are plain JavaScript functions in this page. What you build must therefore run in a browser too: static HTML/CSS/ES modules, \`fetch\` to CORS-friendly endpoints, localStorage or IndexedDB for state.
+  const VOICE = `# Talking to the user
+You are writing into a terminal transcript. Be brief and concrete; lead with what changed and where. Reference files as \`path/to/file.js\`. No preamble, no restating the request, no summary of code you just showed. Mention API-key exposure once, when you first write a file that sends a key from a browser — it is a real constraint, not a disclaimer to repeat.`;
+
+  const AGENT_BUILDER = `You are buttercup.sh — a coding agent that builds *other* AI agents, running entirely inside a browser tab.
+
+${PLACE}
 
 # What you are for
 Turning a description into a working agent: an agent loop, a set of tool definitions, a provider adapter, and a page the user can open. The default target is Blocks.AI / Blocks Network (npm \`@blocks-network/sdk\`, CLI \`@blocks-network/cli\`), where the agent runtime is Node and the consumer client is browser-safe — read \`framework_docs {"framework":"blocks-ai"}\` for that split and be straight with the user about which half runs where. Support the other frameworks when asked.
 
 # How to work
-- Call \`framework_docs\` with no argument first on any build task, then read the notes for the framework you are going to use and \`framework_docs {"framework":"harness"}\` if you have not this session.
+- Call \`framework_docs\` with no argument first on any build task, then read the notes for the framework you are going to use.
 - Never write code against a package's API from memory. Confirm it: \`npm_info\`, then \`npm_file\` for the type declarations, then \`run_js\` with a dynamic import to see the real export names. If a package cannot be reached, say so and use the dependency-free path instead of inventing exports.
 - \`scaffold\` first, then edit. Rewriting the skeleton by hand wastes turns.
 - Use \`todo\` for anything with three or more steps, and keep it current.
@@ -25,8 +30,28 @@ Turning a description into a working agent: an agent loop, a set of tool definit
 - Batch independent tool calls in one turn. Read a file before editing it.
 - Finish the job. If part of it is blocked (offline, CORS, an unknown API), complete everything else and state plainly what you left and why.
 
-# Talking to the user
-You are writing into a terminal transcript. Be brief and concrete; lead with what changed and where. Reference files as \`path/to/file.js\`. No preamble, no restating the request, no summary of code you just showed. Mention API-key exposure once, when you first write a file that sends a key from a browser — it is a real constraint, not a disclaimer to repeat.`;
+${VOICE}`;
+
+  const GENERAL = `You are buttercup.sh in general mode — a coding agent working inside a browser tab. Build whatever the user asks for; agents are just one thing you can make here.
+
+${PLACE}
+
+# How to work
+- \`list\` / \`read\` before you edit. \`write\` overwrites without warning.
+- Use \`todo\` for anything with three or more steps, and keep it current.
+- Never write code against a package's API from memory. Confirm it: \`npm_info\`, then \`npm_file\` for the type declarations, then \`run_js\` with a dynamic import to see the real export names.
+- Verify before you claim: \`run_js\` for snippets, \`run_agent\` for modules, \`preview\` for pages. If something failed, report which step failed and what the error said.
+- Batch independent tool calls in one turn.
+- \`scaffold\` and \`framework_docs\` are still here if the task turns out to be an agent build; ignore them otherwise.
+- Finish the job. If part of it is blocked (offline, CORS, an unknown API), complete everything else and state plainly what you left and why.
+
+${VOICE}`;
+
+  const MODES = {
+    "agent-builder": { system: AGENT_BUILDER, blurb: "builds AI agents (blocks.ai by default)" },
+    general: { system: GENERAL, blurb: "builds anything static in a browser" },
+  };
+  const DEFAULT_MODE = "agent-builder";
 
   const hooks = {
     onUser: () => {},
@@ -36,7 +61,6 @@ You are writing into a terminal transcript. Be brief and concrete; lead with wha
     onAssistantEnd: () => {},
     onToolStart: () => {},
     onToolEnd: () => {},
-    onSandboxLog: () => {},
     onError: () => {},
     onStatus: () => {},
     onDone: () => {},
@@ -98,8 +122,9 @@ You are writing into a terminal transcript. Be brief and concrete; lead with wha
             provider: settings.provider,
             model: settings.model,
             apiKey: settings.key,
+            baseUrl: settings.baseUrl,
             effort: settings.effort,
-            system: SYSTEM,
+            system: (MODES[settings.mode] || MODES[DEFAULT_MODE]).system,
             messages: forProvider(state.messages, settings.provider),
             tools: Tools.schemas(),
             signal: state.controller.signal,
@@ -119,10 +144,7 @@ You are writing into a terminal transcript. Be brief and concrete; lead with wha
         persist();
 
         const calls = reply.parts.filter((p) => p.type === "tool_use");
-        if (!calls.length) {
-          hooks.onDone({ reason: reply.stopReason || "end_turn", steps: state.steps });
-          return;
-        }
+        if (!calls.length) return;   // `finally` reports the turn as done
 
         const results = [];
         for (const call of calls) {
@@ -164,7 +186,7 @@ You are writing into a terminal transcript. Be brief and concrete; lead with wha
       state.busy = false;
       state.controller = null;
       hooks.onStatus("idle");
-      hooks.onDone({ reason: "halted", steps: state.steps });
+      hooks.onDone({ steps: state.steps });
     }
   }
 
@@ -183,6 +205,8 @@ You are writing into a terminal transcript. Be brief and concrete; lead with wha
   return {
     hooks,
     send,
+    modes: MODES,
+    defaultMode: DEFAULT_MODE,
     stop() { if (state.controller) state.controller.abort(); },
     get busy() { return state.busy; },
     get usage() { return state.usage; },

@@ -97,6 +97,9 @@ body {
   background: var(--paper);
 }
 .lamp-status[data-state="busy"] { color: var(--paper); background: var(--warn); border-color: var(--warn); }
+.lamp-status[data-state="check"] { color: var(--warn); border-color: var(--warn); }
+.lamp-status[data-state="ready"] { color: var(--paper); background: var(--good); border-color: var(--good); }
+.lamp-status[data-state="notready"],
 .lamp-status[data-state="error"] { color: var(--paper); background: var(--bad); border-color: var(--bad); }
 
 .deck { display: grid; grid-template-columns: minmax(0,1.55fr) minmax(0,1fr);
@@ -106,10 +109,14 @@ body {
   border: 2px solid var(--rule); background: var(--paper-2);
   display: grid; min-height: 0;
 }
-.console { grid-template-rows: minmax(0,1fr) auto; }
+/* The prompt sits directly under the last line of the transcript and only
+   parks at the bottom edge once the transcript has grown that far: a flex
+   column whose scroller may shrink but never grows past its content. */
+.console { display: flex; flex-direction: column; }
 
 /* ── transcript ───────────────────────────────────────────────────────────── */
-.scroll { overflow-y: auto; padding: var(--pad) 1rem; scrollbar-width: thin;
+.scroll { flex: 0 1 auto; min-height: 0; overflow-y: auto;
+  padding: var(--pad) 1rem; scrollbar-width: thin;
   scrollbar-color: var(--rule) transparent; }
 .scroll::-webkit-scrollbar { width: 10px; }
 .scroll::-webkit-scrollbar-thumb { background: var(--rule); }
@@ -178,10 +185,11 @@ details.think > pre { font-style: italic; }
 /* ── prompt ───────────────────────────────────────────────────────────────── */
 .prompt {
   display: grid; grid-template-columns: auto minmax(0,1fr) auto auto;
-  align-items: end; gap: .5rem;
+  /* stretch: RUN/STOP match the textarea's height as it grows */
+  align-items: stretch; gap: .5rem;
   border-top: 2px solid var(--rule); background: var(--paper-3); padding: .6rem;
 }
-.sigil { color: var(--ink-hot); font-weight: 700; padding-bottom: .35rem; }
+.sigil { color: var(--ink-hot); font-weight: 700; align-self: center; }
 .prompt textarea {
   font: inherit; color: var(--ink-hot); background: var(--paper);
   border: 1px solid var(--rule); padding: .45rem .5rem; resize: none;
@@ -201,6 +209,266 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 button.mini { padding: .18rem .5rem; font-size: .68rem; }
 button.danger { border-color: var(--bad); color: var(--bad); }
 button.danger:hover { background: var(--bad); color: var(--paper); }
+
+/* ── the beach ────────────────────────────────────────────────────────────────
+   Fills whatever room is left under the prompt, which means it is on screen
+   exactly while the transcript is short — `flex: 1 1 0` grows into free space
+   and can never claim any when there is none, so a busy session hides it
+   without a line of JS.
+
+   True pixel art, which sets two rules. Every edge is horizontal or vertical:
+   no diagonals, no circles, nothing the browser can anti-alias into a soft
+   fringe. And no grid is drawn over the top — pixels sit flush against their
+   neighbours the way they do on a real low-res display, so solid areas read as
+   solid. Shape comes from which pixels are lit, never from a gradient ramp.
+
+   One ink, one pixel size. Every offset is a multiple of `--px`, so the scene
+   is resolution-independent: browser zoom scales the CSS pixel and the whole
+   scene scales with it, still on its own grid. The art is bottom-anchored, so
+   a short box crops the sky rather than squashing the water.
+   ─────────────────────────────────────────────────────────────────────────── */
+.beach {
+  --px: 6px;                                  /* one "pixel" of the low-res art */
+  --sand: color-mix(in srgb, var(--ink) 60%, transparent);
+  --sand-lo: color-mix(in srgb, var(--ink) 38%, transparent);
+  --sea: color-mix(in srgb, var(--ink) 42%, transparent);
+  --sea-lo: color-mix(in srgb, var(--ink) 14%, transparent);
+  --shore: calc(var(--px) * 14);              /* sand height  */
+  --water: calc(var(--px) * 18);              /* ocean height */
+  --sky: calc(var(--shore) + var(--water));   /* top row of the sea */
+
+  flex: 1 1 0; min-height: 0; position: relative; overflow: hidden;
+  background-repeat: no-repeat;
+  background-image:
+    /* sand: sparse stipple, no two rows on the same rhythm */
+    repeating-linear-gradient(90deg, var(--sand) 0 var(--px), transparent var(--px) calc(var(--px) * 6)),
+    repeating-linear-gradient(90deg, var(--sand) 0 var(--px), transparent var(--px) calc(var(--px) * 8)),
+    repeating-linear-gradient(90deg, var(--sand) 0 calc(var(--px) * 2), transparent calc(var(--px) * 2) calc(var(--px) * 11)),
+    repeating-linear-gradient(90deg, var(--sand) 0 var(--px), transparent var(--px) calc(var(--px) * 5)),
+    repeating-linear-gradient(90deg, var(--sand) 0 var(--px), transparent var(--px) calc(var(--px) * 7)),
+    repeating-linear-gradient(90deg, var(--sand) 0 calc(var(--px) * 2), transparent calc(var(--px) * 2) calc(var(--px) * 13)),
+    /* surf breaking at the shoreline */
+    repeating-linear-gradient(90deg, var(--ink-dim) 0 calc(var(--px) * 3), transparent calc(var(--px) * 3) calc(var(--px) * 7)),
+    /* wave crests, thinning out towards the horizon */
+    repeating-linear-gradient(90deg, var(--sea) 0 calc(var(--px) * 4), transparent calc(var(--px) * 4) calc(var(--px) * 11)),
+    repeating-linear-gradient(90deg, var(--sea) 0 calc(var(--px) * 2), transparent calc(var(--px) * 2) calc(var(--px) * 7)),
+    repeating-linear-gradient(90deg, var(--sea) 0 calc(var(--px) * 6), transparent calc(var(--px) * 6) calc(var(--px) * 15)),
+    repeating-linear-gradient(90deg, var(--sea) 0 calc(var(--px) * 2), transparent calc(var(--px) * 2) calc(var(--px) * 6)),
+    repeating-linear-gradient(90deg, var(--sea) 0 calc(var(--px) * 4), transparent calc(var(--px) * 4) calc(var(--px) * 15)),
+    repeating-linear-gradient(90deg, var(--sea) 0 calc(var(--px) * 2), transparent calc(var(--px) * 2) calc(var(--px) * 9)),
+    repeating-linear-gradient(90deg, var(--sea) 0 calc(var(--px) * 3), transparent calc(var(--px) * 3) calc(var(--px) * 16)),
+    repeating-linear-gradient(90deg, var(--sea) 0 calc(var(--px) * 2), transparent calc(var(--px) * 2) calc(var(--px) * 11)),
+    /* sun glint on the water, straight under the sun */
+    linear-gradient(var(--ink-dim), var(--ink-dim)),
+    linear-gradient(var(--ink-dim), var(--ink-dim)),
+    linear-gradient(var(--ink-dim), var(--ink-dim)),
+    /* one darker row where the sea meets the sky */
+    linear-gradient(var(--ink-dim), var(--ink-dim)),
+    /* flat fills: the sea, then the sand */
+    linear-gradient(var(--sea-lo), var(--sea-lo)),
+    linear-gradient(var(--sand-lo), var(--sand-lo)),
+    /* two clouds, two pixel rows each */
+    linear-gradient(var(--sea), var(--sea)),
+    linear-gradient(var(--sea), var(--sea)),
+    linear-gradient(var(--sea-lo), var(--sea-lo)),
+    linear-gradient(var(--sea-lo), var(--sea-lo));
+  background-size:
+    100% var(--px),
+    100% var(--px),
+    100% var(--px),
+    100% var(--px),
+    100% var(--px),
+    100% var(--px),
+    100% var(--px),
+    100% var(--px),
+    100% var(--px),
+    100% var(--px),
+    100% var(--px),
+    100% var(--px),
+    100% var(--px),
+    100% var(--px),
+    100% var(--px),
+    calc(var(--px) * 3) var(--px),
+    calc(var(--px) * 5) var(--px),
+    calc(var(--px) * 2) var(--px),
+    100% var(--px),
+    100% var(--water),
+    100% var(--shore),
+    calc(var(--px) * 10) var(--px),
+    calc(var(--px) * 16) var(--px),
+    calc(var(--px) * 6) var(--px),
+    calc(var(--px) * 10) var(--px);
+  background-position:
+    bottom var(--px) left 0,
+    bottom calc(var(--px) * 3) left calc(var(--px) * 3),
+    bottom calc(var(--px) * 5) left calc(var(--px) * 2),
+    bottom calc(var(--px) * 8) left var(--px),
+    bottom calc(var(--px) * 11) left calc(var(--px) * 4),
+    bottom calc(var(--px) * 13) left calc(var(--px) * 6),
+    bottom var(--shore) left 0,
+    bottom calc(var(--shore) + calc(var(--px) * 2)) left calc(var(--px) * 2),
+    bottom calc(var(--shore) + calc(var(--px) * 4)) left calc(var(--px) * 5),
+    bottom calc(var(--shore) + calc(var(--px) * 6)) left var(--px),
+    bottom calc(var(--shore) + calc(var(--px) * 8)) left calc(var(--px) * 3),
+    bottom calc(var(--shore) + calc(var(--px) * 10)) left calc(var(--px) * 6),
+    bottom calc(var(--shore) + calc(var(--px) * 12)) left calc(var(--px) * 2),
+    bottom calc(var(--shore) + calc(var(--px) * 14)) left calc(var(--px) * 8),
+    bottom calc(var(--shore) + calc(var(--px) * 16)) left calc(var(--px) * 4),
+    bottom calc(var(--shore) + calc(var(--px) * 3)) right calc(var(--px) * 17),
+    bottom calc(var(--shore) + calc(var(--px) * 6)) right calc(var(--px) * 16),
+    bottom calc(var(--shore) + calc(var(--px) * 10)) right calc(var(--px) * 18),
+    bottom var(--sky) left 0,
+    bottom var(--shore) left 0,
+    bottom left,
+    bottom calc(var(--sky) + calc(var(--px) * 11)) right calc(var(--px) * 40),
+    bottom calc(var(--sky) + calc(var(--px) * 10)) right calc(var(--px) * 38),
+    bottom calc(var(--sky) + calc(var(--px) * 18)) right calc(var(--px) * 24),
+    bottom calc(var(--sky) + calc(var(--px) * 17)) right calc(var(--px) * 22);
+}
+
+/* two gulls, three pixels each */
+.beach::before {
+  content: ""; position: absolute;
+  right: calc(var(--px) * 40); bottom: calc(var(--sky) + var(--px) * 9);
+  width: var(--px); height: var(--px);
+  box-shadow:
+    calc(var(--px) * -1) var(--px) 0 var(--sea),
+    calc(var(--px) * 1) var(--px) 0 var(--sea),
+    calc(var(--px) * 7) calc(var(--px) * 4) 0 var(--sea),
+    calc(var(--px) * 8) calc(var(--px) * 5) 0 var(--sea),
+    calc(var(--px) * 9) calc(var(--px) * 4) 0 var(--sea);
+}
+
+/* The sun: a nine-pixel disc, one solid bar per row. Drawn this way rather than
+   as a radial-gradient because a real circle gets anti-aliased, and a soft edge
+   is the one thing pixel art cannot have. */
+.beach::after {
+  content: ""; position: absolute;
+  right: calc(var(--px) * 14); bottom: calc(var(--sky) + var(--px) * 4);
+  width: calc(var(--px) * 9); height: calc(var(--px) * 9);
+  background-repeat: no-repeat;
+  background-image:
+    linear-gradient(var(--ink-dim), var(--ink-dim)),
+    linear-gradient(var(--ink-dim), var(--ink-dim)),
+    linear-gradient(var(--ink-dim), var(--ink-dim)),
+    linear-gradient(var(--ink-dim), var(--ink-dim)),
+    linear-gradient(var(--ink-dim), var(--ink-dim)),
+    linear-gradient(var(--ink-dim), var(--ink-dim)),
+    linear-gradient(var(--ink-dim), var(--ink-dim)),
+    linear-gradient(var(--ink-dim), var(--ink-dim)),
+    linear-gradient(var(--ink-dim), var(--ink-dim));
+  background-size:
+    calc(var(--px) * 3) var(--px),
+    calc(var(--px) * 7) var(--px),
+    calc(var(--px) * 7) var(--px),
+    calc(var(--px) * 9) var(--px),
+    calc(var(--px) * 9) var(--px),
+    calc(var(--px) * 9) var(--px),
+    calc(var(--px) * 7) var(--px),
+    calc(var(--px) * 7) var(--px),
+    calc(var(--px) * 3) var(--px);
+  background-position:
+    top 0 left calc(var(--px) * 3),
+    top var(--px) left var(--px),
+    top calc(var(--px) * 2) left var(--px),
+    top calc(var(--px) * 3) left 0,
+    top calc(var(--px) * 4) left 0,
+    top calc(var(--px) * 5) left 0,
+    top calc(var(--px) * 6) left var(--px),
+    top calc(var(--px) * 7) left var(--px),
+    top calc(var(--px) * 8) left calc(var(--px) * 3);
+}
+
+/* A palm, drawn one box-shadow pixel at a time from this map — fronds fanning
+   out and drooping, a trunk that bows to the left, a tuft at the foot:
+
+     ....###..###....
+     ..##...##...##..
+     .#...##..##...#.
+     #..##..##..##..#
+     ...#...##...#...
+     .......##.......
+     ......##........
+     ......##........
+     .....##.........
+     .....##.........
+     .....##.........
+     ....##..........
+     ....##..........
+     ...##...........
+     ..####..........
+     .######.........
+
+   The element itself is pixel (0,0) and shadows fall down and to the right, so
+   `bottom` is the top of the art, 16 rows of it. */
+.palm {
+  --ink-palm: var(--ink-dim);
+  --pp: calc(var(--px) * 2);                   /* the palm is drawn double-size */
+  position: absolute; left: calc(var(--px) * 6);
+  bottom: calc(var(--shore) + var(--pp) * 15);
+  width: var(--pp); height: var(--pp);
+  box-shadow:
+    /* fronds and trunk */
+    calc(var(--pp) * 4) 0 0 var(--ink-palm),
+    calc(var(--pp) * 5) 0 0 var(--ink-palm),
+    calc(var(--pp) * 6) 0 0 var(--ink-palm),
+    calc(var(--pp) * 9) 0 0 var(--ink-palm),
+    calc(var(--pp) * 10) 0 0 var(--ink-palm),
+    calc(var(--pp) * 11) 0 0 var(--ink-palm),
+    calc(var(--pp) * 2) var(--pp) 0 var(--ink-palm),
+    calc(var(--pp) * 3) var(--pp) 0 var(--ink-palm),
+    calc(var(--pp) * 7) var(--pp) 0 var(--ink-palm),
+    calc(var(--pp) * 8) var(--pp) 0 var(--ink-palm),
+    calc(var(--pp) * 12) var(--pp) 0 var(--ink-palm),
+    calc(var(--pp) * 13) var(--pp) 0 var(--ink-palm),
+    var(--pp) calc(var(--pp) * 2) 0 var(--ink-palm),
+    calc(var(--pp) * 5) calc(var(--pp) * 2) 0 var(--ink-palm),
+    calc(var(--pp) * 6) calc(var(--pp) * 2) 0 var(--ink-palm),
+    calc(var(--pp) * 9) calc(var(--pp) * 2) 0 var(--ink-palm),
+    calc(var(--pp) * 10) calc(var(--pp) * 2) 0 var(--ink-palm),
+    calc(var(--pp) * 14) calc(var(--pp) * 2) 0 var(--ink-palm),
+    0 calc(var(--pp) * 3) 0 var(--ink-palm),
+    calc(var(--pp) * 3) calc(var(--pp) * 3) 0 var(--ink-palm),
+    calc(var(--pp) * 4) calc(var(--pp) * 3) 0 var(--ink-palm),
+    calc(var(--pp) * 7) calc(var(--pp) * 3) 0 var(--ink-palm),
+    calc(var(--pp) * 8) calc(var(--pp) * 3) 0 var(--ink-palm),
+    calc(var(--pp) * 11) calc(var(--pp) * 3) 0 var(--ink-palm),
+    calc(var(--pp) * 12) calc(var(--pp) * 3) 0 var(--ink-palm),
+    calc(var(--pp) * 15) calc(var(--pp) * 3) 0 var(--ink-palm),
+    calc(var(--pp) * 3) calc(var(--pp) * 4) 0 var(--ink-palm),
+    calc(var(--pp) * 7) calc(var(--pp) * 4) 0 var(--ink-palm),
+    calc(var(--pp) * 8) calc(var(--pp) * 4) 0 var(--ink-palm),
+    calc(var(--pp) * 12) calc(var(--pp) * 4) 0 var(--ink-palm),
+    calc(var(--pp) * 7) calc(var(--pp) * 5) 0 var(--ink-palm),
+    calc(var(--pp) * 8) calc(var(--pp) * 5) 0 var(--ink-palm),
+    calc(var(--pp) * 6) calc(var(--pp) * 6) 0 var(--ink-palm),
+    calc(var(--pp) * 7) calc(var(--pp) * 6) 0 var(--ink-palm),
+    calc(var(--pp) * 6) calc(var(--pp) * 7) 0 var(--ink-palm),
+    calc(var(--pp) * 7) calc(var(--pp) * 7) 0 var(--ink-palm),
+    calc(var(--pp) * 5) calc(var(--pp) * 8) 0 var(--ink-palm),
+    calc(var(--pp) * 6) calc(var(--pp) * 8) 0 var(--ink-palm),
+    calc(var(--pp) * 5) calc(var(--pp) * 9) 0 var(--ink-palm),
+    calc(var(--pp) * 6) calc(var(--pp) * 9) 0 var(--ink-palm),
+    calc(var(--pp) * 5) calc(var(--pp) * 10) 0 var(--ink-palm),
+    calc(var(--pp) * 6) calc(var(--pp) * 10) 0 var(--ink-palm),
+    calc(var(--pp) * 4) calc(var(--pp) * 11) 0 var(--ink-palm),
+    calc(var(--pp) * 5) calc(var(--pp) * 11) 0 var(--ink-palm),
+    calc(var(--pp) * 4) calc(var(--pp) * 12) 0 var(--ink-palm),
+    calc(var(--pp) * 5) calc(var(--pp) * 12) 0 var(--ink-palm),
+    calc(var(--pp) * 3) calc(var(--pp) * 13) 0 var(--ink-palm),
+    calc(var(--pp) * 4) calc(var(--pp) * 13) 0 var(--ink-palm),
+    /* the tuft it grows out of */
+    calc(var(--pp) * 2) calc(var(--pp) * 14) 0 var(--sand),
+    calc(var(--pp) * 3) calc(var(--pp) * 14) 0 var(--sand),
+    calc(var(--pp) * 4) calc(var(--pp) * 14) 0 var(--sand),
+    calc(var(--pp) * 5) calc(var(--pp) * 14) 0 var(--sand),
+    var(--pp) calc(var(--pp) * 15) 0 var(--sand),
+    calc(var(--pp) * 2) calc(var(--pp) * 15) 0 var(--sand),
+    calc(var(--pp) * 3) calc(var(--pp) * 15) 0 var(--sand),
+    calc(var(--pp) * 4) calc(var(--pp) * 15) 0 var(--sand),
+    calc(var(--pp) * 5) calc(var(--pp) * 15) 0 var(--sand),
+    calc(var(--pp) * 6) calc(var(--pp) * 15) 0 var(--sand);
+}
 
 /* ── tab deck (CSS-only) ──────────────────────────────────────────────────── */
 .rack { grid-template-rows: auto minmax(0,1fr) auto; }
@@ -280,6 +548,8 @@ button.danger:hover { background: var(--bad); color: var(--paper); }
   color: var(--ink-faint); padding: 0 .3rem; }
 .settings .row { display: grid; grid-template-columns: 6.5rem minmax(0,1fr);
   align-items: center; gap: .5rem; margin-bottom: .4rem; }
+/* a class-set display beats the [hidden] default, so say it again */
+.settings .row[hidden] { display: none; }
 .settings .row > span { font-size: .74rem; letter-spacing: .1em; color: var(--ink-dim);
   text-transform: uppercase; }
 .settings .row input, .settings .row select { width: 100%; }
@@ -349,6 +619,11 @@ body[data-agent="error"] .mascot .mouth.grin { display: none; }
 body[data-agent="error"] .mascot .mouth.flat { display: inline; }
 body[data-agent="error"] .mascot .eye { r: 2.2; }
 body[data-agent="error"] .mascot-say::before { content: "that went sideways"; }
+
+body[data-agent="ready"] .mascot-say::before { content: "warm and ready"; }
+body[data-agent="check"] .mascot-say::before { content: "checking the key"; }
+body[data-agent="notready"] .mascot { color: var(--bad); }
+body[data-agent="notready"] .mascot-say::before { content: "needs an api key"; }
 
 /* The whole rig animates regardless of prefers-reduced-motion: it is a 5rem
    line drawing breathing 3px in place, no travel and no parallax, and the

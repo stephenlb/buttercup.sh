@@ -14,26 +14,32 @@ That's the whole setup. It also runs from `file://`, though a local origin is
 better (`python3 -m http.server`) because the browser gives `file://` pages a
 null origin and some vendors reject the CORS preflight from one.
 
+There is one optional script — `node build.mjs` — which folds the whole harness
+into a single `public/index.html` for GitHub Pages. It is a convenience, not a
+requirement: the source runs as-is.
+
 ---
 
 ## Architecture
 
-100% static HTML, CSS and JavaScript. Nine classic `<script>` tags, no modules,
+100% static HTML, CSS and JavaScript. Ten classic `<script>` tags, no modules,
 no bundler, no dependencies, nothing to compile.
 
 | File | Lines | What it is |
 | --- | --- | --- |
-| `index.html` | 171 | The entire UI. Structure only — no styles, no logic. |
-| `css/buttercup.css` | 305 | Amber-phosphor CRT skin, layout, and the tab deck. |
-| `js/vfs.js` | 149 | Virtual filesystem: path → text, persisted in `localStorage`. |
+| `index.html` | 252 | The entire UI. Structure only — no styles, no logic. |
+| `css/buttercup.css` | 560 | Amber-phosphor CRT skin, layout, tab deck, and the beach. |
+| `js/vfs.js` | 135 | Virtual filesystem: path → text, persisted in `localStorage`. |
 | `js/sandbox.js` | 243 | Sandboxed execution + a hand-written ES-module linker. |
-| `js/tools.js` | 529 | The 18 tool definitions handed to the model. |
+| `js/tools.js` | 528 | The 18 tool definitions handed to the model. |
 | `js/frameworks.js` | 698 | Bundled framework knowledge and code scaffolds. |
-| `js/llm.js` | 375 | Three provider adapters, streaming, no SDKs. |
-| `js/agent.js` | 197 | The agent loop and the system prompt. |
-| `js/ui.js` | 238 | Transcript rendering and the approval gate. |
+| `js/llm.js` | 490 | Six providers over three wire formats, streaming, no SDKs. |
+| `js/agent.js` | 221 | The agent loop and the per-mode system prompts. |
+| `js/commands.js` | 102 | Slash commands, answered in-tab without a round trip. |
+| `js/ui.js` | 246 | Transcript rendering and the approval gate. |
 | `js/zip.js` | 103 | A store-only ZIP writer, so you can export the workspace. |
-| `js/main.js` | 229 | Settings and wiring. |
+| `js/main.js` | 318 | Settings, key validation, and wiring. |
+| `build.mjs` | 211 | Optional: fold everything into `public/index.html`. |
 
 The UI mechanics are CSS, not JavaScript. The right-hand panel deck is four
 `input[type=radio]` elements and sibling selectors:
@@ -55,7 +61,21 @@ Nothing is proxied, because there is nothing to proxy through.
 | --- | --- | --- |
 | Anthropic | `claude-opus-5` | Adaptive thinking (`{type:"adaptive", display:"summarized"}`), `output_config.effort`, server-side fallbacks, and `anthropic-dangerous-direct-browser-access`. |
 | OpenAI | `gpt-5.6` | Chat Completions, `max_completion_tokens` + `reasoning_effort`. |
+| xAI | `grok-4.1` | Chat Completions at `api.x.ai/v1`. |
 | Google | `gemini-3-pro` | `streamGenerateContent?alt=sse`; JSON Schema is sanitized down to the keywords Gemini accepts. |
+| OpenRouter | `anthropic/claude-opus-4.5` | Chat Completions at `openrouter.ai/api/v1`; any model the account can reach. |
+| FreeBuff | *(you type one)* | An OpenAI-compatible gateway; edit `base url` to point at yours. |
+
+Three wire formats cover all six: Anthropic Messages, Google `generateContent`,
+and OpenAI-style `/chat/completions` — the last one shared by four vendors, which
+is why the **base url** field appears whenever you pick one. Any gateway that
+speaks `/chat/completions` works without a code change.
+
+**SAVE validates the key** against the vendor's model list (`/v1/models`,
+`/v1beta/models`, or OpenRouter's `/api/v1/key`) — no tokens spent. The lamp in
+the title bar reads **NOT READY** in red until a vendor accepts the key, and
+**READY** in green once one has. The first run validates too, so a bad key fails
+in the KEYS panel instead of halfway through a turn.
 
 Internally every turn is normalized to `{role, parts[]}` with part types
 `text | thinking | tool_use | tool_result`, so switching vendors mid-session
@@ -84,6 +104,21 @@ packages load.
 Consequence worth knowing: an opaque origin has no `localStorage`, so scaffolded
 code degrades to in-memory storage when it runs in the preview. Export and serve
 it on a real origin for the full behaviour.
+
+---
+
+## Slash commands
+
+Typed into the prompt, answered by the tab itself — no model call, no tokens.
+
+| Command | What it does |
+| --- | --- |
+| `/help` | Lists the commands. |
+| `/mode` | Shows the current mode. |
+| `/mode agent-builder` | Default. The system prompt that builds AI agents, blocks.ai first. |
+| `/mode general` | The same tools and sandbox, pointed at anything static. |
+| `/clear` | Drops the conversation and the transcript; keeps every file. |
+| `/wipe` | Deletes the files *and* the conversation, after a confirm. |
 
 ---
 
@@ -156,17 +191,43 @@ Each scaffold is a real, runnable multi-file agent: `agent.js` (the loop),
 
 ## Using it
 
-1. Open `index.html`.
-2. **KEYS** → pick a vendor, paste a key, **SAVE**.
+1. Open `index.html`. It starts on the **KEYS** panel until a key validates.
+2. **KEYS** → pick a vendor, paste a key, **SAVE**. Wait for the green **READY**.
 3. Ask for what you want: *"scaffold a blocks.ai research agent, then run it"*.
 4. Watch **FILES** fill up, **PREVIEW** mount, and the transcript stream.
 5. **EXPORT .ZIP** when you want it on disk.
 
 Settings that matter: **auto-approve tool calls** (on by default; turn it off to
 get an ALLOW / ALLOW ALL / DENY gate on every write and every execution),
-**show reasoning**, and **max steps**. The workspace and the conversation both
-survive a reload; **NEW SESSION** clears the model's memory and keeps the files,
-**WIPE** does the opposite.
+**show reasoning**, **mode**, and **max steps**. The workspace and the
+conversation both survive a reload; **NEW SESSION** (`/clear`) clears the model's
+memory and keeps the files, **WIPE** (`/wipe`) does the opposite.
+
+The prompt bar sits directly under the last line of the transcript and only parks
+at the bottom edge once the transcript has grown that far — flexbox, no JS. While
+it is still high up, the room below it shows a low-resolution monochrome beach:
+true pixel art, which means every edge is horizontal or vertical (no diagonals,
+no circles, nothing the browser can anti-alias into a soft fringe), no grid is
+drawn over the top, and shape comes from which pixels are lit rather than from a
+gradient ramp. The sea is stippled crests, the sun is a nine-pixel disc built one
+solid row at a time, the palm is a `box-shadow` sprite drawn from an ASCII map in
+the stylesheet. Every offset is a multiple of one CSS pixel variable, so browser
+zoom scales the scene instead of resampling it.
+
+---
+
+## Building for GitHub Pages
+
+```
+node build.mjs        # → public/index.html + public/.nojekyll
+```
+
+Zero dependencies. It reads `index.html`, follows that file's own
+`<link>`/`<script src>` order, strips comments and indentation (never renames
+anything, so a stack trace still means something), inlines the result, and
+syntax-checks every minified script with `node:vm` before writing — a corrupted
+bundle fails the build instead of shipping. One file, ~122 kB, ~38 kB gzipped.
+Point Pages at `public/` and that's the deploy.
 
 ---
 

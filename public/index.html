@@ -1,0 +1,2930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>buttercup.sh — web agent harness</title>
+<meta name="description" content="A 100% static, no-backend terminal harness whose tools build AI agents that run in the browser.">
+<style>:root{--ink:#f6c66a;--ink-hot:#ffe6b0;--ink-dim:#a8873f;--ink-faint:#6b552a;--paper:#14100b;--paper-2:#1d170f;--paper-3:#251d13;--rule:#4a3a1e;--good:#8ecf6f;--warn:#f0a24a;--bad:#e5705c;--user:#9fd0e8;--mono:"Berkeley Mono","IBM Plex Mono","SFMono-Regular",Menlo,Consolas,"DejaVu Sans Mono",monospace;--pad:0.75rem;color-scheme:dark}@media (prefers-color-scheme:light){:root{--ink:#3b2c10;--ink-hot:#171003;--ink-dim:#6f5a2c;--ink-faint:#a38d5f;--paper:#f2e7cf;--paper-2:#eadcbd;--paper-3:#e2d1ab;--rule:#c3ab7b;--user:#1d5d7d;--good:#2f6b26;--bad:#9c2f1f}.crt{opacity:.25}}*{box-sizing:border-box}html,body{height:100%;margin:0}body{background:var(--paper);background-image:radial-gradient(120% 90% at 50% 0%,#2a2013 0%,var(--paper) 60%,#0b0906 100%);color:var(--ink);font:14px/1.5 var(--mono);overflow:hidden}.crt{position:fixed;inset:0;z-index:9;pointer-events:none;opacity:.55;background:repeating-linear-gradient(to bottom,rgba(0,0,0,.22) 0 1px,rgba(0,0,0,0) 1px 3px),radial-gradient(130% 100% at 50% 50%,rgba(0,0,0,0) 55%,rgba(0,0,0,.55) 100%);mix-blend-mode:multiply}@media (prefers-reduced-motion:no-preference){.crt::after{content:"";position:absolute;inset:-20% 0;background:linear-gradient(to bottom,transparent,rgba(255,225,170,.05),transparent);height:22%;animation:sweep 9s linear infinite}@keyframes sweep{from{transform:translateY(-120%)}to{transform:translateY(560%)}}}.machine{position:relative;z-index:1;height:100%;max-width:1500px;margin:0 auto;display:grid;grid-template-rows:auto minmax(0,1fr) auto;padding:var(--pad);gap:var(--pad)}.titlebar{display:flex;align-items:baseline;gap:.9rem;flex-wrap:wrap;border:2px solid var(--rule);border-bottom-width:3px;background:linear-gradient(var(--paper-3),var(--paper-2));padding:.5rem .75rem}.titlebar h1{font-size:1rem;letter-spacing:.18em;text-transform:uppercase;margin:0;color:var(--ink-hot);text-shadow:0 0 12px rgba(246,198,106,.35)}.titlebar .rev{color:var(--ink-faint);letter-spacing:.1em}.tagline{margin:0;color:var(--ink-dim);font-size:.78rem;letter-spacing:.06em}.lamps{display:inline-flex;gap:.4rem}.lamps i{width:.7rem;height:.7rem;border:1px solid var(--rule);border-radius:50%;background:var(--paper);display:block}.lamps i:first-child{background:var(--bad)}.lamps i:nth-child(2){background:var(--warn)}.lamps i:last-child{background:var(--good)}.lamp-status{margin-left:auto;font-size:.72rem;letter-spacing:.18em;border:1px solid var(--rule);padding:.15rem .55rem;color:var(--ink-dim);background:var(--paper)}.lamp-status[data-state="busy"]{color:var(--paper);background:var(--warn);border-color:var(--warn)}.lamp-status[data-state="check"]{color:var(--warn);border-color:var(--warn)}.lamp-status[data-state="ready"]{color:var(--paper);background:var(--good);border-color:var(--good)}.lamp-status[data-state="notready"],.lamp-status[data-state="error"]{color:var(--paper);background:var(--bad);border-color:var(--bad)}.deck{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:var(--pad);min-height:0}.console,.rack{border:2px solid var(--rule);background:var(--paper-2);display:grid;min-height:0}.console{display:flex;flex-direction:column}.scroll{flex:0 1 auto;min-height:0;overflow-y:auto;padding:var(--pad) 1rem;scrollbar-width:thin;scrollbar-color:var(--rule) transparent}.scroll::-webkit-scrollbar{width:10px}.scroll::-webkit-scrollbar-thumb{background:var(--rule)}.entry{margin:0 0 1.1rem}.entry pre{margin:0;white-space:pre-wrap;word-break:break-word;font:inherit}.entry.boot pre{color:var(--ink-dim)}.entry p{margin:.4rem 0;color:var(--ink-dim)}.entry code{color:var(--ink)}.who{display:block;font-size:.7rem;letter-spacing:.2em;color:var(--ink-faint);text-transform:uppercase;margin-bottom:.2rem}.entry.user{border-left:3px solid var(--user);padding-left:.7rem;color:var(--user)}.entry.user .who{color:var(--user)}.entry.model .body{color:var(--ink)}.entry.error{border-left:3px solid var(--bad);padding-left:.7rem;color:var(--bad)}.entry.system{color:var(--ink-dim);font-size:.82rem}.entry.model.live .body::after{content:"█";color:var(--ink-hot);margin-left:1px}@media (prefers-reduced-motion:no-preference){.entry.model.live .body::after{animation:blink 1s steps(2) infinite}@keyframes blink{50%{opacity:0}}}.body strong{color:var(--ink-hot);font-weight:600}.body .fence{display:block;border:1px dashed var(--rule);background:var(--paper);padding:.5rem .6rem;margin:.5rem 0;overflow-x:auto;color:var(--ink)}.body .bullet{display:block;padding-left:1.1rem;text-indent:-1.1rem}details.think,details.call{border:1px solid var(--rule);background:var(--paper);margin:.45rem 0;padding:0 .55rem}details.think{border-style:dotted}details>summary{cursor:pointer;list-style:none;padding:.3rem 0;font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-dim);display:flex;gap:.5rem;align-items:baseline}details>summary::-webkit-details-marker{display:none}details>summary::before{content:"▸";color:var(--ink-faint)}details[open]>summary::before{content:"▾"}details>summary .tname{color:var(--ink);letter-spacing:.04em;text-transform:none}details>summary .tsum{color:var(--ink-faint);text-transform:none;letter-spacing:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}details>summary .tflag{margin-left:auto}details.call.err>summary .tflag{color:var(--bad)}details.call.ok>summary .tflag{color:var(--good)}details>pre{border-top:1px dashed var(--rule);padding:.5rem 0;margin:0;color:var(--ink-dim);font-size:.84rem;max-height:22rem;overflow:auto}details.think>pre{font-style:italic}.approve{border:1px solid var(--warn);background:var(--paper);padding:.5rem .6rem;margin:.5rem 0}.approve p{margin:0 0 .45rem;color:var(--warn)}.approve .btns{display:flex;gap:.4rem;flex-wrap:wrap}.prompt{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:stretch;gap:.5rem;border-top:2px solid var(--rule);background:var(--paper-3);padding:.6rem}.sigil{color:var(--ink-hot);font-weight:700;align-self:center}.prompt textarea{font:inherit;color:var(--ink-hot);background:var(--paper);border:1px solid var(--rule);padding:.45rem .5rem;resize:none;max-height:9rem;min-height:2.1rem}.prompt textarea:focus-visible,.settings input:focus-visible,.settings select:focus-visible{outline:2px solid var(--ink);outline-offset:-1px}button,.settings select,.settings input{font:inherit;color:var(--ink);background:var(--paper-3);border:1px solid var(--rule);padding:.35rem .7rem}button{cursor:pointer;letter-spacing:.12em;text-transform:uppercase;font-size:.74rem}button:hover:not(:disabled){background:var(--ink);color:var(--paper)}button:disabled{opacity:.4;cursor:not-allowed}button.mini{padding:.18rem .5rem;font-size:.68rem}button.danger{border-color:var(--bad);color:var(--bad)}button.danger:hover{background:var(--bad);color:var(--paper)}.beach{--px:6px;--sand:color-mix(in srgb,var(--ink) 60%,transparent);--sand-lo:color-mix(in srgb,var(--ink) 38%,transparent);--sea:color-mix(in srgb,var(--ink) 42%,transparent);--sea-lo:color-mix(in srgb,var(--ink) 14%,transparent);--shore:calc(var(--px) * 14);--water:calc(var(--px) * 18);--sky:calc(var(--shore) + var(--water));flex:1 1 0;min-height:0;position:relative;overflow:hidden;background-repeat:no-repeat;background-image:repeating-linear-gradient(90deg,var(--sand) 0 var(--px),transparent var(--px) calc(var(--px) * 6)),repeating-linear-gradient(90deg,var(--sand) 0 var(--px),transparent var(--px) calc(var(--px) * 8)),repeating-linear-gradient(90deg,var(--sand) 0 calc(var(--px) * 2),transparent calc(var(--px) * 2) calc(var(--px) * 11)),repeating-linear-gradient(90deg,var(--sand) 0 var(--px),transparent var(--px) calc(var(--px) * 5)),repeating-linear-gradient(90deg,var(--sand) 0 var(--px),transparent var(--px) calc(var(--px) * 7)),repeating-linear-gradient(90deg,var(--sand) 0 calc(var(--px) * 2),transparent calc(var(--px) * 2) calc(var(--px) * 13)),repeating-linear-gradient(90deg,var(--ink-dim) 0 calc(var(--px) * 3),transparent calc(var(--px) * 3) calc(var(--px) * 7)),repeating-linear-gradient(90deg,var(--sea) 0 calc(var(--px) * 4),transparent calc(var(--px) * 4) calc(var(--px) * 11)),repeating-linear-gradient(90deg,var(--sea) 0 calc(var(--px) * 2),transparent calc(var(--px) * 2) calc(var(--px) * 7)),repeating-linear-gradient(90deg,var(--sea) 0 calc(var(--px) * 6),transparent calc(var(--px) * 6) calc(var(--px) * 15)),repeating-linear-gradient(90deg,var(--sea) 0 calc(var(--px) * 2),transparent calc(var(--px) * 2) calc(var(--px) * 6)),repeating-linear-gradient(90deg,var(--sea) 0 calc(var(--px) * 4),transparent calc(var(--px) * 4) calc(var(--px) * 15)),repeating-linear-gradient(90deg,var(--sea) 0 calc(var(--px) * 2),transparent calc(var(--px) * 2) calc(var(--px) * 9)),repeating-linear-gradient(90deg,var(--sea) 0 calc(var(--px) * 3),transparent calc(var(--px) * 3) calc(var(--px) * 16)),repeating-linear-gradient(90deg,var(--sea) 0 calc(var(--px) * 2),transparent calc(var(--px) * 2) calc(var(--px) * 11)),linear-gradient(var(--ink-dim),var(--ink-dim)),linear-gradient(var(--ink-dim),var(--ink-dim)),linear-gradient(var(--ink-dim),var(--ink-dim)),linear-gradient(var(--ink-dim),var(--ink-dim)),linear-gradient(var(--sea-lo),var(--sea-lo)),linear-gradient(var(--sand-lo),var(--sand-lo)),linear-gradient(var(--sea),var(--sea)),linear-gradient(var(--sea),var(--sea)),linear-gradient(var(--sea-lo),var(--sea-lo)),linear-gradient(var(--sea-lo),var(--sea-lo));background-size:100% var(--px),100% var(--px),100% var(--px),100% var(--px),100% var(--px),100% var(--px),100% var(--px),100% var(--px),100% var(--px),100% var(--px),100% var(--px),100% var(--px),100% var(--px),100% var(--px),100% var(--px),calc(var(--px) * 3) var(--px),calc(var(--px) * 5) var(--px),calc(var(--px) * 2) var(--px),100% var(--px),100% var(--water),100% var(--shore),calc(var(--px) * 10) var(--px),calc(var(--px) * 16) var(--px),calc(var(--px) * 6) var(--px),calc(var(--px) * 10) var(--px);background-position:bottom var(--px) left 0,bottom calc(var(--px) * 3) left calc(var(--px) * 3),bottom calc(var(--px) * 5) left calc(var(--px) * 2),bottom calc(var(--px) * 8) left var(--px),bottom calc(var(--px) * 11) left calc(var(--px) * 4),bottom calc(var(--px) * 13) left calc(var(--px) * 6),bottom var(--shore) left 0,bottom calc(var(--shore) + calc(var(--px) * 2)) left calc(var(--px) * 2),bottom calc(var(--shore) + calc(var(--px) * 4)) left calc(var(--px) * 5),bottom calc(var(--shore) + calc(var(--px) * 6)) left var(--px),bottom calc(var(--shore) + calc(var(--px) * 8)) left calc(var(--px) * 3),bottom calc(var(--shore) + calc(var(--px) * 10)) left calc(var(--px) * 6),bottom calc(var(--shore) + calc(var(--px) * 12)) left calc(var(--px) * 2),bottom calc(var(--shore) + calc(var(--px) * 14)) left calc(var(--px) * 8),bottom calc(var(--shore) + calc(var(--px) * 16)) left calc(var(--px) * 4),bottom calc(var(--shore) + calc(var(--px) * 3)) right calc(var(--px) * 17),bottom calc(var(--shore) + calc(var(--px) * 6)) right calc(var(--px) * 16),bottom calc(var(--shore) + calc(var(--px) * 10)) right calc(var(--px) * 18),bottom var(--sky) left 0,bottom var(--shore) left 0,bottom left,bottom calc(var(--sky) + calc(var(--px) * 11)) right calc(var(--px) * 40),bottom calc(var(--sky) + calc(var(--px) * 10)) right calc(var(--px) * 38),bottom calc(var(--sky) + calc(var(--px) * 18)) right calc(var(--px) * 24),bottom calc(var(--sky) + calc(var(--px) * 17)) right calc(var(--px) * 22)}.beach::before{content:"";position:absolute;right:calc(var(--px) * 40);bottom:calc(var(--sky) + var(--px) * 9);width:var(--px);height:var(--px);box-shadow:calc(var(--px) * -1) var(--px) 0 var(--sea),calc(var(--px) * 1) var(--px) 0 var(--sea),calc(var(--px) * 7) calc(var(--px) * 4) 0 var(--sea),calc(var(--px) * 8) calc(var(--px) * 5) 0 var(--sea),calc(var(--px) * 9) calc(var(--px) * 4) 0 var(--sea)}.beach::after{content:"";position:absolute;right:calc(var(--px) * 14);bottom:calc(var(--sky) + var(--px) * 4);width:calc(var(--px) * 9);height:calc(var(--px) * 9);background-repeat:no-repeat;background-image:linear-gradient(var(--ink-dim),var(--ink-dim)),linear-gradient(var(--ink-dim),var(--ink-dim)),linear-gradient(var(--ink-dim),var(--ink-dim)),linear-gradient(var(--ink-dim),var(--ink-dim)),linear-gradient(var(--ink-dim),var(--ink-dim)),linear-gradient(var(--ink-dim),var(--ink-dim)),linear-gradient(var(--ink-dim),var(--ink-dim)),linear-gradient(var(--ink-dim),var(--ink-dim)),linear-gradient(var(--ink-dim),var(--ink-dim));background-size:calc(var(--px) * 3) var(--px),calc(var(--px) * 7) var(--px),calc(var(--px) * 7) var(--px),calc(var(--px) * 9) var(--px),calc(var(--px) * 9) var(--px),calc(var(--px) * 9) var(--px),calc(var(--px) * 7) var(--px),calc(var(--px) * 7) var(--px),calc(var(--px) * 3) var(--px);background-position:top 0 left calc(var(--px) * 3),top var(--px) left var(--px),top calc(var(--px) * 2) left var(--px),top calc(var(--px) * 3) left 0,top calc(var(--px) * 4) left 0,top calc(var(--px) * 5) left 0,top calc(var(--px) * 6) left var(--px),top calc(var(--px) * 7) left var(--px),top calc(var(--px) * 8) left calc(var(--px) * 3)}.palm{--ink-palm:var(--ink-dim);--pp:calc(var(--px) * 2);position:absolute;left:calc(var(--px) * 6);bottom:calc(var(--shore) + var(--pp) * 15);width:var(--pp);height:var(--pp);box-shadow:calc(var(--pp) * 4) 0 0 var(--ink-palm),calc(var(--pp) * 5) 0 0 var(--ink-palm),calc(var(--pp) * 6) 0 0 var(--ink-palm),calc(var(--pp) * 9) 0 0 var(--ink-palm),calc(var(--pp) * 10) 0 0 var(--ink-palm),calc(var(--pp) * 11) 0 0 var(--ink-palm),calc(var(--pp) * 2) var(--pp) 0 var(--ink-palm),calc(var(--pp) * 3) var(--pp) 0 var(--ink-palm),calc(var(--pp) * 7) var(--pp) 0 var(--ink-palm),calc(var(--pp) * 8) var(--pp) 0 var(--ink-palm),calc(var(--pp) * 12) var(--pp) 0 var(--ink-palm),calc(var(--pp) * 13) var(--pp) 0 var(--ink-palm),var(--pp) calc(var(--pp) * 2) 0 var(--ink-palm),calc(var(--pp) * 5) calc(var(--pp) * 2) 0 var(--ink-palm),calc(var(--pp) * 6) calc(var(--pp) * 2) 0 var(--ink-palm),calc(var(--pp) * 9) calc(var(--pp) * 2) 0 var(--ink-palm),calc(var(--pp) * 10) calc(var(--pp) * 2) 0 var(--ink-palm),calc(var(--pp) * 14) calc(var(--pp) * 2) 0 var(--ink-palm),0 calc(var(--pp) * 3) 0 var(--ink-palm),calc(var(--pp) * 3) calc(var(--pp) * 3) 0 var(--ink-palm),calc(var(--pp) * 4) calc(var(--pp) * 3) 0 var(--ink-palm),calc(var(--pp) * 7) calc(var(--pp) * 3) 0 var(--ink-palm),calc(var(--pp) * 8) calc(var(--pp) * 3) 0 var(--ink-palm),calc(var(--pp) * 11) calc(var(--pp) * 3) 0 var(--ink-palm),calc(var(--pp) * 12) calc(var(--pp) * 3) 0 var(--ink-palm),calc(var(--pp) * 15) calc(var(--pp) * 3) 0 var(--ink-palm),calc(var(--pp) * 3) calc(var(--pp) * 4) 0 var(--ink-palm),calc(var(--pp) * 7) calc(var(--pp) * 4) 0 var(--ink-palm),calc(var(--pp) * 8) calc(var(--pp) * 4) 0 var(--ink-palm),calc(var(--pp) * 12) calc(var(--pp) * 4) 0 var(--ink-palm),calc(var(--pp) * 7) calc(var(--pp) * 5) 0 var(--ink-palm),calc(var(--pp) * 8) calc(var(--pp) * 5) 0 var(--ink-palm),calc(var(--pp) * 6) calc(var(--pp) * 6) 0 var(--ink-palm),calc(var(--pp) * 7) calc(var(--pp) * 6) 0 var(--ink-palm),calc(var(--pp) * 6) calc(var(--pp) * 7) 0 var(--ink-palm),calc(var(--pp) * 7) calc(var(--pp) * 7) 0 var(--ink-palm),calc(var(--pp) * 5) calc(var(--pp) * 8) 0 var(--ink-palm),calc(var(--pp) * 6) calc(var(--pp) * 8) 0 var(--ink-palm),calc(var(--pp) * 5) calc(var(--pp) * 9) 0 var(--ink-palm),calc(var(--pp) * 6) calc(var(--pp) * 9) 0 var(--ink-palm),calc(var(--pp) * 5) calc(var(--pp) * 10) 0 var(--ink-palm),calc(var(--pp) * 6) calc(var(--pp) * 10) 0 var(--ink-palm),calc(var(--pp) * 4) calc(var(--pp) * 11) 0 var(--ink-palm),calc(var(--pp) * 5) calc(var(--pp) * 11) 0 var(--ink-palm),calc(var(--pp) * 4) calc(var(--pp) * 12) 0 var(--ink-palm),calc(var(--pp) * 5) calc(var(--pp) * 12) 0 var(--ink-palm),calc(var(--pp) * 3) calc(var(--pp) * 13) 0 var(--ink-palm),calc(var(--pp) * 4) calc(var(--pp) * 13) 0 var(--ink-palm),calc(var(--pp) * 2) calc(var(--pp) * 14) 0 var(--sand),calc(var(--pp) * 3) calc(var(--pp) * 14) 0 var(--sand),calc(var(--pp) * 4) calc(var(--pp) * 14) 0 var(--sand),calc(var(--pp) * 5) calc(var(--pp) * 14) 0 var(--sand),var(--pp) calc(var(--pp) * 15) 0 var(--sand),calc(var(--pp) * 2) calc(var(--pp) * 15) 0 var(--sand),calc(var(--pp) * 3) calc(var(--pp) * 15) 0 var(--sand),calc(var(--pp) * 4) calc(var(--pp) * 15) 0 var(--sand),calc(var(--pp) * 5) calc(var(--pp) * 15) 0 var(--sand),calc(var(--pp) * 6) calc(var(--pp) * 15) 0 var(--sand)}.rack{grid-template-rows:auto minmax(0,1fr) auto}.tabs>input[type="radio"]{position:absolute;opacity:0;pointer-events:none}.tabbar{display:flex;border-bottom:2px solid var(--rule);background:var(--paper-3)}.tabbar label{flex:1;text-align:center;padding:.45rem .3rem;cursor:pointer;font-size:.7rem;letter-spacing:.16em;color:var(--ink-faint);border-right:1px solid var(--rule)}.tabbar label:last-child{border-right:0}.tabbar label:hover{color:var(--ink)}.panel{display:none;overflow-y:auto;padding:var(--pad);min-height:0;scrollbar-width:thin;scrollbar-color:var(--rule) transparent}#tab-files:checked ~ #panel-files,#tab-tools:checked ~ #panel-tools,#tab-preview:checked ~ #panel-preview,#tab-keys:checked ~ #panel-keys{display:block}#tab-files:checked ~ .tabbar label[for="tab-files"],#tab-tools:checked ~ .tabbar label[for="tab-tools"],#tab-preview:checked ~ .tabbar label[for="tab-preview"],#tab-keys:checked ~ .tabbar label[for="tab-keys"]{color:var(--paper);background:var(--ink)}#tab-preview:checked ~ #panel-preview{display:grid;grid-template-rows:auto auto 1fr}.panel-head{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;border-bottom:1px dashed var(--rule);padding-bottom:.35rem;margin-bottom:.6rem}.panel-head h2{font-size:.78rem;letter-spacing:.18em;text-transform:uppercase;margin:0;color:var(--ink-hot)}.panel-head .mini:first-of-type{margin-left:auto}.note{color:var(--ink-faint);font-size:.78rem;margin:0 0 .7rem}.dim{color:var(--ink-faint)}.linky{color:var(--ink-hot);text-decoration:underline dotted;cursor:pointer}.tree{list-style:none;margin:0;padding:0}.tree li{display:flex;gap:.5rem;align-items:baseline;padding:.1rem 0}.tree button{all:unset;cursor:pointer;color:var(--ink);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tree button:hover{color:var(--ink-hot);text-decoration:underline}.tree .size{color:var(--ink-faint);font-size:.72rem}.tree .glyph{color:var(--ink-faint)}.viewer{margin-top:.8rem;border:1px solid var(--rule);background:var(--paper)}.viewer-head{display:flex;gap:.5rem;align-items:center;padding:.3rem .5rem;border-bottom:1px dashed var(--rule)}.viewer-head code{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-hot)}.viewer pre{margin:0;padding:.55rem;max-height:26rem;overflow:auto;white-space:pre;font-size:.82rem;color:var(--ink-dim)}.tools{list-style:none;margin:0;padding:0}.tools>li{border:1px solid var(--rule);margin-bottom:.4rem;background:var(--paper)}.tools>li>details{border:0;margin:0}.tools .tag{font-size:.64rem;letter-spacing:.12em;border:1px solid var(--rule);padding:0 .3rem;color:var(--ink-faint)}.tools .tag.write{color:var(--warn);border-color:var(--warn)}.tools .tag.exec{color:var(--bad);border-color:var(--bad)}.tools .tag.net{color:var(--user);border-color:var(--user)}.tools dl{margin:0;padding:.45rem 0;border-top:1px dashed var(--rule);font-size:.8rem}.tools dt{color:var(--ink-hot)}.tools dd{margin:0 0 .35rem;color:var(--ink-faint)}.tools dd .req{color:var(--warn)}.tools .desc{margin:.3rem 0;color:var(--ink-dim);font-size:.82rem}#preview{width:100%;height:100%;min-height:18rem;border:1px solid var(--rule);background:#fff}.settings fieldset{border:1px solid var(--rule);margin:0 0 .7rem;padding:.5rem .6rem}.settings legend{font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint);padding:0 .3rem}.settings .row{display:grid;grid-template-columns:6.5rem minmax(0,1fr);align-items:center;gap:.5rem;margin-bottom:.4rem}.settings .row[hidden]{display:none}.settings .row>span{font-size:.74rem;letter-spacing:.1em;color:var(--ink-dim);text-transform:uppercase}.settings .row input,.settings .row select{width:100%}.settings .check{display:flex;gap:.5rem;align-items:center;margin-bottom:.3rem;font-size:.82rem;color:var(--ink-dim);cursor:pointer}.settings .check input{accent-color:var(--ink)}.mascot{align-self:end;margin:0;display:flex;align-items:center;gap:.7rem;border-top:1px dashed var(--rule);background:var(--paper-3);padding:.4rem .75rem .3rem;color:var(--ink-dim)}.mascot .cup{width:5.6rem;height:5rem;flex:none;overflow:visible}.mascot .cup *{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.mascot .dome,.mascot .body{fill:var(--paper)}.mascot .eye{fill:currentColor;stroke:none;transform-box:fill-box;transform-origin:center}.mascot .ridges,.mascot .blush{stroke-width:1.5;opacity:.6}.mascot .arm circle{fill:var(--paper)}.mascot .spark{opacity:0}.mascot #sparkle{fill:currentColor;stroke:none}.mascot .spark use{fill:currentColor;stroke:none;transform-box:fill-box;transform-origin:center;opacity:.1;transform:scale(.35) rotate(-30deg)}body[data-agent="busy"] .mascot .spark use{animation:cup-spark 1.3s ease-in-out infinite}body[data-agent="busy"] .mascot .spark g:nth-child(2) use{animation-delay:-.18s}body[data-agent="busy"] .mascot .spark g:nth-child(3) use{animation-delay:-.8s}body[data-agent="busy"] .mascot .spark g:nth-child(4) use{animation-delay:-.45s}body[data-agent="busy"] .mascot .spark g:nth-child(5) use{animation-delay:-1.05s}body[data-agent="busy"] .mascot .spark g:nth-child(6) use{animation-delay:-.62s}body[data-agent="busy"] .mascot .spark g:nth-child(7) use{animation-delay:-.3s}@keyframes cup-spark{0%,100%{opacity:.1;transform:scale(.35) rotate(-30deg)}50%{opacity:1;transform:scale(1) rotate(20deg)}}.mascot .mouth.oh,.mascot .mouth.flat{display:none}.mascot-say::before{content:"warm and idle"}.mascot-say{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint)}body[data-agent="busy"] .mascot{color:var(--warn)}body[data-agent="busy"] .mascot .spark{opacity:1}body[data-agent="busy"] .mascot .mouth.grin{display:none}body[data-agent="busy"] .mascot .mouth.oh{display:inline}body[data-agent="busy"] .mascot-say::before{content:"on it — whisking"}body[data-agent="error"] .mascot{color:var(--bad)}body[data-agent="error"] .mascot .mouth.grin{display:none}body[data-agent="error"] .mascot .mouth.flat{display:inline}body[data-agent="error"] .mascot .eye{r:2.2}body[data-agent="error"] .mascot-say::before{content:"that went sideways"}body[data-agent="ready"] .mascot-say::before{content:"warm and ready"}body[data-agent="check"] .mascot-say::before{content:"checking the key"}body[data-agent="notready"] .mascot{color:var(--bad)}body[data-agent="notready"] .mascot-say::before{content:"needs an api key"}.mascot .rig{animation:cup-bob 3.6s ease-in-out infinite;transform-origin:60px 96px}.mascot .eye{animation:cup-blink 5.4s ease-in-out infinite}.mascot .arm.right{animation:cup-wave 2.8s ease-in-out infinite;transform-origin:91px 74px}.mascot .arm.left{animation:cup-wave 2.8s ease-in-out infinite reverse;transform-origin:29px 74px}body[data-agent="busy"] .mascot .rig{animation-duration:1.1s}body[data-agent="busy"] .mascot .arm.right,body[data-agent="busy"] .mascot .arm.left{animation-duration:.7s}@keyframes cup-bob{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-3px) scale(1.03,.97)}}@keyframes cup-blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}@keyframes cup-wave{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(12deg)}}.statusbar{display:flex;gap:1rem;flex-wrap:wrap;align-items:center;border:2px solid var(--rule);background:var(--paper-3);padding:.3rem .75rem;font-size:.72rem;letter-spacing:.1em;color:var(--ink-faint);text-transform:uppercase}.statusbar .grow{flex:1}@media (max-width:900px){body{overflow:auto}.machine{height:auto;min-height:100%}.deck{grid-template-columns:1fr}.console{min-height:60vh}.rack{min-height:24rem}.tagline{display:none}}</style>
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%2314100b'/%3E%3Ctext x='2' y='12' font-family='monospace' font-size='11' fill='%23f6c66a'%3E%26gt;%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+
+<div class="crt" aria-hidden="true"></div>
+
+<main class="machine">
+
+  
+  <header class="titlebar">
+    <span class="lamps" aria-hidden="true"><i></i><i></i><i></i></span>
+    <h1>buttercup.sh<span class="rev"> rev.2</span></h1>
+    <p class="tagline">pure vintage charm &middot; aggressively anti&#8209;dystopian</p>
+    <output class="lamp-status" id="status" data-state="notready" aria-live="polite">NOT READY</output>
+  </header>
+
+  <div class="deck">
+
+    
+    <section class="console" aria-label="Session transcript">
+      <div class="scroll" id="log" role="log" aria-live="polite">
+        <article class="entry boot">
+<pre>
+ ┌────────────────────────────────────────────────┐
+ │  B U T T E R C U P   AGENT WORKS   ·   rev.2   │
+ │  a harness for building agents, in a browser   │
+ └────────────────────────────────────────────────┘
+</pre>
+          <p>No server. No build step. No telemetry. Your keys stay in this
+             browser's <code>localStorage</code>; model traffic goes straight
+             from this tab to the vendor you pick.</p>
+          <p>Open <label for="tab-keys" class="linky">KEYS</label> to paste an API key,
+             then ask for an agent. Try:
+             <em>&ldquo;scaffold a blocks.ai research agent, then run it&rdquo;</em>.</p>
+          <p>Type <code>/help</code> for the commands this tab handles itself
+             — <code>/mode</code>, <code>/clear</code>, <code>/wipe</code>.</p>
+        </article>
+      </div>
+
+      <form class="prompt" id="prompt-form" autocomplete="off">
+        <label class="sigil" for="prompt-input" aria-hidden="true">&gt;</label>
+        <textarea id="prompt-input" name="prompt" rows="1" spellcheck="false"
+          placeholder="describe the agent you want built…   /help"></textarea>
+        <button type="submit" id="send">RUN</button>
+        <button type="button" id="stop" disabled>STOP</button>
+      </form>
+
+      
+      <div class="beach" aria-hidden="true"><i class="palm"></i></div>
+    </section>
+
+    
+    <section class="rack tabs" aria-label="Harness panels">
+      <input type="radio" name="rackTab" id="tab-files" checked>
+      <input type="radio" name="rackTab" id="tab-tools">
+      <input type="radio" name="rackTab" id="tab-preview">
+      <input type="radio" name="rackTab" id="tab-keys">
+
+      <nav class="tabbar">
+        <label for="tab-files">FILES</label>
+        <label for="tab-tools">TOOLS</label>
+        <label for="tab-preview">PREVIEW</label>
+        <label for="tab-keys">KEYS</label>
+      </nav>
+
+      <div class="panel" id="panel-files">
+        <div class="panel-head">
+          <h2>workspace <code>/</code></h2>
+          <button type="button" id="download-zip" class="mini">EXPORT .ZIP</button>
+          <button type="button" id="wipe" class="mini danger">WIPE</button>
+        </div>
+        <ul class="tree" id="tree"><li class="dim">empty workspace</li></ul>
+        <div class="viewer" id="viewer" hidden>
+          <div class="viewer-head"><code id="viewer-path"></code>
+            <button type="button" id="viewer-close" class="mini">CLOSE</button></div>
+          <pre id="viewer-body"></pre>
+        </div>
+      </div>
+
+      <div class="panel" id="panel-tools">
+        <div class="panel-head"><h2>tool definitions</h2>
+          <span class="dim" id="tool-count"></span></div>
+        <p class="note">Handed to the model verbatim on every turn. Each one is a
+           plain JS function in <code>js/tools.js</code> — no server touches them.</p>
+        <ul class="tools" id="tools"></ul>
+      </div>
+
+      <div class="panel" id="panel-preview">
+        <div class="panel-head"><h2>agent preview</h2>
+          <span class="dim">sandboxed iframe</span></div>
+        <p class="note" id="preview-empty">Nothing mounted. The
+           <code>preview</code> tool points this frame at a file in the
+           workspace; <code>run_agent</code> executes one and reports back.</p>
+        <iframe id="preview" title="Agent preview"
+          sandbox="allow-scripts allow-forms allow-modals allow-popups" hidden></iframe>
+      </div>
+
+      <div class="panel" id="panel-keys">
+        <div class="panel-head"><h2>completion backend</h2></div>
+        <form id="settings-form" class="settings" autocomplete="off">
+          <fieldset>
+            <legend>provider</legend>
+            <label class="row"><span>vendor</span>
+              <select name="provider" id="provider">
+                <option value="anthropic">Anthropic — Claude</option>
+                <option value="openai">OpenAI — Codex / GPT</option>
+                <option value="xai">xAI — Grok</option>
+                <option value="google">Google — Gemini</option>
+                <option value="openrouter">OpenRouter — any model</option>
+                <option value="freebuff">FreeBuff — OpenAI-compatible</option>
+              </select></label>
+            <label class="row"><span>model</span>
+              <input name="model" id="model" list="model-list" spellcheck="false"></label>
+            <datalist id="model-list"></datalist>
+            <label class="row" id="row-base"><span>base url</span>
+              <input name="baseUrl" id="baseUrl" spellcheck="false"
+                placeholder="https://host/v1"></label>
+            <label class="row"><span>api key</span>
+              <input name="key" id="key" type="password" spellcheck="false" autocomplete="new-password"
+                placeholder="sk-… / stays in this browser"></label>
+            <label class="row"><span>effort</span>
+              <select name="effort" id="effort">
+                <option value="low">low</option>
+                <option value="medium">medium</option>
+                <option value="high">high</option>
+                <option value="xhigh" selected>xhigh</option>
+                <option value="max">max</option>
+              </select></label>
+          </fieldset>
+          <fieldset>
+            <legend>harness</legend>
+            <label class="row"><span>mode</span>
+              <select name="mode" id="mode">
+                <option value="agent-builder">agent-builder — build AI agents</option>
+                <option value="general">general — build anything</option>
+              </select></label>
+            <label class="check"><input type="checkbox" name="yolo" id="yolo" checked>
+              <span>auto&#8209;approve tool calls</span></label>
+            <label class="check"><input type="checkbox" name="showThinking" id="showThinking" checked>
+              <span>show reasoning</span></label>
+            <label class="row"><span>max steps</span>
+              <input name="maxSteps" id="maxSteps" type="number" min="1" max="200" value="40"></label>
+          </fieldset>
+          <div class="panel-head">
+            <button type="submit" class="mini">SAVE</button>
+            <button type="button" id="forget" class="mini danger">FORGET KEY</button>
+            <button type="button" id="reset-session" class="mini">NEW SESSION</button>
+          </div>
+          <p class="note">SAVE checks the key against the vendor's model list — no
+             tokens spent — and the lamp in the title bar turns READY only when the
+             vendor accepts it. <code>base url</code> appears for OpenAI-compatible
+             backends, so any gateway that speaks
+             <code>/chat/completions</code> works without a code change.</p>
+          <p class="note">A key in <code>localStorage</code> is readable by anything
+             that can run script in this origin. Use a scoped, revocable key, and
+             prefer a key you don't mind rotating.</p>
+        </form>
+      </div>
+
+      
+      <figure class="mascot" aria-hidden="true">
+        <svg class="cup" viewBox="0 0 120 108" role="presentation">
+          <g class="rig">
+            
+            <defs>
+              <path id="sparkle" d="M0-5Q1-1 5 0Q1 1 0 5Q-1 1-5 0Q-1-1 0-5Z"/>
+            </defs>
+            <g class="spark">
+              <g transform="translate(60 10)scale(1.1)"><use href="#sparkle"/></g>
+              <g transform="translate(25 29)scale(.85)"><use href="#sparkle"/></g>
+              <g transform="translate(95 29)scale(.85)"><use href="#sparkle"/></g>
+              <g transform="translate(13 45)scale(.55)"><use href="#sparkle"/></g>
+              <g transform="translate(107 45)scale(.55)"><use href="#sparkle"/></g>
+              <g transform="translate(42 17)scale(.5)"><use href="#sparkle"/></g>
+              <g transform="translate(78 17)scale(.5)"><use href="#sparkle"/></g>
+            </g>
+
+            
+            <g class="arm left">
+              <path d="M29 74C18 74 12 68 12 60"/>
+              <circle cx="12" cy="57" r="3.4"/>
+            </g>
+            <g class="arm right">
+              <path d="M91 74C102 74 108 68 108 60"/>
+              <circle cx="108" cy="57" r="3.4"/>
+            </g>
+
+            
+            <path class="dome" d="M28 70C26 42 40 26 60 26S94 42 92 70Z"/>
+
+            
+            <path class="body" d="M26 68 33 94Q60 100 87 94L94 68Z"/>
+            <g class="ridges">
+              <path d="M40 70 44.8 91"/>
+              <path d="M53 70 54.7 92"/>
+              <path d="M67 70 65.3 92"/>
+              <path d="M80 70 75.2 91"/>
+            </g>
+
+            
+            <g class="face">
+              <circle class="eye" cx="50" cy="50" r="3.4"/>
+              <circle class="eye" cx="70" cy="50" r="3.4"/>
+              <path class="mouth grin" d="M50 57q10 9 20 0"/>
+              <path class="mouth oh" d="M54 60a6 5 0 1 0 12 0a6 5 0 1 0-12 0"/>
+              <path class="mouth flat" d="M51 61h18"/>
+              <path class="blush" d="M38 58q2 3 4 0"/>
+              <path class="blush" d="M78 58q2 3 4 0"/>
+            </g>
+          </g>
+        </svg>
+        <figcaption class="mascot-say"></figcaption>
+      </figure>
+    </section>
+  </div>
+
+  <footer class="statusbar">
+    <span id="stat-provider">—</span>
+    <span id="stat-mode">—</span>
+    <span id="stat-tokens">0 tok</span>
+    <span id="stat-steps">step 0</span>
+    <span id="stat-files">0 files</span>
+    <span class="grow"></span>
+    <span>buttercup.sh &middot; static html/css/js</span>
+  </footer>
+</main>
+
+<script>
+/* js/vfs.js */
+
+window.VFS = (function () {
+const KEY = "buttercup.vfs.v1";
+let files = load();
+const watchers = [];
+function load() {
+try {
+const raw = localStorage.getItem(KEY);
+const parsed = raw ? JSON.parse(raw) : null;
+return parsed && typeof parsed === "object" ? parsed : {};
+} catch (_) {
+return {};
+}
+}
+function persist() {
+try {
+localStorage.setItem(KEY, JSON.stringify(files));
+} catch (err) {
+console.warn("[vfs] could not persist:", err);
+}
+watchers.forEach((fn) => fn());
+}
+function norm(path) {
+if (typeof path !== "string" || !path.trim()) throw new Error("path is required");
+const out = [];
+for (const seg of path.replace(/\\/g, "/").split("/")) {
+if (!seg || seg === ".") continue;
+if (seg === "..") out.pop();
+else out.push(seg);
+}
+if (!out.length) throw new Error(`not a file path: ${path}`);
+return out.join("/");
+}
+function globRe(pattern) {
+let re = "";
+for (let i = 0; i < pattern.length; i++) {
+const c = pattern[i];
+if (c === "*") {
+if (pattern[i + 1] === "*") {
+i++;
+if (pattern[i + 1] === "/") { i++; re += "(?:.*/)?"; }
+else re += ".*";
+} else re += "[^/]*";
+} else if (c === "?") re += "[^/]";
+else if (c === "{") {
+const close = pattern.indexOf("}", i);
+if (close < 0) { re += "\\{"; continue; }
+const alts = pattern.slice(i + 1, close).split(",");
+re += "(?:" + alts.map((a) => a.replace(/[.+^${}()|[\]\\]/g, "\\$&")).join("|") + ")";
+i = close;
+} else re += c.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+}
+return new RegExp("^" + re + "$");
+}
+const api = {
+norm,
+paths() { return Object.keys(files).sort(); },
+count() { return Object.keys(files).length; },
+exists(p) { return Object.prototype.hasOwnProperty.call(files, norm(p)); },
+read(p) {
+const path = norm(p);
+if (!api.exists(path)) throw new Error(`no such file: ${path}`);
+return files[path];
+},
+write(p, content) {
+const path = norm(p);
+const existed = api.exists(path);
+files[path] = String(content == null ? "" : content);
+persist();
+return { path, existed, bytes: files[path].length };
+},
+remove(p) {
+const path = norm(p);
+if (!api.exists(path)) throw new Error(`no such file: ${path}`);
+delete files[path];
+persist();
+return path;
+},
+move(from, to) {
+const a = norm(from), b = norm(to);
+const content = api.read(a);
+delete files[a];
+files[b] = content;
+persist();
+return { from: a, to: b };
+},
+glob(pattern) {
+const re = globRe(pattern.replace(/^\.?\//, ""));
+return api.paths().filter((p) => re.test(p));
+},
+grep(pattern, { glob, flags = "" } = {}) {
+const re = new RegExp(pattern, flags.includes("i") ? "i" : "");
+const scope = glob ? api.glob(glob) : api.paths();
+const hits = [];
+for (const path of scope) {
+files[path].split("\n").forEach((line, i) => {
+if (re.test(line)) hits.push({ path, line: i + 1, text: line });
+});
+}
+return hits;
+},
+bytes() { return api.paths().reduce((n, p) => n + files[p].length, 0); },
+snapshot() { return { ...files }; },
+wipe() { files = {}; persist(); },
+onChange(fn) { watchers.push(fn); },
+};
+return api;
+})();
+
+;
+/* js/zip.js */
+
+window.Zip = (function () {
+const CRC = (() => {
+const table = new Uint32Array(256);
+for (let n = 0; n < 256; n++) {
+let c = n;
+for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+table[n] = c >>> 0;
+}
+return table;
+})();
+function crc32(bytes) {
+let c = 0xffffffff;
+for (let i = 0; i < bytes.length; i++) c = CRC[(c ^ bytes[i]) & 0xff] ^ (c >>> 8);
+return (c ^ 0xffffffff) >>> 0;
+}
+function dosStamp(d) {
+return {
+time: ((d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() / 2)) & 0xffff,
+date: (((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate()) & 0xffff,
+};
+}
+function build(filemap) {
+const enc = new TextEncoder();
+const stamp = dosStamp(new Date());
+const entries = Object.keys(filemap).sort().map((path) => {
+const name = enc.encode(path);
+const data = enc.encode(filemap[path]);
+return { name, data, crc: crc32(data) };
+});
+const localSize = entries.reduce((n, e) => n + 30 + e.name.length + e.data.length, 0);
+const centralSize = entries.reduce((n, e) => n + 46 + e.name.length, 0);
+const buf = new Uint8Array(localSize + centralSize + 22);
+const view = new DataView(buf.buffer);
+let at = 0;
+const u16 = (v) => { view.setUint16(at, v, true); at += 2; };
+const u32 = (v) => { view.setUint32(at, v >>> 0, true); at += 4; };
+const raw = (b) => { buf.set(b, at); at += b.length; };
+for (const e of entries) {
+e.offset = at;
+u32(0x04034b50);
+u16(20);
+u16(0x0800);
+u16(0);
+u16(stamp.time); u16(stamp.date);
+u32(e.crc); u32(e.data.length); u32(e.data.length);
+u16(e.name.length); u16(0);
+raw(e.name); raw(e.data);
+}
+const centralAt = at;
+for (const e of entries) {
+u32(0x02014b50);
+u16(20); u16(20); u16(0x0800); u16(0);
+u16(stamp.time); u16(stamp.date);
+u32(e.crc); u32(e.data.length); u32(e.data.length);
+u16(e.name.length); u16(0); u16(0);
+u16(0); u16(0); u32(0);
+u32(e.offset);
+raw(e.name);
+}
+u32(0x06054b50);
+u16(0); u16(0);
+u16(entries.length); u16(entries.length);
+u32(centralSize);
+u32(centralAt);
+u16(0);
+return new Blob([buf], { type: "application/zip" });
+}
+function download(filename, blob) {
+const url = URL.createObjectURL(blob);
+const a = document.createElement("a");
+a.href = url;
+a.download = filename;
+document.body.appendChild(a);
+a.click();
+a.remove();
+setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+return { build, download, crc32 };
+})();
+
+;
+/* js/frameworks.js */
+
+window.Frameworks = (function () {
+const AGENT_LOOP = `// agent.js — the loop. Framework-neutral: swap \`complete\` for an SDK call.
+import { TOOLS, runTool } from "./tools.js";
+import { complete } from "./provider.js";
+
+/**
+ * Run one agent turn to completion: keep calling the model until it stops
+ * asking for tools. \`onEvent\` gets {type} records so a UI can narrate.
+ */
+export async function runAgent({ goal, apiKey, model, system, maxSteps = 12, onEvent = () => {} }) {
+  const messages = [{ role: "user", content: [{ type: "text", text: goal }] }];
+
+  for (let step = 0; step < maxSteps; step++) {
+    onEvent({ type: "step", step });
+
+    const reply = await complete({ apiKey, model, system, messages, tools: TOOLS });
+    messages.push({ role: "assistant", content: reply.content });
+
+    const calls = reply.content.filter((b) => b.type === "tool_use");
+    const text = reply.content.filter((b) => b.type === "text").map((b) => b.text).join("");
+    if (text) onEvent({ type: "text", text });
+
+    if (!calls.length) return { text, messages, steps: step + 1 };
+
+    const results = [];
+    for (const call of calls) {
+      onEvent({ type: "tool", name: call.name, input: call.input });
+      try {
+        const output = await runTool(call.name, call.input);
+        results.push({ type: "tool_result", tool_use_id: call.id, content: String(output) });
+      } catch (err) {
+        results.push({
+          type: "tool_result", tool_use_id: call.id,
+          content: \`error: \${err.message}\`, is_error: true,
+        });
+      }
+    }
+    messages.push({ role: "user", content: results });
+  }
+
+  return { text: "", messages, steps: maxSteps, hitLimit: true };
+}
+`;
+const PROVIDER = `// provider.js — one model call. Runs in the browser, no server.
+//
+// Anthropic requires an explicit opt-in header for direct browser calls. Any
+// key you ship to a browser is visible to whoever loads the page, so this is
+// for local tools, internal dashboards and demos — not public products.
+
+const ENDPOINT = "https://api.anthropic.com/v1/messages";
+
+export async function complete({ apiKey, model = "claude-opus-5", system, messages, tools = [], signal }) {
+  const res = await fetch(ENDPOINT, {
+    method: "POST",
+    signal,
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 16000,
+      thinking: { type: "adaptive" },        // adaptive: no budget_tokens on 4.6+
+      output_config: { effort: "high" },
+      ...(system ? { system } : {}),
+      ...(tools.length ? { tools } : {}),
+      messages,
+    }),
+  });
+
+  if (!res.ok) throw new Error(\`anthropic \${res.status}: \${await res.text()}\`);
+  const json = await res.json();
+  if (json.stop_reason === "refusal") {
+    throw new Error(\`declined (\${json.stop_details?.category ?? "unknown"})\`);
+  }
+  return json;
+}
+`;
+const TOOLS_FILE = `// tools.js — what the agent can actually do.
+//
+// Each entry is an Anthropic-shaped tool definition plus a local handler.
+// In a browser the useful primitives are DOM, storage, and CORS-enabled HTTP.
+
+/** @type {Array<{name:string, description:string, input_schema:object}>} */
+export const TOOLS = [
+  {
+    name: "remember",
+    description: "Save a note under a key so later turns (and reloads) can read it.",
+    input_schema: {
+      type: "object",
+      properties: {
+        key: { type: "string", description: "Short identifier." },
+        value: { type: "string", description: "Text to store." },
+      },
+      required: ["key", "value"],
+    },
+  },
+  {
+    name: "recall",
+    description: "Read back every saved note. Call this before asking the user to repeat themselves.",
+    input_schema: { type: "object", properties: {}, required: [] },
+  },
+  {
+    name: "http_get",
+    description:
+      "GET a URL and return the response body as text. Only works against " +
+      "servers that send permissive CORS headers.",
+    input_schema: {
+      type: "object",
+      properties: { url: { type: "string", description: "Absolute https URL." } },
+      required: ["url"],
+    },
+  },
+];
+
+// localStorage throws in a sandboxed frame (no allow-same-origin), so fall back
+// to memory rather than crashing the agent when it is running inside a preview.
+const NS = "agent.memory.v1";
+let fallback = {};
+function memory() {
+  try { return JSON.parse(localStorage.getItem(NS) || "{}"); } catch (_) { return fallback; }
+}
+function saveMemory(m) {
+  fallback = m;
+  try { localStorage.setItem(NS, JSON.stringify(m)); } catch (_) {}
+}
+
+const HANDLERS = {
+  remember({ key, value }) {
+    const m = memory();
+    m[key] = value;
+    saveMemory(m);
+    return \`saved \${key}\`;
+  },
+  recall() {
+    const m = memory();
+    const keys = Object.keys(m);
+    if (!keys.length) return "(nothing saved yet)";
+    return keys.map((k) => \`\${k}: \${m[k]}\`).join("\\n");
+  },
+  async http_get({ url }) {
+    const res = await fetch(url, { headers: { accept: "text/plain, application/json, */*" } });
+    if (!res.ok) throw new Error(\`\${res.status} \${res.statusText}\`);
+    return (await res.text()).slice(0, 20000);
+  },
+};
+
+export async function runTool(name, input) {
+  const handler = HANDLERS[name];
+  if (!handler) throw new Error(\`unknown tool: \${name}\`);
+  return await handler(input ?? {});
+}
+`;
+const INDEX_HTML = (title) => `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${title}</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; padding: 2rem; background: #14100b; color: #f6c66a;
+         font: 14px/1.55 ui-monospace, "SFMono-Regular", Menlo, monospace; }
+  h1 { font-size: 1rem; letter-spacing: .18em; text-transform: uppercase; }
+  form { display: grid; gap: .5rem; max-width: 46rem; }
+  input, textarea, button { font: inherit; color: inherit; background: #1d170f;
+    border: 1px solid #4a3a1e; padding: .45rem .5rem; }
+  button { cursor: pointer; text-transform: uppercase; letter-spacing: .12em; }
+  #out { max-width: 46rem; white-space: pre-wrap; border-left: 3px solid #4a3a1e;
+    padding-left: .8rem; margin-top: 1.2rem; }
+  .tool { color: #a8873f; }
+  .err { color: #e5705c; }
+</style>
+</head>
+<body>
+  <h1>${title}</h1>
+  <form id="f">
+    <input id="key" type="password" placeholder="API key (stays in this browser)">
+    <textarea id="goal" rows="3" placeholder="what should the agent do?"></textarea>
+    <button type="submit">RUN AGENT</button>
+  </form>
+  <div id="out"></div>
+
+  <script type="module">
+    import { runAgent } from "./agent.js";
+
+    const out = document.getElementById("out");
+    const say = (text, cls) => {
+      const line = document.createElement("div");
+      if (cls) line.className = cls;
+      line.textContent = text;
+      out.appendChild(line);
+    };
+
+    // Storage is unavailable inside a sandboxed preview frame; degrade quietly.
+    const stash = {
+      get: (k) => { try { return localStorage.getItem(k) || ""; } catch (_) { return ""; } },
+      set: (k, v) => { try { localStorage.setItem(k, v); } catch (_) {} },
+    };
+    document.getElementById("key").value = stash.get("agent.key");
+
+    document.getElementById("f").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      out.textContent = "";
+      const apiKey = document.getElementById("key").value.trim();
+      stash.set("agent.key", apiKey);
+      try {
+        const result = await runAgent({
+          goal: document.getElementById("goal").value,
+          apiKey,
+          system: "You are a concise browser-resident agent. Use your tools before guessing.",
+          onEvent: (e) => {
+            if (e.type === "step") say(\`— step \${e.step + 1} —\`, "tool");
+            if (e.type === "tool") say(\`· \${e.name}(\${JSON.stringify(e.input)})\`, "tool");
+            if (e.type === "text") say(e.text);
+          },
+        });
+        if (result.hitLimit) say("(stopped: step limit reached)", "err");
+      } catch (err) {
+        say(String(err), "err");
+      }
+    });
+  <\/script>
+</body>
+</html>
+`;
+const README = (fw, title) => `# ${title}
+
+Built in **buttercup.sh** — a static, no-backend agent harness.
+Target framework: **${fw.name}** (${fw.npm ? "npm: `" + fw.npm + "`" : "no package"}).
+
+## Run it
+
+Every file is static, but ES modules need a real origin, so serve the folder:
+
+    python3 -m http.server 8080
+    # then open http://localhost:8080/index.html
+
+Inside the harness you can skip that: \`preview index.html\` mounts it in the
+PREVIEW pane, and \`run_agent\` executes a module and reports what it logged.
+
+## Files
+
+| file | role |
+|---|---|
+| \`index.html\` | the UI, and the only file a user opens |
+| \`agent.js\` | the agent loop: model → tools → model, until done |
+| \`tools.js\` | tool definitions + handlers, the part worth editing |
+| \`provider.js\` | one HTTP call to the model vendor |
+
+## Keys in a browser
+
+A key shipped to a browser belongs to whoever loads the page. That's fine for a
+local tool or an internal dashboard; for anything public, put a proxy in front
+and drop \`provider.js\`.
+`;
+const FRAMEWORKS = [
+{
+id: "blocks-ai",
+name: "Blocks.AI / Blocks Network",
+npm: "@blocks-network/sdk",
+homepage: "https://github.com/blocksnetwork/blocks-sdk",
+summary: "Agent network: a Node handler you publish, plus a browser consumer client. Default target.",
+docs: `# Blocks.AI — Blocks Network SDK
+
+Packages (verify current versions with \`npm_info\` before pinning):
+\`@blocks-network/sdk\` (runtime + consumer client), \`@blocks-network/cli\`
+(the \`blocks\` command), \`@blocks-network/mcp-server\`.
+Repo: github.com/blocksnetwork/blocks-sdk.
+
+## The split that matters
+
+Blocks has two sides, and only one of them is a browser:
+
+- **Agent side — Node.** An agent is an \`agent-card.json\` plus a handler
+  module, started by \`blocks run\` (which shells into the SDK's \`blocks-run\`).
+  It holds a long-lived realtime subscription and reads \`BLOCKS_API_KEY\` from
+  the environment. This **cannot run in a browser tab**, and you should say so
+  rather than pretending otherwise. This harness still writes it: author the
+  card and handler here, export the zip, then \`npm i && blocks run\`.
+- **Consumer side — browser-safe.** \`TaskClient\` submits tasks to agents on the
+  network and streams results back. \`textPart\` / \`filePart\` are explicitly
+  browser-safe (\`filePart\` takes a \`File\` or \`Blob\`; only
+  \`filePartFromPath\` touches \`node:fs\`). This is the part you can build, mount
+  in the PREVIEW pane, and hand to a user as a page.
+
+## Agent card
+
+\`\`\`json
+{
+  "identity": {
+    "agentName": "my_agent",
+    "displayName": "My Agent",
+    "description": "What it does",
+    "version": "1.0.0",
+    "provider": { "organization": "Your Org" }
+  },
+  "capabilities": { "taskKinds": ["request"] },
+  "tags": [{ "id": "main", "name": "Main" }],
+  "runtime": { "handler": "./handler.js", "handlerExport": "default", "concurrency": 1 }
+}
+\`\`\`
+
+\`identity.agentName\` must match \`^[a-zA-Z0-9_]+$\` — underscores, never hyphens.
+
+## Handler
+
+\`\`\`js
+export default async function handler(task, ctx) {
+  const goal = (task.requestParts ?? []).map((p) => p.text).filter(Boolean).join("\\n");
+  ctx.reportStatus("working…");                       // progress event to the consumer
+  // ctx.taskId, ctx.cancelSignal, ctx.isCancelled, ctx.createStream(), ctx.taskClient
+  // ctx.downloadInputArtifact(part), ctx.publishArtifact(data, { mimeType })
+  return { artifacts: [{ data: "result text", mimeType: "text/plain" }] };
+}
+\`\`\`
+
+Returned \`artifacts\` are published in order before the terminal event.
+
+## Consumer client
+
+\`\`\`js
+import { TaskClient, textPart } from "https://esm.sh/@blocks-network/sdk";
+
+const client = await TaskClient.create({
+  billingMode: "free",            // 'free' → playground keyset, 'paid' → network.
+  tokenEndpoint: "/api/blocks-token",  // your proxy mints the JWT; no key in the page
+});
+
+const session = await client.sendMessage({
+  agentName: "my_agent",
+  requestParts: [textPart("hello")],
+  stream: true,                   // opt in; the server default is no streaming
+});
+
+session.onProgress((e) => console.log(e.message));
+session.onError((err, where) => console.warn(where.callbackType, err.message));
+const terminal = await session.waitForTerminal(60000);
+
+for (const ref of session.listArtifacts()) {
+  const { data, mimeType } = await session.downloadArtifact(ref);   // data: Uint8Array
+  console.log(mimeType, new TextDecoder().decode(data));
+}
+session.close();
+client.destroy();
+\`\`\`
+
+Auth has three modes: \`apiKey\` (**server-side only** — never in a page),
+\`tokenEndpoint\` (a URL string, or a config object with \`credentials\`,
+\`headers\`, \`body\`), and \`tokenProvider\` (an async function returning
+\`{ token, expiresIn, userId }\`). For anything in a browser, use one of the
+latter two. \`billingMode\` must match the agent's registered mode or the
+backend rejects the call with \`BillingModeMismatch\`.
+
+## Before you write more than the above
+
+Everything here was read off the published package, but versions move. Confirm
+with \`npm_info @blocks-network/sdk\`, then \`npm_file @blocks-network/sdk
+dist/index.d.ts\` for the export list, and \`run_js\` with a dynamic import from
+esm.sh to see the live surface. Never invent an export.`,
+scaffold(dir) {
+const files = baseScaffold(dir, this, "Blocks agent");
+delete files[`${dir}/README.md`];
+files[`${dir}/agent-card.json`] = JSON.stringify({
+identity: {
+agentName: "my_agent",
+displayName: "My Agent",
+description: "Answers a request using an LLM and a small set of tools.",
+version: "1.0.0",
+provider: { organization: "Your Org" },
+},
+capabilities: { taskKinds: ["request"] },
+tags: [{ id: "main", name: "Main" }],
+runtime: { handler: "./handler.js", handlerExport: "default", concurrency: 1 },
+}, null, 2) + "\n";
+files[`${dir}/handler.js`] = `// handler.js — the Blocks agent entry point. Runs under \`blocks run\` (Node).
+//
+// Signature: (task: StartTaskMessage, ctx?: TaskContext) => Promise<HandlerResult>
+// The loop, tools and provider live in the sibling modules so the same logic
+// also runs in the browser page (index.html) without a Blocks account.
+
+import { runAgent } from "./agent.js";
+
+export default async function handler(task, ctx) {
+  const goal = (task.requestParts ?? [])
+    .map((part) => part.text)
+    .filter(Boolean)
+    .join("\\n")
+    .trim();
+
+  if (!goal) return { artifacts: [{ data: "No request text provided.", mimeType: "text/plain" }] };
+
+  ctx?.reportStatus(\`starting: \${goal.slice(0, 60)}\`);
+
+  const result = await runAgent({
+    goal,
+    apiKey: process.env.ANTHROPIC_API_KEY,
+    system: "You are a Blocks Network agent. Be concise and use your tools before guessing.",
+    onEvent(event) {
+      if (ctx?.isCancelled) return;
+      if (event.type === "tool") ctx?.reportStatus(\`tool: \${event.name}\`);
+      if (event.type === "step") ctx?.reportStatus(\`step \${event.step + 1}\`);
+    },
+  });
+
+  return {
+    artifacts: [{
+      data: result.text || "(the model returned no text)",
+      mimeType: "text/plain",
+      fileName: "answer.txt",
+    }],
+  };
+}
+`;
+files[`${dir}/.env.example`] = `# Copy to .env — \`blocks run\` loads it from the working directory.
+# \`blocks login --write-env\` fills in BLOCKS_API_KEY for you.
+BLOCKS_API_KEY=
+ANTHROPIC_API_KEY=
+LOG_LEVEL=info
+`;
+files[`${dir}/web/index.html`] = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blocks consumer</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; padding: 2rem; background: #14100b; color: #f6c66a;
+         font: 14px/1.55 ui-monospace, "SFMono-Regular", Menlo, monospace; }
+  h1 { font-size: 1rem; letter-spacing: .18em; text-transform: uppercase; }
+  form { display: grid; gap: .5rem; max-width: 46rem; }
+  input, textarea, button { font: inherit; color: inherit; background: #1d170f;
+    border: 1px solid #4a3a1e; padding: .45rem .5rem; }
+  button { cursor: pointer; text-transform: uppercase; letter-spacing: .12em; }
+  #out { max-width: 46rem; white-space: pre-wrap; border-left: 3px solid #4a3a1e;
+    padding-left: .8rem; margin-top: 1.2rem; }
+  .status { color: #a8873f; }
+  .err { color: #e5705c; }
+</style>
+</head>
+<body>
+  <h1>Blocks consumer</h1>
+  <p class="status">Submits a task to an agent on the Blocks network and streams
+     the result back. No API key lives in this page — token minting happens at
+     the endpoint configured in <code>consumer.js</code>.</p>
+  <form id="f">
+    <input id="agent" value="my_agent" spellcheck="false">
+    <textarea id="goal" rows="3" placeholder="what should the agent do?"></textarea>
+    <button type="submit">SEND TASK</button>
+  </form>
+  <div id="out"></div>
+  <script type="module" src="./consumer.js"><\/script>
+</body>
+</html>
+`;
+files[`${dir}/web/consumer.js`] = `// consumer.js — browser side. Submits tasks to a Blocks agent and streams results.
+//
+// Pin the version once you have confirmed it with \`npm_info @blocks-network/sdk\`.
+import { TaskClient, textPart } from "https://esm.sh/@blocks-network/sdk";
+
+// Your own endpoint: it authenticates the visitor however you like, calls
+// POST /api/v1/auth/agent/consumer-token with the Blocks API key it holds, and
+// returns { token, expiresIn, userId }. The key never reaches this file.
+const TOKEN_ENDPOINT = "/api/blocks-token";
+
+const out = document.getElementById("out");
+const say = (text, cls) => {
+  const line = document.createElement("div");
+  if (cls) line.className = cls;
+  line.textContent = text;
+  out.appendChild(line);
+};
+
+document.getElementById("f").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  out.textContent = "";
+
+  let client, session;
+  try {
+    client = await TaskClient.create({
+      billingMode: "free",          // must match how the agent was registered
+      tokenEndpoint: TOKEN_ENDPOINT,
+      onAuthError: (err) => say("auth: " + err.message, "err"),
+    });
+
+    session = await client.sendMessage({
+      agentName: document.getElementById("agent").value.trim(),
+      requestParts: [textPart(document.getElementById("goal").value)],
+      stream: true,
+    });
+
+    session.onProgress((e) => say("· " + e.message, "status"));
+    session.onError((err, where) => say(\`! \${where.callbackType}: \${err.message}\`, "err"));
+
+    const terminal = await session.waitForTerminal(120000);
+    say("— " + terminal.state + " —", "status");
+
+    for (const ref of session.listArtifacts()) {
+      const artifact = await session.downloadArtifact(ref);
+      say(artifact.mimeType.startsWith("text/")
+        ? new TextDecoder().decode(artifact.data)
+        : \`[\${artifact.mimeType}] \${artifact.data.length} bytes\`);
+    }
+  } catch (err) {
+    say(String(err && err.message ? err.message : err), "err");
+  } finally {
+    session?.close();
+    client?.destroy();
+  }
+});
+`;
+files[`${dir}/README.md`] = `# Blocks agent
+
+Built in **buttercup.sh**. Two halves, because Blocks has two halves.
+
+## 1. The agent — Node, not a browser
+
+\`agent-card.json\` + \`handler.js\` are run by the Blocks CLI, which keeps a
+realtime subscription open and needs \`BLOCKS_API_KEY\`. A browser tab cannot do
+that, so this half runs on your machine or a server:
+
+    npm init -y && npm pkg set type=module
+    npm i @blocks-network/sdk @blocks-network/cli
+    cp .env.example .env
+    npx blocks login --write-env      # fills BLOCKS_API_KEY
+    # add ANTHROPIC_API_KEY to .env
+    npx blocks run
+
+\`handler.js\` delegates to \`agent.js\` / \`tools.js\` / \`provider.js\`, so the
+agent's actual behaviour is editable without touching Blocks plumbing. Edit
+\`tools.js\` first — that is what makes the agent yours.
+
+## 2. The consumer — browser
+
+\`web/index.html\` + \`web/consumer.js\` submit tasks to the deployed agent with
+\`TaskClient\` and stream progress and artifacts back. Serve them from any static
+host:
+
+    python3 -m http.server 8080     # then open /web/index.html
+
+\`web/consumer.js\` expects a \`/api/blocks-token\` endpoint that mints a consumer
+JWT from your server-held API key. Until that exists, the page will report an
+auth failure — that is the correct behaviour, not a bug to work around by
+putting the key in the page.
+
+## 3. Run it with no Blocks account at all
+
+\`index.html\` is a standalone browser harness for the same loop, calling the
+model vendor directly. Good for iterating on \`tools.js\`; note that a key typed
+into it is visible to anything running in that page.
+
+| file | role |
+|---|---|
+| \`agent-card.json\` | identity, capabilities, runtime handler |
+| \`handler.js\` | Blocks entry point — \`(task, ctx) => { artifacts }\` |
+| \`agent.js\` | the loop: model → tools → model |
+| \`tools.js\` | tool definitions + handlers |
+| \`provider.js\` | one HTTP call to the model vendor |
+| \`web/consumer.js\` | browser client that submits tasks |
+| \`index.html\` | standalone browser runner (no Blocks) |
+`;
+return files;
+},
+},
+{
+id: "vanilla",
+name: "Vanilla (no framework)",
+npm: null,
+homepage: null,
+summary: "Hand-rolled loop over the vendor's HTTP API. Zero dependencies, always works.",
+docs: `# Vanilla browser agent
+
+An agent is a loop, not a library:
+
+1. POST messages + tool definitions to the vendor.
+2. If the reply contains tool calls, run them locally and append **every**
+   result as one user message — splitting them teaches the model to stop
+   calling tools in parallel.
+3. Repeat until the reply has no tool calls, or you hit a step cap.
+
+That's ~40 lines (see \`agent.js\` in the scaffold). Reach for a framework when
+you want retries, tracing, or a hosted loop — not to get started.
+
+## Browser-specific gotchas
+
+- **CORS.** You can only fetch origins that opt in. \`registry.npmjs.org\`,
+  \`cdn.jsdelivr.net\`, \`esm.sh\` and most public JSON APIs do; the average
+  website does not. Don't build a tool whose value depends on scraping.
+- **Anthropic** needs \`anthropic-dangerous-direct-browser-access: true\`.
+- **No filesystem.** Persistence is \`localStorage\` / IndexedDB / OPFS.
+- **Long turns.** Stream, or a slow reply looks like a hang.`,
+scaffold(dir) { return baseScaffold(dir, this, "Browser agent"); },
+},
+{
+id: "esm-sdk",
+name: "Vendor SDK via esm.sh",
+npm: "@anthropic-ai/sdk",
+homepage: "https://esm.sh",
+summary: "Import a published npm SDK straight from a CDN — no bundler, still static.",
+docs: `# Vendor SDK from a CDN
+
+\`esm.sh\` and \`cdn.jsdelivr.net/npm/…/+esm\` serve npm packages as ES modules, so
+a static page can use a real SDK:
+
+    import Anthropic from "https://esm.sh/@anthropic-ai/sdk";
+    const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+
+Trade-offs worth stating out loud before choosing this: the CDN becomes a
+runtime dependency and a supply-chain surface, the first load is slower than a
+hand-written \`fetch\`, and it will not work offline. Pin a version
+(\`https://esm.sh/@anthropic-ai/sdk@0.70.0\`) rather than floating on latest.
+
+Inside this harness, \`run_js\` can import from a CDN, so you can check that a
+package loads before committing an agent to it.`,
+scaffold(dir) { return baseScaffold(dir, this, "SDK-backed agent"); },
+},
+];
+function baseScaffold(dir, fw, title) {
+return {
+[`${dir}/index.html`]: INDEX_HTML(title),
+[`${dir}/agent.js`]: AGENT_LOOP,
+[`${dir}/tools.js`]: TOOLS_FILE,
+[`${dir}/provider.js`]: PROVIDER,
+[`${dir}/README.md`]: README(fw, title),
+};
+}
+const HARNESS = `# Working inside buttercup.sh
+
+You are running in a browser tab. There is no shell, no node, no server.
+
+- **Workspace** — a virtual filesystem in \`localStorage\`. \`write\`, \`edit\`,
+  \`read\`, \`list\`, \`glob\`, \`grep\` all operate on it. Paths are relative with
+  no leading slash: \`demo/agent.js\`.
+- **Executing code** — \`run_js\` evaluates a snippet as an ES module in a
+  sandboxed iframe (top-level \`await\` and dynamic \`import\` from a CDN both
+  work; \`return\` a value to see it). \`run_agent\` runs a workspace file as a
+  module, resolving its relative imports against the other workspace files, and
+  reports what it logged. Neither can touch this page.
+- **Showing work** — \`preview\` mounts a workspace HTML file in the PREVIEW pane
+  with its relative \`<script src>\`/\`<link>\`/\`import\` references wired up.
+- **Network** — CORS applies. \`npm_info\`, \`npm_file\` and CDN imports work;
+  arbitrary site fetches usually don't. \`http_get\` will tell you which it was.
+- **Circular imports** are the one module pattern \`run_agent\` cannot resolve.
+- **The sandbox has an opaque origin**, so code running in it has no
+  \`localStorage\` (guard it) and some vendors will reject its API calls as
+  cross-origin. Use the sandbox to prove the code loads, wires up and calls the
+  right tools; tell the user to export and serve on \`localhost\` for a live
+  end-to-end run with a real key.
+
+## House style for what you build
+
+Deliver something the user can open. That means an \`index.html\` entry point, a
+loop separated from its tool definitions, and one thin provider adapter. Verify
+with \`run_agent\` or \`run_js\` before you claim it works, and if a step failed,
+say which one.
+`;
+return {
+list: () => FRAMEWORKS.map((f) => ({
+id: f.id, name: f.name, npm: f.npm, homepage: f.homepage, summary: f.summary,
+})),
+get: (id) => FRAMEWORKS.find((f) => f.id === id),
+ids: () => FRAMEWORKS.map((f) => f.id),
+harnessNotes: HARNESS,
+};
+})();
+
+;
+/* js/sandbox.js */
+
+window.Sandbox = (function () {
+const RUNNER = `
+const post = (msg) => parent.postMessage(Object.assign({ bc: 1 }, msg), "*");
+
+/* Mirror console into the harness transcript. */
+const LEVELS = ["log", "info", "warn", "error", "debug"];
+for (const level of LEVELS) {
+  const native = console[level].bind(console);
+  console[level] = (...args) => {
+    native(...args);
+    post({ type: "log", level, text: args.map(fmt).join(" ") });
+  };
+}
+function fmt(v) {
+  if (typeof v === "string") return v;
+  if (v instanceof Error) return v.stack || String(v);
+  try { return JSON.stringify(v, null, 2); } catch (_) { return String(v); }
+}
+
+addEventListener("error", (e) => post({ type: "log", level: "error", text: "uncaught: " + (e.message || e) }));
+addEventListener("unhandledrejection", (e) =>
+  post({ type: "log", level: "error", text: "unhandled rejection: " + fmt(e.reason) }));
+
+/* ── module linker ─────────────────────────────────────────────────────────
+   Rewrites relative specifiers to blob URLs, deepest dependency first. Bare
+   specifiers ("https://esm.sh/x", "react") are left alone so CDN imports work.
+   ------------------------------------------------------------------------- */
+const SPECIFIER = /(\\bfrom\\s*|\\bimport\\s*|\\bimport\\s*\\(\\s*)(['"\`])([^'"\`\\n]+)\\2/g;
+const isRelative = (s) => s.startsWith("./") || s.startsWith("../") || s.startsWith("/");
+
+function dirname(path) {
+  const i = path.lastIndexOf("/");
+  return i < 0 ? "" : path.slice(0, i);
+}
+
+function resolve(files, importer, spec) {
+  const base = spec.startsWith("/") ? "" : dirname(importer);
+  const parts = (base ? base.split("/") : []);
+  for (const seg of spec.replace(/^\\//, "").split("/")) {
+    if (!seg || seg === ".") continue;
+    if (seg === "..") parts.pop();
+    else parts.push(seg);
+  }
+  const path = parts.join("/");
+  for (const candidate of [path, path + ".js", path + "/index.js", path + ".mjs"]) {
+    if (candidate in files) return candidate;
+  }
+  throw new Error("cannot resolve '" + spec + "' from '" + importer + "'");
+}
+
+const MIME = { css: "text/css", html: "text/html", json: "application/json", svg: "image/svg+xml" };
+const mimeOf = (path) => MIME[path.split(".").pop().toLowerCase()] || "text/javascript";
+
+/**
+ * Blob-URL a module and everything it imports, deepest first.
+ * \`urls\` is shared across calls so a file imported twice stays one instance.
+ */
+function link(files, entry, urls = new Map(), stack = []) {
+  if (urls.has(entry)) return urls.get(entry);
+  if (stack.includes(entry)) {
+    throw new Error("circular import: " + stack.concat(entry).join(" -> "));
+  }
+  const type = mimeOf(entry);
+  let source = files[entry];
+  if (type === "text/javascript") {
+    stack.push(entry);
+    source = source.replace(SPECIFIER, (match, lead, quote, spec) => {
+      if (!isRelative(spec)) return match;
+      return lead + quote + link(files, resolve(files, entry, spec), urls, stack) + quote;
+    });
+    stack.pop();
+  }
+  const url = URL.createObjectURL(new Blob([source], { type }));
+  urls.set(entry, url);
+  return url;
+}
+
+/* ── HTML preview ─────────────────────────────────────────────────────────── */
+function mount(files, entry) {
+  const urls = new Map();   // one instance per workspace file, shared across refs
+  const rel = (ref) => {
+    try { return link(files, resolve(files, entry, ref.startsWith(".") ? ref : "./" + ref), urls); }
+    catch (_) { return null; }
+  };
+  let html = files[entry];
+
+  // Point <script src> / <link href> at blob URLs of the workspace copies.
+  html = html.replace(/(<(?:script|link|img)\\b[^>]*?\\b(?:src|href)=)(["'])([^"']+)\\2/gi,
+    (match, lead, quote, ref) => {
+      if (/^(https?:|data:|blob:|#|\\/\\/)/i.test(ref)) return match;
+      const url = rel(ref);
+      return url ? lead + quote + url + quote : match;
+    });
+
+  // Inline module scripts import relatively too; give them blob URLs as well.
+  html = html.replace(/(<script\\b[^>]*type=["']module["'][^>]*>)([\\s\\S]*?)(<\\/script)/gi,
+    (match, open, body, close) => open + body.replace(SPECIFIER, (m, lead, quote, spec) => {
+      if (!isRelative(spec)) return m;
+      const url = rel(spec);
+      return url ? lead + quote + url + quote : m;
+    }) + close);
+
+  document.open();
+  document.write(html);
+  document.close();
+}
+
+/* ── job intake ────────────────────────────────────────────────────────────── */
+addEventListener("message", async (event) => {
+  const job = event.data;
+  if (!job || job.bc !== 1) return;
+
+  if (job.kind === "preview") {
+    try { mount(job.files, job.entry); post({ id: job.id, type: "done", ok: true }); }
+    catch (err) { post({ id: job.id, type: "done", ok: false, error: String(err.message || err) }); }
+    return;
+  }
+
+  try {
+    let value;
+    if (job.kind === "js") {
+      // Wrapped so a snippet may 'return' a value and use top-level await.
+      const src = "export default async function () {\\n" + job.code + "\\n}";
+      const url = URL.createObjectURL(new Blob([src], { type: "text/javascript" }));
+      const mod = await import(url);
+      value = await mod.default();
+    } else {
+      const mod = await import(link(job.files, job.entry));
+      // A default or named export called 'main' is treated as an entry point.
+      const main = typeof mod.default === "function" ? mod.default
+                 : typeof mod.main === "function" ? mod.main : null;
+      value = main ? await main() : Object.keys(mod);
+    }
+    post({ id: job.id, type: "done", ok: true, value: fmt(value === undefined ? null : value) });
+  } catch (err) {
+    post({ id: job.id, type: "done", ok: false, error: String((err && err.stack) || err) });
+  }
+});
+
+post({ type: "ready" });
+`;
+const SRCDOC =
+'<!DOCTYPE html><meta charset="utf-8"><title>sandbox</title>' +
+'<script type="module">' + RUNNER + "<" + "/script>";
+let seq = 0;
+function exec(job, { timeout = 15000, visible = null } = {}) {
+const id = ++seq;
+const logs = [];
+const { onLog, ...payload } = job;
+return new Promise((resolve) => {
+const frame = visible || document.createElement("iframe");
+let settled = false;
+let timer;
+function finish(result) {
+if (settled) return;
+settled = true;
+clearTimeout(timer);
+removeEventListener("message", onMessage);
+if (!visible) frame.remove();
+resolve({ logs, ...result });
+}
+function onMessage(event) {
+const msg = event.data;
+if (!msg || msg.bc !== 1 || event.source !== frame.contentWindow) return;
+if (msg.type === "ready") {
+frame.contentWindow.postMessage({ bc: 1, id, ...payload }, "*");
+return;
+}
+if (msg.type === "log") {
+logs.push({ level: msg.level, text: msg.text });
+if (onLog) onLog(msg);
+return;
+}
+if (msg.id !== id) return;
+if (msg.type === "done") finish({ ok: msg.ok, value: msg.value, error: msg.error });
+}
+addEventListener("message", onMessage);
+if (!visible) {
+frame.setAttribute("sandbox", "allow-scripts");
+frame.setAttribute("aria-hidden", "true");
+frame.setAttribute("title", "sandbox");
+frame.width = "0";
+frame.height = "0";
+frame.style.cssText = "position:absolute;left:-9999px;width:0;height:0;border:0";
+document.body.appendChild(frame);
+}
+frame.srcdoc = SRCDOC;
+timer = setTimeout(
+() => finish({ ok: false, error: `timed out after ${timeout}ms` }),
+timeout
+);
+});
+}
+return {
+runJs(code, opts) {
+return exec({ kind: "js", code }, opts);
+},
+runModule(entry, opts) {
+const files = VFS.snapshot();
+const path = VFS.norm(entry);
+if (!(path in files)) return Promise.resolve({ ok: false, error: `no such file: ${path}`, logs: [] });
+return exec({ kind: "module", files, entry: path, onLog: opts && opts.onLog }, opts);
+},
+preview(entry, frame) {
+const files = VFS.snapshot();
+const path = VFS.norm(entry);
+if (!(path in files)) return Promise.resolve({ ok: false, error: `no such file: ${path}`, logs: [] });
+return exec({ kind: "preview", files, entry: path }, { visible: frame, timeout: 10000 });
+},
+};
+})();
+
+;
+/* js/tools.js */
+
+window.Tools = (function () {
+const hooks = {
+preview: async () => { throw new Error("preview pane unavailable"); },
+log: () => {},
+};
+const clip = (text, max) =>
+text.length <= max ? text : text.slice(0, max) + `\n… truncated at ${max} chars (${text.length} total)`;
+const numbered = (text, from = 1) =>
+text.split("\n").map((line, i) => `${String(from + i).padStart(5)}\t${line}`).join("\n");
+const DEFS = [
+{
+name: "read",
+kind: "read",
+description:
+"Read a workspace file. Returns line-numbered text. Use offset/limit for " +
+"large files; prefer reading a whole file when it is small.",
+input_schema: {
+type: "object",
+properties: {
+path: { type: "string", description: "Workspace-relative path, e.g. demo/agent.js" },
+offset: { type: "integer", description: "First line to return (1-based)." },
+limit: { type: "integer", description: "How many lines to return." },
+},
+required: ["path"],
+},
+summary: (i) => i.path,
+run({ path, offset = 1, limit = 2000 }) {
+const lines = VFS.read(path).split("\n");
+const start = Math.max(1, offset);
+const slice = lines.slice(start - 1, start - 1 + limit);
+if (!slice.length) return `(${path} has ${lines.length} lines; offset ${start} is past the end)`;
+const tail = start - 1 + slice.length < lines.length
+? `\n… ${lines.length - (start - 1 + slice.length)} more lines` : "";
+return clip(numbered(slice.join("\n"), start), 40000) + tail;
+},
+},
+{
+name: "list",
+kind: "read",
+description: "List every file in the workspace with its size. Cheap; call it before guessing at paths.",
+input_schema: {
+type: "object",
+properties: { prefix: { type: "string", description: "Only paths starting with this, e.g. demo/" } },
+required: [],
+},
+summary: (i) => i.prefix || "/",
+run({ prefix = "" } = {}) {
+const paths = VFS.paths().filter((p) => p.startsWith(prefix));
+if (!paths.length) return prefix ? `no files under ${prefix}` : "workspace is empty";
+const rows = paths.map((p) => `${String(VFS.read(p).length).padStart(7)}  ${p}`);
+return `${paths.length} file(s), ${VFS.bytes()} bytes total\n${rows.join("\n")}`;
+},
+},
+{
+name: "glob",
+kind: "read",
+description: "Find workspace files by glob. Supports *, ?, ** and {a,b}. Example: **/*.js",
+input_schema: {
+type: "object",
+properties: { pattern: { type: "string", description: "Glob pattern." } },
+required: ["pattern"],
+},
+summary: (i) => i.pattern,
+run({ pattern }) {
+const hits = VFS.glob(pattern);
+return hits.length ? hits.join("\n") : `no match for ${pattern}`;
+},
+},
+{
+name: "grep",
+kind: "read",
+description:
+"Search workspace file contents with a JavaScript regular expression. " +
+"Returns path:line:text. Narrow the scope with `glob` when the workspace is large.",
+input_schema: {
+type: "object",
+properties: {
+pattern: { type: "string", description: "JS regex source, e.g. export function \\w+" },
+glob: { type: "string", description: "Restrict to files matching this glob." },
+ignore_case: { type: "boolean", description: "Case-insensitive match." },
+},
+required: ["pattern"],
+},
+summary: (i) => i.pattern + (i.glob ? `  in ${i.glob}` : ""),
+run({ pattern, glob, ignore_case }) {
+const hits = VFS.grep(pattern, { glob, flags: ignore_case ? "i" : "" });
+if (!hits.length) return `no match for /${pattern}/`;
+const shown = hits.slice(0, 200)
+.map((h) => `${h.path}:${h.line}: ${h.text.trim().slice(0, 200)}`).join("\n");
+return shown + (hits.length > 200 ? `\n… ${hits.length - 200} more matches` : "");
+},
+},
+{
+name: "write",
+kind: "write",
+description:
+"Create or overwrite a workspace file with exact content. Overwrites without " +
+"warning, so `read` first if the file might already hold work worth keeping.",
+input_schema: {
+type: "object",
+properties: {
+path: { type: "string", description: "Workspace-relative path." },
+content: { type: "string", description: "Full file content." },
+},
+required: ["path", "content"],
+},
+summary: (i) => `${i.path}  (${(i.content || "").length}b)`,
+run({ path, content }) {
+const r = VFS.write(path, content);
+return `${r.existed ? "overwrote" : "created"} ${r.path} — ${r.bytes} bytes`;
+},
+},
+{
+name: "edit",
+kind: "write",
+description:
+"Replace an exact substring in a workspace file. `old_string` must appear " +
+"exactly once unless replace_all is set. Preferred over `write` for small changes.",
+input_schema: {
+type: "object",
+properties: {
+path: { type: "string", description: "Workspace-relative path." },
+old_string: { type: "string", description: "Exact text to find, including indentation." },
+new_string: { type: "string", description: "Replacement text." },
+replace_all: { type: "boolean", description: "Replace every occurrence." },
+},
+required: ["path", "old_string", "new_string"],
+},
+summary: (i) => i.path,
+run({ path, old_string, new_string, replace_all }) {
+const before = VFS.read(path);
+const count = before.split(old_string).length - 1;
+if (!count) throw new Error(`old_string not found in ${path}`);
+if (count > 1 && !replace_all) {
+throw new Error(`old_string appears ${count}x in ${path}; add more context or set replace_all`);
+}
+const after = replace_all
+? before.split(old_string).join(new_string)
+: before.replace(old_string, new_string);
+VFS.write(path, after);
+return `edited ${path} — ${replace_all ? count : 1} replacement(s), now ${after.length} bytes`;
+},
+},
+{
+name: "delete",
+kind: "write",
+description: "Remove a workspace file. There is no undo.",
+input_schema: {
+type: "object",
+properties: { path: { type: "string", description: "Workspace-relative path." } },
+required: ["path"],
+},
+summary: (i) => i.path,
+run({ path }) { return `deleted ${VFS.remove(path)}`; },
+},
+{
+name: "move",
+kind: "write",
+description: "Rename or move a workspace file. Overwrites the destination if it exists.",
+input_schema: {
+type: "object",
+properties: {
+from: { type: "string", description: "Existing path." },
+to: { type: "string", description: "New path." },
+},
+required: ["from", "to"],
+},
+summary: (i) => `${i.from} → ${i.to}`,
+run({ from, to }) {
+const r = VFS.move(from, to);
+return `moved ${r.from} → ${r.to}`;
+},
+},
+{
+name: "todo",
+kind: "read",
+description:
+"Record the plan for a multi-step build and its current state. Rewrite the " +
+"whole list each time. Use it for work with 3+ steps so the user can see " +
+"where things stand; skip it for one-shot answers.",
+input_schema: {
+type: "object",
+properties: {
+items: {
+type: "array",
+description: "The full task list, in order.",
+items: {
+type: "object",
+properties: {
+text: { type: "string", description: "What the step accomplishes." },
+status: { type: "string", enum: ["pending", "active", "done"], description: "Step state." },
+},
+required: ["text", "status"],
+},
+},
+},
+required: ["items"],
+},
+summary: (i) => {
+const items = i.items || [];
+return `${items.filter((t) => t.status === "done").length}/${items.length} done`;
+},
+run({ items }) {
+const mark = { pending: "[ ]", active: "[~]", done: "[x]" };
+return items.map((t) => `${mark[t.status] || "[ ]"} ${t.text}`).join("\n");
+},
+},
+{
+name: "run_js",
+kind: "exec",
+description:
+"Evaluate a JavaScript snippet in a sandboxed iframe and report console output " +
+"plus the returned value. Top-level `await` and dynamic `import('https://esm.sh/pkg')` " +
+"both work; static `import` statements do not (use dynamic import). Use this to " +
+"probe a package's real exports before writing code against it.",
+input_schema: {
+type: "object",
+properties: {
+code: { type: "string", description: "Statements to run. `return` a value to see it." },
+timeout_ms: { type: "integer", description: "Give up after this long (default 15000)." },
+},
+required: ["code"],
+},
+summary: (i) => (i.code || "").trim().split("\n")[0].slice(0, 80),
+async run({ code, timeout_ms }) {
+const r = await Sandbox.runJs(code, { timeout: timeout_ms || 15000 });
+return report(r);
+},
+},
+{
+name: "run_agent",
+kind: "exec",
+description:
+"Run a workspace JavaScript module in the sandbox, resolving its relative imports " +
+"against the other workspace files. If it exports a default (or `main`) function, " +
+"that is called; otherwise its export names are reported. Circular imports fail. " +
+"This is how you verify an agent you built actually loads and runs.",
+input_schema: {
+type: "object",
+properties: {
+entry: { type: "string", description: "Workspace path of the module to run." },
+timeout_ms: { type: "integer", description: "Give up after this long (default 20000)." },
+},
+required: ["entry"],
+},
+summary: (i) => i.entry,
+async run({ entry, timeout_ms }) {
+const r = await Sandbox.runModule(entry, {
+timeout: timeout_ms || 20000,
+onLog: (m) => hooks.log(m),
+});
+return report(r);
+},
+},
+{
+name: "preview",
+kind: "exec",
+description:
+"Mount a workspace HTML file in the harness PREVIEW pane so the user can see and " +
+"click it. Relative script/style/module references are wired to the workspace copies. " +
+"Finish a UI build with this.",
+input_schema: {
+type: "object",
+properties: { path: { type: "string", description: "Workspace path to an .html file." } },
+required: ["path"],
+},
+summary: (i) => i.path,
+async run({ path }) {
+await hooks.preview(path);
+return `mounted ${VFS.norm(path)} in the PREVIEW pane — tell the user to look at it`;
+},
+},
+{
+name: "http_get",
+kind: "net",
+description:
+"GET a URL from this browser tab and return the body as text. Subject to CORS: " +
+"API endpoints and CDNs usually work, ordinary web pages usually do not. " +
+"A CORS failure is reported as such, not as a missing page.",
+input_schema: {
+type: "object",
+properties: {
+url: { type: "string", description: "Absolute http(s) URL." },
+max_chars: { type: "integer", description: "Truncate the body (default 20000)." },
+},
+required: ["url"],
+},
+summary: (i) => i.url,
+async run({ url, max_chars = 20000 }) {
+if (!/^https?:\/\//i.test(url)) throw new Error("url must be absolute http(s)");
+let res;
+try {
+res = await fetch(url, { headers: { accept: "text/plain, application/json, text/*, */*" } });
+} catch (err) {
+throw new Error(
+`network/CORS failure for ${url} (${err.message}). The origin likely does not ` +
+`allow cross-origin reads from a browser; try a CDN or API endpoint instead.`
+);
+}
+const body = await res.text();
+return `HTTP ${res.status} ${res.statusText} · ${body.length} chars\n\n${clip(body, max_chars)}`;
+},
+},
+{
+name: "npm_info",
+kind: "net",
+description:
+"Look up a package on the public npm registry: latest version, description, " +
+"exports map, dependencies and README. Registry CORS is open, so this always " +
+"works when the tab is online. Use it before writing code against any package.",
+input_schema: {
+type: "object",
+properties: {
+name: { type: "string", description: "Package name, e.g. blocks.ai" },
+version: { type: "string", description: "Specific version (default: latest)." },
+},
+required: ["name"],
+},
+summary: (i) => i.name,
+async run({ name, version }) {
+const res = await fetch(`https://registry.npmjs.org/${encodeURIComponent(name)}`);
+if (res.status === 404) return `no such package on npm: ${name}`;
+if (!res.ok) throw new Error(`registry ${res.status} for ${name}`);
+const doc = await res.json();
+const tag = version || doc["dist-tags"]?.latest;
+const v = doc.versions?.[tag];
+if (!v) return `package ${name} exists but has no version ${tag}`;
+const lines = [
+`${name}@${tag}`,
+v.description ? `description: ${v.description}` : null,
+v.homepage ? `homepage: ${v.homepage}` : null,
+v.type ? `type: ${v.type}` : null,
+v.main ? `main: ${v.main}` : null,
+v.module ? `module: ${v.module}` : null,
+v.types || v.typings ? `types: ${v.types || v.typings}` : null,
+v.exports ? `exports: ${JSON.stringify(v.exports)}` : null,
+v.dependencies ? `dependencies: ${Object.keys(v.dependencies).join(", ") || "none"}` : null,
+`cdn: https://esm.sh/${name}@${tag}`,
+].filter(Boolean);
+const readme = doc.readme || v.readme;
+return lines.join("\n") + (readme ? `\n\n--- README ---\n${clip(readme, 12000)}` : "");
+},
+},
+{
+name: "npm_file",
+kind: "net",
+description:
+"Fetch one file out of a published npm package via jsDelivr — type declarations " +
+"(index.d.ts), source, anything. Omit `path` to list the package's file tree. " +
+"This is the reliable way to learn a package's real API without guessing.",
+input_schema: {
+type: "object",
+properties: {
+name: { type: "string", description: "Package name." },
+path: { type: "string", description: "File inside the package, e.g. dist/index.d.ts" },
+version: { type: "string", description: "Version or tag (default latest)." },
+max_chars: { type: "integer", description: "Truncate (default 20000)." },
+},
+required: ["name"],
+},
+summary: (i) => `${i.name}${i.path ? "/" + i.path : " (tree)"}`,
+async run({ name, path, version = "latest", max_chars = 20000 }) {
+const spec = `${name}@${version}`;
+if (!path) {
+const res = await fetch(`https://data.jsdelivr.com/v1/package/npm/${spec}/flat`);
+if (!res.ok) throw new Error(`jsdelivr ${res.status} listing ${spec}`);
+const { files = [] } = await res.json();
+const names = files.map((f) => f.name).sort();
+return `${names.length} file(s) in ${spec}\n${clip(names.join("\n"), 8000)}`;
+}
+const url = `https://cdn.jsdelivr.net/npm/${spec}/${path.replace(/^\//, "")}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`jsdelivr ${res.status} for ${url}`);
+        return `${url}\n\n${clip(await res.text(), max_chars)}`;
+      },
+    },
+
+    /* ── agent-building knowledge ─────────────────────────────────────────── */
+    {
+      name: "framework_docs",
+      kind: "read",
+      description:
+        "Read the harness's built-in notes on building browser agents: how this " +
+        "sandbox works, and per-framework guidance. Call with no argument to list " +
+        "frameworks. Read this before scaffolding anything.",
+      input_schema: {
+        type: "object",
+        properties: {
+          framework: { type: "string", description: "Framework id, or 'harness' for the sandbox notes." },
+        },
+        required: [],
+      },
+      summary: (i) => i.framework || "index",
+      run({ framework } = {}) {
+        if (!framework) {
+          const rows = Frameworks.list()
+            .map((f) => `${f.id.padEnd(12)} ${f.name} — ${f.summary}${f.npm ? ` (npm: ${f.npm})` : ""}`);
+          return `frameworks:\n${rows.join("\n")}\n\nAlso: framework_docs {"framework":"harness"} for how this sandbox behaves.`;
+        }
+        if (framework === "harness") return Frameworks.harnessNotes;
+        const fw = Frameworks.get(framework);
+        if (!fw) return `unknown framework '${framework}'. Known: ${Frameworks.ids().join(", ")}, harness`;
+        return fw.docs;
+      },
+    },
+    {
+      name: "scaffold",
+      kind: "write",
+      description:
+        "Write a working starter agent into the workspace: index.html, an agent loop, " +
+        "tool definitions and a provider adapter. Faster and less error-prone than " +
+        "writing the skeleton by hand — scaffold, then edit toward what the user asked for.",
+      input_schema: {
+        type: "object",
+        properties: {
+          framework: { type: "string", description: "Framework id from framework_docs." },
+          directory: { type: "string", description: "Workspace directory to write into, e.g. demo" },
+        },
+        required: ["framework", "directory"],
+      },
+      summary: (i) => `${i.framework} → ${i.directory}/`,
+      run({ framework, directory }) {
+        const fw = Frameworks.get(framework);
+        if (!fw) throw new Error(`unknown framework '${framework}'. Known: ${Frameworks.ids().join(", ")}`);
+        const dir = VFS.norm(directory + "/_").replace(/\/_$/, "");
+        const files = fw.scaffold(dir);
+        const written = Object.keys(files).sort();
+        for (const path of written) VFS.write(path, files[path]);
+        return `scaffolded ${fw.name} into ${dir}/\n${written.join("\n")}\n\n` +
+               `Next: read ${dir}/tools.js and shape the tools to the user's actual goal, ` +
+ `then run_agent ${dir}/agent.js or preview ${dir}/index.html.`;
+},
+},
+{
+name: "export_zip",
+kind: "read",
+description:
+"Package the whole workspace as a .zip and hand it to the user's browser as a " +
+"download. Offer this once a build works so the work can leave the tab.",
+input_schema: {
+type: "object",
+properties: { filename: { type: "string", description: "Archive name (default agent-workspace.zip)." } },
+required: [],
+},
+summary: (i) => i.filename || "agent-workspace.zip",
+run({ filename = "agent-workspace.zip" } = {}) {
+if (!VFS.count()) throw new Error("workspace is empty; nothing to export");
+const name = filename.endsWith(".zip") ? filename : filename + ".zip";
+Zip.download(name, Zip.build(VFS.snapshot()));
+return `downloading ${name} — ${VFS.count()} file(s), ${VFS.bytes()} bytes`;
+},
+},
+];
+function report(r) {
+const logs = r.logs.length
+? r.logs.map((l) => (l.level === "log" ? "" : `[${l.level}] `) + l.text).join("\n")
+: "(no console output)";
+if (!r.ok) return `FAILED\n${logs}\n\nerror: ${r.error}`;
+return `OK\n${logs}\n\nreturned: ${r.value === undefined ? "undefined" : r.value}`;
+}
+const byName = Object.fromEntries(DEFS.map((d) => [d.name, d]));
+return {
+hooks,
+defs: DEFS,
+schemas() {
+return DEFS.map((d) => ({
+name: d.name,
+description: d.description,
+input_schema: d.input_schema,
+}));
+},
+needsApproval(name) {
+const def = byName[name];
+return !!def && (def.kind === "write" || def.kind === "exec");
+},
+summarize(name, input) {
+const def = byName[name];
+if (!def) return "";
+try { return String(def.summary(input || {}) ?? ""); } catch (_) { return ""; }
+},
+async run(name, input) {
+const def = byName[name];
+if (!def) throw new Error(`unknown tool '${name}'. Available: ${DEFS.map((d) => d.name).join(", ")}`);
+const out = await def.run(input || {});
+return String(out ?? "(no output)");
+},
+};
+})();
+
+;
+/* js/llm.js */
+
+window.LLM = (function () {
+const MODELS = {
+anthropic: {
+label: "Anthropic — Claude", api: "anthropic", keyHint: "sk-ant-…",
+models: ["claude-opus-5", "claude-sonnet-5", "claude-opus-4-8", "claude-haiku-4-5"],
+},
+openai: {
+label: "OpenAI — Codex / GPT", api: "chat", keyHint: "sk-…",
+url: "https://api.openai.com/v1", effortKnob: true,
+models: ["gpt-5.6", "gpt-5.6-codex", "gpt-5.1", "o4-mini"],
+},
+xai: {
+label: "xAI — Grok", api: "chat", keyHint: "xai-…",
+url: "https://api.x.ai/v1",
+models: ["grok-4.1", "grok-4.1-fast", "grok-4", "grok-4-fast-reasoning", "grok-code-fast-1"],
+},
+google: {
+label: "Google — Gemini", api: "google", keyHint: "AIza…",
+models: ["gemini-3-pro", "gemini-2.5-pro", "gemini-2.5-flash"],
+},
+openrouter: {
+label: "OpenRouter — any model", api: "chat", keyHint: "sk-or-v1-…",
+url: "https://openrouter.ai/api/v1", probe: "key", effortKnob: true,
+models: [
+"anthropic/claude-opus-4.5", "openai/gpt-5.1", "x-ai/grok-4.1-fast",
+"google/gemini-3-pro", "deepseek/deepseek-chat",
+],
+},
+freebuff: {
+label: "FreeBuff — OpenAI-compatible", api: "chat", keyHint: "gateway key",
+url: "https://api.freebuff.ai/v1", effortKnob: false, models: [],
+},
+};
+const baseOf = (provider, override) =>
+String(override || MODELS[provider]?.url || "").trim().replace(/\/+$/, "");
+async function* sse(res) {
+const reader = res.body.getReader();
+const decoder = new TextDecoder();
+let buffer = "";
+while (true) {
+const { done, value } = await reader.read();
+if (done) break;
+buffer += decoder.decode(value, { stream: true });
+let split;
+while ((split = buffer.search(/\r?\n\r?\n/)) !== -1) {
+const chunk = buffer.slice(0, split);
+buffer = buffer.slice(split).replace(/^\r?\n\r?\n/, "");
+for (const line of chunk.split(/\r?\n/)) {
+if (!line.startsWith("data:")) continue;
+const data = line.slice(5).trim();
+if (!data || data === "[DONE]") continue;
+try { yield JSON.parse(data); } catch (_) { }
+}
+}
+}
+}
+async function fail(res, provider) {
+let detail = await res.text().catch(() => "");
+try {
+const json = JSON.parse(detail);
+detail = json.error?.message || json.error?.[0]?.message || json.message || detail;
+} catch (_) { }
+const hint = res.status === 401 || res.status === 403 ? " — check the API key in the KEYS panel"
+: res.status === 404 ? " — check the model name and base url in the KEYS panel"
+: res.status === 429 ? " — rate limited; wait and retry"
+: res.status === 0 ? " — blocked before it left the browser (CORS?)" : "";
+throw new Error(`${provider} HTTP ${res.status}${hint}\n${detail.slice(0, 1200)}`);
+}
+const INVISIBLE = /[\u00ad\u180e\u200b-\u200f\u2060\ufeff]/g;
+const SPACES = /[\u00a0\u1680\u2000-\u200a\u202f\u205f\u3000]/g;
+function cleanKey(raw) {
+const key = String(raw ?? "").replace(INVISIBLE, "").replace(SPACES, " ").trim();
+const bad = [...new Set(key.match(/[^\x20-\x7e]/gu) || [])];
+return { key, bad };
+}
+function checkedKey(provider, raw) {
+const { key, bad } = cleanKey(raw);
+if (!key) throw new Error(`no ${provider} API key — open the KEYS panel and paste one`);
+if (bad.length) {
+const points = bad
+.map((c) => `U+${c.codePointAt(0).toString(16).toUpperCase().padStart(4, "0")}`)
+.join(", ");
+throw new Error(
+`${provider} API key contains ${bad.length} character(s) that do not belong in ` +
+`an API key (${points}) — it was probably copied from formatted text. ` +
+`Re-copy it as plain text, or retype it, then SAVE again.`
+);
+}
+return key;
+}
+function geminiSchema(schema) {
+if (!schema || typeof schema !== "object") return schema;
+const ALLOWED = ["type", "description", "enum", "items", "properties", "required", "format", "nullable"];
+const out = {};
+for (const key of ALLOWED) {
+if (!(key in schema)) continue;
+if (key === "properties") {
+out.properties = Object.fromEntries(
+Object.entries(schema.properties).map(([k, v]) => [k, geminiSchema(v)])
+);
+} else if (key === "items") out.items = geminiSchema(schema.items);
+else out[key] = schema[key];
+}
+return out;
+}
+const ADAPTIVE = /^claude-(opus-(5|4-8|4-7|4-6)|sonnet-(5|4-6)|fable-5|mythos-5)/;
+const FALLBACK_CAPABLE = /^claude-(opus-5|fable-5|mythos-5)/;
+async function anthropic({ model, apiKey, system, messages, tools, effort, signal, on }) {
+const body = {
+model,
+max_tokens: 32000,
+stream: true,
+output_config: { effort },
+messages: messages.map((m) => ({
+role: m.role,
+content: m.parts.map((p) => {
+if (p.type === "text") return { type: "text", text: p.text };
+if (p.type === "thinking") return { type: "thinking", thinking: p.text, signature: p.signature };
+if (p.type === "tool_use") return { type: "tool_use", id: p.id, name: p.name, input: p.input };
+return {
+type: "tool_result", tool_use_id: p.id, content: p.output,
+...(p.error ? { is_error: true } : {}),
+};
+}),
+})),
+};
+if (system) body.system = system;
+if (tools.length) {
+body.tools = tools.map((t) => ({
+name: t.name, description: t.description, input_schema: t.input_schema,
+}));
+}
+if (ADAPTIVE.test(model)) body.thinking = { type: "adaptive", display: "summarized" };
+const headers = {
+"content-type": "application/json",
+"x-api-key": apiKey,
+"anthropic-version": "2023-06-01",
+"anthropic-dangerous-direct-browser-access": "true",
+};
+if (FALLBACK_CAPABLE.test(model)) {
+body.fallbacks = "default";
+headers["anthropic-beta"] = "server-side-fallback-2026-07-01";
+}
+const res = await fetch("https://api.anthropic.com/v1/messages", {
+method: "POST", headers, signal, body: JSON.stringify(body),
+});
+if (!res.ok) await fail(res, "anthropic");
+const blocks = [];
+const usage = { input: 0, output: 0 };
+let stopReason = null, stopDetail = null;
+for await (const event of sse(res)) {
+switch (event.type) {
+case "message_start":
+usage.input = event.message?.usage?.input_tokens || 0;
+break;
+case "content_block_start": {
+const b = event.content_block || {};
+blocks[event.index] =
+b.type === "tool_use" ? { type: "tool_use", id: b.id, name: b.name, json: "" }
+: b.type === "thinking" ? { type: "thinking", text: "", signature: "" }
+: { type: "text", text: b.text || "" };
+if (b.type === "tool_use") on.toolStart?.(b.name);
+break;
+}
+case "content_block_delta": {
+const block = blocks[event.index];
+const d = event.delta || {};
+if (!block) break;
+if (d.type === "text_delta") { block.text += d.text; on.text?.(d.text); }
+else if (d.type === "thinking_delta") { block.text += d.thinking; on.thinking?.(d.thinking); }
+else if (d.type === "signature_delta") block.signature += d.signature;
+else if (d.type === "input_json_delta") block.json += d.partial_json;
+break;
+}
+case "message_delta":
+stopReason = event.delta?.stop_reason || stopReason;
+stopDetail = event.delta?.stop_details || stopDetail;
+usage.output = event.usage?.output_tokens || usage.output;
+break;
+case "error":
+throw new Error(`anthropic stream error: ${event.error?.message || "unknown"}`);
+}
+}
+const parts = blocks.filter(Boolean).map((b) => {
+if (b.type === "tool_use") return { type: "tool_use", id: b.id, name: b.name, input: safeJson(b.json) };
+if (b.type === "thinking") return { type: "thinking", text: b.text, signature: b.signature };
+return { type: "text", text: b.text };
+}).filter((p) => p.type !== "text" || p.text);
+if (stopReason === "refusal") {
+throw new Error(
+`the model declined this request (${stopDetail?.category || "unspecified"})` +
+(stopDetail?.explanation ? `: ${stopDetail.explanation}` : "")
+);
+}
+return { parts, stopReason, usage };
+}
+async function chat({ provider, baseUrl, model, apiKey, system, messages, tools, effort, signal, on }) {
+const label = provider;
+const effortKnob = MODELS[provider]?.effortKnob;
+const wire = [];
+if (system) wire.push({ role: "system", content: system });
+for (const m of messages) {
+if (m.role === "user") {
+const results = m.parts.filter((p) => p.type === "tool_result");
+const text = m.parts.filter((p) => p.type === "text").map((p) => p.text).join("\n");
+for (const r of results) {
+wire.push({ role: "tool", tool_call_id: r.id, content: r.error ? `error: ${r.output}` : r.output });
+}
+if (text) wire.push({ role: "user", content: text });
+} else {
+const text = m.parts.filter((p) => p.type === "text").map((p) => p.text).join("");
+const calls = m.parts.filter((p) => p.type === "tool_use").map((p) => ({
+id: p.id, type: "function",
+function: { name: p.name, arguments: JSON.stringify(p.input ?? {}) },
+}));
+const msg = { role: "assistant", content: text || null };
+if (calls.length) msg.tool_calls = calls;
+wire.push(msg);
+}
+}
+const body = {
+model,
+messages: wire,
+stream: true,
+stream_options: { include_usage: true },
+max_completion_tokens: 32000,
+};
+if (effortKnob) body.reasoning_effort = effort === "xhigh" || effort === "max" ? "high" : effort;
+if (tools.length) {
+body.tools = tools.map((t) => ({
+type: "function",
+function: { name: t.name, description: t.description, parameters: t.input_schema },
+}));
+}
+const res = await fetch(`${baseUrl}/chat/completions`, {
+method: "POST",
+headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
+signal, body: JSON.stringify(body),
+});
+if (!res.ok) await fail(res, label);
+let text = "";
+const calls = [];
+const usage = { input: 0, output: 0 };
+let stopReason = null;
+for await (const event of sse(res)) {
+if (event.usage) {
+usage.input = event.usage.prompt_tokens || usage.input;
+usage.output = event.usage.completion_tokens || usage.output;
+}
+const choice = event.choices?.[0];
+if (!choice) continue;
+const delta = choice.delta || {};
+if (delta.content) { text += delta.content; on.text?.(delta.content); }
+if (delta.reasoning_content) on.thinking?.(delta.reasoning_content);
+for (const tc of delta.tool_calls || []) {
+const slot = tc.index ?? calls.length;
+calls[slot] = calls[slot] || { id: "", name: "", json: "" };
+if (tc.id) calls[slot].id = tc.id;
+if (tc.function?.name) {
+calls[slot].name += tc.function.name;
+on.toolStart?.(calls[slot].name);
+}
+if (tc.function?.arguments) calls[slot].json += tc.function.arguments;
+}
+if (choice.finish_reason) stopReason = choice.finish_reason;
+}
+const parts = [];
+if (text) parts.push({ type: "text", text });
+for (const c of calls.filter(Boolean)) {
+parts.push({ type: "tool_use", id: c.id || `call_${parts.length}`, name: c.name, input: safeJson(c.json) });
+}
+return { parts, stopReason, usage };
+};
+async function google({ model, apiKey, system, messages, tools, effort, signal, on }) {
+const contents = messages.map((m) => ({
+role: m.role === "assistant" ? "model" : "user",
+parts: m.parts.map((p) => {
+if (p.type === "text") return { text: p.text };
+if (p.type === "thinking") return { text: p.text };
+if (p.type === "tool_use") return { functionCall: { name: p.name, args: p.input ?? {} } };
+return {
+functionResponse: {
+name: p.name,
+response: p.error ? { error: p.output } : { output: p.output },
+},
+};
+}),
+}));
+const body = { contents };
+if (system) body.systemInstruction = { parts: [{ text: system }] };
+if (tools.length) {
+body.tools = [{
+functionDeclarations: tools.map((t) => {
+const params = geminiSchema(t.input_schema);
+const decl = { name: t.name, description: t.description };
+if (params?.properties && Object.keys(params.properties).length) decl.parameters = params;
+return decl;
+}),
+}];
+}
+const url =
+`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}` +
+`:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`;
+const res = await fetch(url, {
+method: "POST", headers: { "content-type": "application/json" }, signal, body: JSON.stringify(body),
+});
+if (!res.ok) await fail(res, "google");
+let text = "";
+const calls = [];
+const usage = { input: 0, output: 0 };
+let stopReason = null;
+for await (const event of sse(res)) {
+const candidate = event.candidates?.[0];
+if (event.usageMetadata) {
+usage.input = event.usageMetadata.promptTokenCount || usage.input;
+usage.output = event.usageMetadata.candidatesTokenCount || usage.output;
+}
+if (candidate?.finishReason) stopReason = candidate.finishReason;
+for (const part of candidate?.content?.parts || []) {
+if (part.functionCall) {
+calls.push(part.functionCall);
+on.toolStart?.(part.functionCall.name);
+} else if (typeof part.text === "string") {
+if (part.thought) on.thinking?.(part.text);
+else { text += part.text; on.text?.(part.text); }
+}
+}
+}
+const parts = [];
+if (text) parts.push({ type: "text", text });
+calls.forEach((c, i) => {
+parts.push({ type: "tool_use", id: `${c.name}_${Date.now()}_${i}`, name: c.name, input: c.args || {} });
+});
+return { parts, stopReason, usage };
+}
+function safeJson(raw) {
+if (!raw || !raw.trim()) return {};
+try { return JSON.parse(raw); } catch (_) { return { __unparsed: raw }; }
+}
+const ADAPTERS = { anthropic, google, chat };
+const PROBES = {
+anthropic: (key) => ["https://api.anthropic.com/v1/models?limit=1", {
+"x-api-key": key,
+"anthropic-version": "2023-06-01",
+"anthropic-dangerous-direct-browser-access": "true",
+}],
+google: (key) => [
+`https://generativelanguage.googleapis.com/v1beta/models?pageSize=1&key=${encodeURIComponent(key)}`, {},
+],
+chat: (key, base, spec) => [`${base}/${spec.probe || "models"}`, { authorization: `Bearer ${key}` }],
+};
+async function validate({ provider, apiKey, baseUrl, signal }) {
+const spec = MODELS[provider];
+if (!spec) return { ok: false, error: `unknown provider: ${provider}` };
+let key;
+try { key = checkedKey(provider, apiKey); } catch (err) { return { ok: false, error: err.message }; }
+const base = baseOf(provider, baseUrl);
+if (spec.api === "chat" && !base) return { ok: false, error: `${provider}: set a base url in the KEYS panel` };
+const [url, headers] = PROBES[spec.api](key, base, spec);
+try {
+const res = await fetch(url, { headers, signal });
+if (res.ok) return { ok: true };
+await fail(res, provider);
+} catch (err) {
+if (err.name === "AbortError") throw err;
+if (err instanceof TypeError) {
+return { ok: false, error: `${provider} unreachable from this tab (${err.message}) — offline, or the vendor refuses cross-origin browser calls` };
+}
+return { ok: false, error: String(err.message || err) };
+}
+}
+return {
+providers: MODELS,
+defaultModel: (provider) => MODELS[provider]?.models[0] || "",
+defaultUrl: (provider) => MODELS[provider]?.url || "",
+cleanKey,
+validate,
+complete({ provider, model, apiKey, baseUrl, system, messages, tools = [], effort = "high", signal, on = {} }) {
+const spec = MODELS[provider];
+if (!spec) throw new Error(`unknown provider: ${provider}`);
+const key = checkedKey(provider, apiKey);
+const base = baseOf(provider, baseUrl);
+if (spec.api === "chat" && !base) throw new Error(`${provider}: no base url — set one in the KEYS panel`);
+if (!model) throw new Error(`${provider}: no model name — type one in the KEYS panel`);
+return ADAPTERS[spec.api]({
+provider, baseUrl: base, model, apiKey: key, system, messages, tools, effort, signal, on,
+});
+},
+};
+})();
+
+;
+/* js/agent.js */
+
+window.Agent = (function () {
+const SESSION_KEY = "buttercup.session.v1";
+const PLACE = `# Where you are
+No server, no shell, no node. Your workspace is a virtual filesystem in this browser's localStorage, and your tools are plain JavaScript functions in this page. What you build must therefore run in a browser too: static HTML/CSS/ES modules, \`fetch\` to CORS-friendly endpoints, localStorage or IndexedDB for state. Read \`framework_docs {"framework":"harness"}\` once per session for how the sandbox behaves.`;
+const VOICE = `# Talking to the user
+You are writing into a terminal transcript. Be brief and concrete; lead with what changed and where. Reference files as \`path/to/file.js\`. No preamble, no restating the request, no summary of code you just showed. Mention API-key exposure once, when you first write a file that sends a key from a browser — it is a real constraint, not a disclaimer to repeat.`;
+const AGENT_BUILDER = `You are buttercup.sh — a coding agent that builds *other* AI agents, running entirely inside a browser tab.
+
+${PLACE}
+
+# What you are for
+Turning a description into a working agent: an agent loop, a set of tool definitions, a provider adapter, and a page the user can open. The default target is Blocks.AI / Blocks Network (npm \`@blocks-network/sdk\`, CLI \`@blocks-network/cli\`), where the agent runtime is Node and the consumer client is browser-safe — read \`framework_docs {"framework":"blocks-ai"}\` for that split and be straight with the user about which half runs where. Support the other frameworks when asked.
+
+# How to work
+- Call \`framework_docs\` with no argument first on any build task, then read the notes for the framework you are going to use.
+- Never write code against a package's API from memory. Confirm it: \`npm_info\`, then \`npm_file\` for the type declarations, then \`run_js\` with a dynamic import to see the real export names. If a package cannot be reached, say so and use the dependency-free path instead of inventing exports.
+- \`scaffold\` first, then edit. Rewriting the skeleton by hand wastes turns.
+- Use \`todo\` for anything with three or more steps, and keep it current.
+- Verify before you claim: \`run_agent\` for modules, \`run_js\` for snippets, \`preview\` for pages. If something failed, report which step failed and what the error said — do not describe unverified code as working.
+- Batch independent tool calls in one turn. Read a file before editing it.
+- Finish the job. If part of it is blocked (offline, CORS, an unknown API), complete everything else and state plainly what you left and why.
+
+${VOICE}`;
+const GENERAL = `You are buttercup.sh in general mode — a coding agent working inside a browser tab. Build whatever the user asks for; agents are just one thing you can make here.
+
+${PLACE}
+
+# How to work
+- \`list\` / \`read\` before you edit. \`write\` overwrites without warning.
+- Use \`todo\` for anything with three or more steps, and keep it current.
+- Never write code against a package's API from memory. Confirm it: \`npm_info\`, then \`npm_file\` for the type declarations, then \`run_js\` with a dynamic import to see the real export names.
+- Verify before you claim: \`run_js\` for snippets, \`run_agent\` for modules, \`preview\` for pages. If something failed, report which step failed and what the error said.
+- Batch independent tool calls in one turn.
+- \`scaffold\` and \`framework_docs\` are still here if the task turns out to be an agent build; ignore them otherwise.
+- Finish the job. If part of it is blocked (offline, CORS, an unknown API), complete everything else and state plainly what you left and why.
+
+${VOICE}`;
+const MODES = {
+"agent-builder": { system: AGENT_BUILDER, blurb: "builds AI agents (blocks.ai by default)" },
+general: { system: GENERAL, blurb: "builds anything static in a browser" },
+};
+const DEFAULT_MODE = "agent-builder";
+const hooks = {
+onUser: () => {},
+onAssistantStart: () => {},
+onText: () => {},
+onThinking: () => {},
+onAssistantEnd: () => {},
+onToolStart: () => {},
+onToolEnd: () => {},
+onError: () => {},
+onStatus: () => {},
+onDone: () => {},
+approve: async () => "allow",
+};
+const state = {
+messages: load(),
+busy: false,
+controller: null,
+steps: 0,
+usage: { input: 0, output: 0 },
+settings: null,
+};
+function load() {
+try {
+const raw = localStorage.getItem(SESSION_KEY);
+const parsed = raw ? JSON.parse(raw) : null;
+return Array.isArray(parsed) ? parsed : [];
+} catch (_) { return []; }
+}
+function persist() {
+try {
+localStorage.setItem(SESSION_KEY, JSON.stringify(state.messages));
+} catch (_) {
+state.messages = state.messages.slice(-20);
+try { localStorage.setItem(SESSION_KEY, JSON.stringify(state.messages)); } catch (__) {}
+}
+}
+async function send(text) {
+if (state.busy) throw new Error("already running");
+const settings = state.settings;
+state.busy = true;
+state.controller = new AbortController();
+state.steps = 0;
+let approveAll = !!settings.yolo;
+state.messages.push({ role: "user", parts: [{ type: "text", text }] });
+hooks.onUser(text);
+persist();
+hooks.onStatus("busy");
+try {
+const maxSteps = Math.max(1, Number(settings.maxSteps) || 40);
+for (let step = 0; step < maxSteps; step++) {
+state.steps = step + 1;
+hooks.onStatus("busy", { step: state.steps });
+const view = hooks.onAssistantStart();
+let reply;
+try {
+reply = await LLM.complete({
+provider: settings.provider,
+model: settings.model,
+apiKey: settings.key,
+baseUrl: settings.baseUrl,
+effort: settings.effort,
+system: (MODES[settings.mode] || MODES[DEFAULT_MODE]).system,
+messages: forProvider(state.messages, settings.provider),
+tools: Tools.schemas(),
+signal: state.controller.signal,
+on: {
+text: (d) => hooks.onText(view, d),
+thinking: (d) => settings.showThinking && hooks.onThinking(view, d),
+toolStart: () => {},
+},
+});
+} finally {
+hooks.onAssistantEnd(view);
+}
+state.usage.input += reply.usage.input;
+state.usage.output += reply.usage.output;
+state.messages.push({ role: "assistant", parts: reply.parts });
+persist();
+const calls = reply.parts.filter((p) => p.type === "tool_use");
+if (!calls.length) return;
+const results = [];
+for (const call of calls) {
+const handle = hooks.onToolStart(call.name, call.input);
+if (!approveAll && Tools.needsApproval(call.name)) {
+const verdict = await hooks.approve(call.name, call.input, handle);
+if (verdict === "always") approveAll = true;
+if (verdict === "deny") {
+const output = "The user denied this tool call. Do not retry it; ask what to do instead.";
+hooks.onToolEnd(handle, { ok: false, output });
+results.push({ type: "tool_result", id: call.id, name: call.name, output, error: true });
+continue;
+}
+}
+try {
+const output = await Tools.run(call.name, call.input);
+hooks.onToolEnd(handle, { ok: true, output });
+results.push({ type: "tool_result", id: call.id, name: call.name, output });
+} catch (err) {
+const output = String(err && err.message ? err.message : err);
+hooks.onToolEnd(handle, { ok: false, output });
+results.push({ type: "tool_result", id: call.id, name: call.name, output, error: true });
+}
+}
+state.messages.push({ role: "user", parts: results });
+persist();
+}
+hooks.onError(`stopped after ${maxSteps} steps (the max-steps setting). Ask it to continue if that was too soon.`);
+} catch (err) {
+if (err && err.name === "AbortError") hooks.onError("stopped by user");
+else hooks.onError(String(err && err.message ? err.message : err));
+} finally {
+state.busy = false;
+state.controller = null;
+hooks.onStatus("idle");
+hooks.onDone({ steps: state.steps });
+}
+}
+function forProvider(messages, provider) {
+if (provider === "anthropic") return messages;
+return messages.map((m) => ({
+role: m.role,
+parts: m.parts.filter((p) => p.type !== "thinking"),
+})).filter((m) => m.parts.length);
+}
+return {
+hooks,
+send,
+modes: MODES,
+defaultMode: DEFAULT_MODE,
+stop() { if (state.controller) state.controller.abort(); },
+get busy() { return state.busy; },
+get usage() { return state.usage; },
+get turns() { return state.messages.length; },
+setSettings(s) { state.settings = s; },
+reset() {
+state.messages = [];
+state.usage = { input: 0, output: 0 };
+localStorage.removeItem(SESSION_KEY);
+},
+};
+})();
+
+;
+/* js/commands.js */
+
+window.Commands = (function () {
+const hooks = {
+mode: () => Agent.defaultMode,
+setMode: () => {},
+};
+const DEFS = [
+{
+name: "help",
+usage: "/help",
+help: "list these commands",
+run() {
+const rows = DEFS.map((d) => `  ${d.usage.padEnd(30)} ${d.help}`);
+return [
+"commands (handled in this tab; never sent to the model):",
+...rows,
+"",
+"anything else you type is a request for the agent.",
+].join("\n");
+},
+},
+{
+name: "mode",
+usage: "/mode [" + Object.keys(Agent.modes).join("|") + "]",
+help: "show or switch what the agent is told it is for",
+run(rest) {
+const ids = Object.keys(Agent.modes);
+if (!rest) {
+return [
+`mode: ${hooks.mode()}`,
+...ids.map((id) => `  ${id === hooks.mode() ? "*" : " "} ${id.padEnd(14)} ${Agent.modes[id].blurb}`),
+].join("\n");
+}
+if (!Agent.modes[rest]) throw new Error(`unknown mode '${rest}'. Known: ${ids.join(", ")}`);
+hooks.setMode(rest);
+return `mode → ${rest} · ${Agent.modes[rest].blurb} (applies to the next turn; context kept)`;
+},
+},
+{
+name: "clear",
+usage: "/clear",
+help: "forget the conversation and clear the transcript; workspace files stay",
+run() {
+const turns = Agent.turns;
+Agent.reset();
+UI.clearLog();
+return `context cleared — ${turns} message(s) dropped, ${VFS.count()} workspace file(s) kept`;
+},
+},
+{
+name: "wipe",
+usage: "/wipe",
+help: "delete every workspace file as well as the conversation — no undo",
+run() {
+const files = VFS.count();
+if (files && !confirm(`Delete all ${files} workspace files and this conversation? This cannot be undone.`)) {
+return "wipe cancelled — nothing was deleted";
+}
+Agent.reset();
+VFS.wipe();
+UI.closeViewer();
+UI.clearLog();
+return `wiped — ${files} file(s) deleted, context gone`;
+},
+},
+];
+const byName = Object.fromEntries(DEFS.map((d) => [d.name, d]));
+return {
+hooks,
+defs: DEFS,
+is: (text) => /^\/\S/.test(text.trim()),
+async run(text) {
+const [, name, rest = ""] = text.trim().match(/^\/(\S*)\s*([\s\S]*)$/);
+const def = byName[name.toLowerCase()];
+if (!def) {
+throw new Error(`unknown command '/${name}'. Try ${DEFS.map((d) => "/" + d.name).join(", ")}`);
+}
+return String((await def.run(rest.trim(), text)) ?? "");
+},
+};
+})();
+
+;
+/* js/ui.js */
+
+window.UI = (function () {
+const $ = (id) => document.getElementById(id);
+const log = $("log");
+function el(tag, cls, text) {
+const node = document.createElement(tag);
+if (cls) node.className = cls;
+if (text != null) node.textContent = text;
+return node;
+}
+function autoscroll() {
+const slack = log.scrollHeight - log.scrollTop - log.clientHeight;
+if (slack < 120) log.scrollTop = log.scrollHeight;
+}
+function entry(cls, who) {
+const node = el("article", "entry " + cls);
+if (who) node.appendChild(el("span", "who", who));
+log.appendChild(node);
+autoscroll();
+return node;
+}
+const escape = (s) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+function format(text) {
+return text.split(/```/).map((chunk, i) => {
+if (i % 2) return `<span class="fence">${escape(chunk.replace(/^[\w.-]*\n/, ""))}</span>`;
+return escape(chunk)
+.replace(/`([^`\n]+)`/g, "<code>$1</code>")
+.replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>")
+.replace(/^#{1,6}\s+(.+)$/gm, "<strong>$1</strong>")
+.replace(/^\s*[-*]\s+(.+)$/gm, '<span class="bullet">• $1</span>');
+}).join("");
+}
+const api = {
+user(text) {
+entry("user", "you").appendChild(el("pre", null, text));
+},
+system(text) {
+entry("system").appendChild(el("pre", null, text));
+},
+error(text) {
+entry("error", "harness").appendChild(el("pre", null, text));
+},
+clearLog() { log.replaceChildren(); },
+closeViewer() { $("viewer").hidden = true; },
+assistant() {
+const node = entry("model live", "buttercup");
+const body = el("span", "body");
+node.appendChild(body);
+return { node, body, raw: "", think: null };
+},
+text(view, delta) {
+view.raw += delta;
+view.body.appendChild(document.createTextNode(delta));
+autoscroll();
+},
+thinking(view, delta) {
+if (!view.think) {
+const box = el("details", "think");
+box.appendChild(el("summary", null, "reasoning"));
+box.appendChild(el("pre"));
+view.node.insertBefore(box, view.body);
+view.think = box.querySelector("pre");
+}
+view.think.appendChild(document.createTextNode(delta));
+autoscroll();
+},
+assistantEnd(view) {
+view.node.classList.remove("live");
+if (view.raw) view.body.innerHTML = format(view.raw);
+else if (!view.think) view.node.remove();
+autoscroll();
+},
+toolStart(name, input) {
+const box = el("details", "call");
+const head = el("summary");
+head.appendChild(el("span", "tname", name));
+head.appendChild(el("span", "tsum", Tools.summarize(name, input)));
+const flag = el("span", "tflag", "running");
+head.appendChild(flag);
+box.appendChild(head);
+const pre = el("pre");
+pre.textContent = "in: " + JSON.stringify(input ?? {}, null, 2);
+box.appendChild(pre);
+log.appendChild(box);
+autoscroll();
+return { box, flag, pre };
+},
+toolEnd(handle, { ok, output }) {
+handle.box.classList.add(ok ? "ok" : "err");
+handle.flag.textContent = ok ? "ok" : "failed";
+handle.pre.textContent += "\n\nout: " + (output || "").slice(0, 20000);
+if (!ok) handle.box.open = true;
+autoscroll();
+},
+sandboxLog(msg) {
+api.system(`  ${msg.level === "log" ? "·" : "!"} ${msg.text}`);
+},
+approve(name, input) {
+return new Promise((resolve) => {
+const box = el("div", "approve");
+box.appendChild(el("p", null, `${name} wants to run: ${Tools.summarize(name, input) || "(no arguments)"}`));
+const btns = el("div", "btns");
+const choose = (label, verdict, cls) => {
+const b = el("button", cls, label);
+b.type = "button";
+b.addEventListener("click", () => {
+box.replaceChildren(el("p", null, `${name}: ${verdict}`));
+resolve(verdict);
+});
+btns.appendChild(b);
+};
+choose("ALLOW", "allow");
+choose("ALLOW ALL", "always");
+choose("DENY", "deny", "danger");
+box.appendChild(btns);
+log.appendChild(box);
+log.scrollTop = log.scrollHeight;
+});
+},
+status(state, label) {
+const node = $("status");
+node.dataset.state = state;
+node.textContent = label || state.toUpperCase();
+document.body.dataset.agent = state;
+},
+stats({ provider, model, mode, tokens, steps }) {
+$("stat-provider").textContent = `${provider} · ${model}`;
+$("stat-mode").textContent = mode;
+$("stat-tokens").textContent = `${tokens} tok`;
+$("stat-steps").textContent = `step ${steps}`;
+$("stat-files").textContent = `${VFS.count()} files`;
+},
+renderTools() {
+const list = $("tools");
+list.replaceChildren();
+for (const def of Tools.defs) {
+const li = el("li");
+const box = el("details");
+const head = el("summary");
+head.appendChild(el("span", "tname", def.name));
+head.appendChild(el("span", "tag " + def.kind, def.kind));
+box.appendChild(head);
+box.appendChild(el("p", "desc", def.description));
+const props = def.input_schema.properties || {};
+const required = def.input_schema.required || [];
+if (Object.keys(props).length) {
+const dl = el("dl");
+for (const [key, spec] of Object.entries(props)) {
+const dt = el("dt", null, `${key}: ${spec.type || "any"}`);
+if (required.includes(key)) dt.appendChild(el("span", "req", " *"));
+dl.appendChild(dt);
+dl.appendChild(el("dd", null, spec.description || ""));
+}
+box.appendChild(dl);
+} else {
+box.appendChild(el("p", "desc dim", "no arguments"));
+}
+li.appendChild(box);
+list.appendChild(li);
+}
+$("tool-count").textContent = `${Tools.defs.length} tools`;
+},
+renderTree() {
+const tree = $("tree");
+tree.replaceChildren();
+const paths = VFS.paths();
+if (!paths.length) {
+tree.appendChild(el("li", "dim", "empty workspace"));
+return;
+}
+for (const path of paths) {
+const li = el("li");
+li.appendChild(el("span", "glyph", path.includes("/") ? "└" : "·"));
+const open = el("button", null, path);
+open.type = "button";
+open.addEventListener("click", () => api.view(path));
+li.appendChild(open);
+li.appendChild(el("span", "size", `${VFS.read(path).length}b`));
+tree.appendChild(li);
+}
+},
+view(path) {
+$("viewer").hidden = false;
+$("viewer-path").textContent = path;
+$("viewer-body").textContent = VFS.read(path);
+},
+async mountPreview(path) {
+const frame = $("preview");
+frame.hidden = false;
+$("preview-empty").hidden = true;
+$("tab-preview").checked = true;
+const result = await Sandbox.preview(path, frame);
+if (!result.ok) throw new Error(result.error);
+return result;
+},
+};
+return api;
+})();
+
+;
+/* js/main.js */
+
+(function () {
+const $ = (id) => document.getElementById(id);
+const SETTINGS_KEY = "buttercup.settings.v1";
+const DEFAULTS = {
+provider: "anthropic",
+model: LLM.defaultModel("anthropic"),
+baseUrl: LLM.defaultUrl("anthropic"),
+key: "",
+effort: "xhigh",
+mode: Agent.defaultMode,
+yolo: true,
+showThinking: true,
+maxSteps: 40,
+};
+let settings = loadSettings();
+let keyOk = false;
+let checkSeq = 0;
+function loadSettings() {
+try {
+return { ...DEFAULTS, ...(JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}) };
+} catch (_) { return { ...DEFAULTS }; }
+}
+function saveSettings() {
+localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+Agent.setSettings(settings);
+paintStats();
+}
+function paintStats(step = 0) {
+const u = Agent.usage;
+UI.stats({
+provider: settings.provider,
+model: settings.model || "(no model)",
+mode: settings.mode,
+tokens: u.input + u.output,
+steps: step,
+});
+}
+function paintReady() {
+if (Agent.busy) return;
+if (keyOk) UI.status("ready", "READY");
+else UI.status("notready", "NOT READY");
+}
+async function checkKey({ quiet = false } = {}) {
+const seq = ++checkSeq;
+if (!settings.key) {
+keyOk = false;
+paintReady();
+if (!quiet) UI.error("no API key — paste one in the KEYS panel, then press SAVE");
+return false;
+}
+if (!Agent.busy) UI.status("check", "CHECKING KEY");
+const verdict = await LLM.validate({
+provider: settings.provider, apiKey: settings.key, baseUrl: settings.baseUrl,
+});
+if (seq !== checkSeq) return keyOk;
+keyOk = verdict.ok;
+paintReady();
+if (verdict.ok) { if (!quiet) UI.system(`key accepted by ${settings.provider}`); }
+else UI.error(verdict.error);
+return keyOk;
+}
+function fillModelList() {
+const spec = LLM.providers[settings.provider];
+const list = $("model-list");
+list.replaceChildren();
+for (const name of spec.models) {
+const opt = document.createElement("option");
+opt.value = name;
+list.appendChild(opt);
+}
+$("key").placeholder = `${spec.keyHint} — stays in this browser`;
+$("row-base").hidden = spec.api !== "chat";
+}
+function paintSettings() {
+$("provider").value = settings.provider;
+$("model").value = settings.model;
+$("baseUrl").value = settings.baseUrl;
+$("key").value = settings.key;
+$("effort").value = settings.effort;
+$("mode").value = settings.mode;
+$("yolo").checked = settings.yolo;
+$("showThinking").checked = settings.showThinking;
+$("maxSteps").value = settings.maxSteps;
+fillModelList();
+}
+function readSettings() {
+const { key, bad } = LLM.cleanKey($("key").value);
+if (bad.length) {
+UI.error(
+`that key contains ${bad.length} character(s) that do not belong in an API key ` +
+`— it looks copied from formatted text. Re-copy it as plain text or retype it.`
+);
+}
+$("key").value = key;
+const provider = $("provider").value;
+settings = {
+provider,
+model: $("model").value.trim() || LLM.defaultModel(provider),
+baseUrl: $("baseUrl").value.trim() || LLM.defaultUrl(provider),
+key,
+effort: $("effort").value,
+mode: $("mode").value,
+yolo: $("yolo").checked,
+showThinking: $("showThinking").checked,
+maxSteps: Number($("maxSteps").value) || 40,
+};
+saveSettings();
+}
+$("provider").addEventListener("change", () => {
+settings.provider = $("provider").value;
+settings.model = LLM.defaultModel(settings.provider);
+settings.baseUrl = LLM.defaultUrl(settings.provider);
+settings.key = "";
+keyOk = false;
+paintSettings();
+saveSettings();
+paintReady();
+UI.system(`provider → ${settings.provider}. Paste a ${settings.provider} key.`);
+});
+$("settings-form").addEventListener("submit", (e) => {
+e.preventDefault();
+readSettings();
+UI.system(`saved · ${settings.provider} · ${settings.model} · ${settings.mode} · effort ${settings.effort}`);
+checkKey();
+});
+$("forget").addEventListener("click", () => {
+settings.key = "";
+$("key").value = "";
+keyOk = false;
+saveSettings();
+paintReady();
+UI.system("key cleared from this browser");
+});
+$("reset-session").addEventListener("click", () => runCommand("/clear"));
+$("download-zip").addEventListener("click", () => {
+if (!VFS.count()) return UI.error("workspace is empty; nothing to export");
+Zip.download("agent-workspace.zip", Zip.build(VFS.snapshot()));
+UI.system(`exported ${VFS.count()} file(s)`);
+});
+$("wipe").addEventListener("click", () => runCommand("/wipe"));
+$("viewer-close").addEventListener("click", () => UI.closeViewer());
+const input = $("prompt-input");
+function grow() {
+input.rows = Math.min(6, input.value.split("\n").length);
+}
+input.addEventListener("input", grow);
+input.addEventListener("keydown", (e) => {
+if (e.key === "Enter" && !e.shiftKey && !e.altKey) {
+e.preventDefault();
+$("prompt-form").requestSubmit();
+}
+});
+async function runCommand(text) {
+UI.user(text);
+try {
+const out = await Commands.run(text);
+if (out) UI.system(out);
+} catch (err) {
+UI.error(String(err && err.message ? err.message : err));
+}
+paintStats();
+}
+$("prompt-form").addEventListener("submit", async (e) => {
+e.preventDefault();
+const text = input.value.trim();
+if (!text) return;
+if (Agent.busy) return UI.error("still working — press STOP first");
+input.value = "";
+grow();
+if (Commands.is(text)) return runCommand(text);
+if (!settings.key) {
+$("tab-keys").checked = true;
+UI.error("no API key. Open the KEYS panel, pick a provider, paste a key, press SAVE.");
+return;
+}
+if (!keyOk && !(await checkKey())) {
+$("tab-keys").checked = true;
+return;
+}
+setRunning(true);
+try {
+await Agent.send(text);
+} finally {
+setRunning(false);
+input.focus();
+}
+});
+$("stop").addEventListener("click", () => Agent.stop());
+function setRunning(on) {
+$("send").disabled = on;
+$("stop").disabled = !on;
+}
+Object.assign(Agent.hooks, {
+onUser: (text) => UI.user(text),
+onAssistantStart: () => UI.assistant(),
+onText: (view, d) => UI.text(view, d),
+onThinking: (view, d) => UI.thinking(view, d),
+onAssistantEnd: (view) => UI.assistantEnd(view),
+onToolStart: (name, input) => UI.toolStart(name, input),
+onToolEnd: (handle, result) => UI.toolEnd(handle, result),
+onError: (msg) => UI.error(msg),
+approve: (name, input) => UI.approve(name, input),
+onStatus: (state, extra) => {
+const step = (extra && extra.step) || 0;
+if (state === "busy") UI.status("busy", `WORKING · STEP ${step || 1}`);
+else paintReady();
+paintStats(step);
+},
+onDone: ({ steps }) => paintStats(steps),
+});
+Object.assign(Commands.hooks, {
+mode: () => settings.mode,
+setMode: (mode) => {
+settings.mode = mode;
+$("mode").value = mode;
+saveSettings();
+},
+});
+Object.assign(Tools.hooks, {
+preview: (path) => UI.mountPreview(path),
+log: (msg) => UI.sandboxLog(msg),
+});
+VFS.onChange(() => {
+UI.renderTree();
+paintStats();
+});
+Agent.setSettings(settings);
+paintSettings();
+UI.renderTools();
+UI.renderTree();
+paintStats();
+paintReady();
+setRunning(false);
+if (Agent.turns) {
+UI.system(`restored a session with ${Agent.turns} message(s) of context. ` +
+`The transcript above is fresh, but the model still remembers. ` +
+`Use /clear to start clean.`);
+}
+if (VFS.count()) UI.system(`workspace restored: ${VFS.count()} file(s)`);
+if (location.protocol === "file:") {
+UI.system("running from file:// — the harness works, but agents you build " +
+"need a real origin for ES modules. Use `preview` / `run_agent` here, " +
+"and `python3 -m http.server` after exporting.");
+}
+if (settings.key) checkKey({ quiet: true });
+else $("tab-keys").checked = true;
+input.focus();
+})();
+
+</script>
+</body>
+</html>

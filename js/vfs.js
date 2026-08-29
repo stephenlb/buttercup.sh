@@ -69,7 +69,6 @@ window.VFS = (function () {
 
   const api = {
     norm,
-    globRe,
 
     paths() { return Object.keys(files).sort(); },
     count() { return Object.keys(files).length; },
@@ -111,17 +110,6 @@ window.VFS = (function () {
       return api.paths().filter((p) => re.test(p));
     },
 
-    /** Directory listing as a sorted tree of `{path, bytes}` plus dir names. */
-    tree() {
-      const dirs = new Set();
-      const out = api.paths().map((p) => {
-        const parts = p.split("/");
-        for (let i = 1; i < parts.length; i++) dirs.add(parts.slice(0, i).join("/"));
-        return { path: p, bytes: files[p].length, depth: parts.length - 1 };
-      });
-      return { files: out, dirs: [...dirs].sort() };
-    },
-
     grep(pattern, { glob, flags = "" } = {}) {
       const re = new RegExp(pattern, flags.includes("i") ? "i" : "");
       const scope = glob ? api.glob(glob) : api.paths();
@@ -137,8 +125,6 @@ window.VFS = (function () {
     bytes() { return api.paths().reduce((n, p) => n + files[p].length, 0); },
 
     snapshot() { return { ...files }; },
-
-    restore(map) { files = { ...map }; persist(); },
 
     wipe() { files = {}; persist(); },
 

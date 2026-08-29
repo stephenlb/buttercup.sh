@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    main — wiring. Settings, event handlers, and the hook-ups between the
-   agent loop, the tools, and the UI.
+   agent loop, the tools, the slash commands, and the UI.
    ═══════════════════════════════════════════════════════════════════════════ */
 (function () {
   const $ = (id) => document.getElementById(id);
@@ -9,14 +9,20 @@
   const DEFAULTS = {
     provider: "anthropic",
     model: LLM.defaultModel("anthropic"),
+    baseUrl: LLM.defaultUrl("anthropic"),
     key: "",
     effort: "xhigh",
+    mode: Agent.defaultMode,
     yolo: true,
     showThinking: true,
     maxSteps: 40,
   };
 
   let settings = loadSettings();
+  /* Whether the vendor has confirmed the current key. The header lamp reports
+     this, so it is only ever set from a real answer to a real request. */
+  let keyOk = false;
+  let checkSeq = 0;
 
   function loadSettings() {
     try {
@@ -30,34 +36,75 @@
     paintStats();
   }
 
-  function paintStats() {
+  function paintStats(step = 0) {
     const u = Agent.usage;
     UI.stats({
       provider: settings.provider,
       model: settings.model || "(no model)",
+      mode: settings.mode,
       tokens: u.input + u.output,
-      steps: 0,
+      steps: step,
     });
+  }
+
+  /* ── the READY lamp ───────────────────────────────────────────────────────
+     Three honest states: no key, key the vendor rejected (or has not been asked
+     about yet), and key the vendor accepted. Busy overrides all of them.
+     ─────────────────────────────────────────────────────────────────────────── */
+
+  function paintReady() {
+    if (Agent.busy) return;
+    if (keyOk) UI.status("ready", "READY");
+    else UI.status("notready", "NOT READY");
+  }
+
+  /**
+   * Ask the vendor whether the saved key works. `quiet` suppresses the
+   * transcript chatter so a page load does not narrate itself.
+   */
+  async function checkKey({ quiet = false } = {}) {
+    const seq = ++checkSeq;
+    if (!settings.key) {
+      keyOk = false;
+      paintReady();
+      if (!quiet) UI.error("no API key — paste one in the KEYS panel, then press SAVE");
+      return false;
+    }
+    if (!Agent.busy) UI.status("check", "CHECKING KEY");
+    const verdict = await LLM.validate({
+      provider: settings.provider, apiKey: settings.key, baseUrl: settings.baseUrl,
+    });
+    if (seq !== checkSeq) return keyOk;         // a newer check already answered
+    keyOk = verdict.ok;
+    paintReady();
+    if (verdict.ok) { if (!quiet) UI.system(`key accepted by ${settings.provider}`); }
+    else UI.error(verdict.error);
+    return keyOk;
   }
 
   /* ── settings form ──────────────────────────────────────────────────────── */
 
   function fillModelList() {
+    const spec = LLM.providers[settings.provider];
     const list = $("model-list");
     list.replaceChildren();
-    for (const name of LLM.providers[settings.provider].models) {
+    for (const name of spec.models) {
       const opt = document.createElement("option");
       opt.value = name;
       list.appendChild(opt);
     }
-    $("key").placeholder = `${LLM.providers[settings.provider].keyHint} — stays in this browser`;
+    $("key").placeholder = `${spec.keyHint} — stays in this browser`;
+    // Only the OpenAI-compatible vendors have a base URL worth changing.
+    $("row-base").hidden = spec.api !== "chat";
   }
 
   function paintSettings() {
     $("provider").value = settings.provider;
     $("model").value = settings.model;
+    $("baseUrl").value = settings.baseUrl;
     $("key").value = settings.key;
     $("effort").value = settings.effort;
+    $("mode").value = settings.mode;
     $("yolo").checked = settings.yolo;
     $("showThinking").checked = settings.showThinking;
     $("maxSteps").value = settings.maxSteps;
@@ -75,11 +122,14 @@
       );
     }
     $("key").value = key;
+    const provider = $("provider").value;
     settings = {
-      provider: $("provider").value,
-      model: $("model").value.trim() || LLM.defaultModel($("provider").value),
+      provider,
+      model: $("model").value.trim() || LLM.defaultModel(provider),
+      baseUrl: $("baseUrl").value.trim() || LLM.defaultUrl(provider),
       key,
       effort: $("effort").value,
+      mode: $("mode").value,
       yolo: $("yolo").checked,
       showThinking: $("showThinking").checked,
       maxSteps: Number($("maxSteps").value) || 40,
@@ -88,33 +138,35 @@
   }
 
   $("provider").addEventListener("change", () => {
-    // Switching vendors invalidates the model name and the key alike.
+    // Switching vendors invalidates the model name, the endpoint and the key.
     settings.provider = $("provider").value;
     settings.model = LLM.defaultModel(settings.provider);
+    settings.baseUrl = LLM.defaultUrl(settings.provider);
     settings.key = "";
+    keyOk = false;
     paintSettings();
     saveSettings();
+    paintReady();
     UI.system(`provider → ${settings.provider}. Paste a ${settings.provider} key.`);
   });
 
   $("settings-form").addEventListener("submit", (e) => {
     e.preventDefault();
     readSettings();
-    UI.system(`saved · ${settings.provider} · ${settings.model} · effort ${settings.effort}`);
+    UI.system(`saved · ${settings.provider} · ${settings.model} · ${settings.mode} · effort ${settings.effort}`);
+    checkKey();
   });
 
   $("forget").addEventListener("click", () => {
     settings.key = "";
     $("key").value = "";
+    keyOk = false;
     saveSettings();
+    paintReady();
     UI.system("key cleared from this browser");
   });
 
-  $("reset-session").addEventListener("click", () => {
-    Agent.reset();
-    UI.system("new session — the model's memory of this conversation is gone (workspace kept)");
-    paintStats();
-  });
+  $("reset-session").addEventListener("click", () => runCommand("/clear"));
 
   /* ── workspace panel ────────────────────────────────────────────────────── */
 
@@ -124,15 +176,9 @@
     UI.system(`exported ${VFS.count()} file(s)`);
   });
 
-  $("wipe").addEventListener("click", () => {
-    if (!VFS.count()) return;
-    if (!confirm(`Delete all ${VFS.count()} workspace files? This cannot be undone.`)) return;
-    VFS.wipe();
-    $("viewer").hidden = true;
-    UI.system("workspace wiped");
-  });
+  $("wipe").addEventListener("click", () => runCommand("/wipe"));
 
-  $("viewer-close").addEventListener("click", () => { $("viewer").hidden = true; });
+  $("viewer-close").addEventListener("click", () => UI.closeViewer());
 
   /* ── prompt ─────────────────────────────────────────────────────────────── */
 
@@ -151,18 +197,41 @@
     }
   });
 
+  /** Run a slash command and report it in the transcript. */
+  async function runCommand(text) {
+    UI.user(text);
+    try {
+      const out = await Commands.run(text);
+      if (out) UI.system(out);
+    } catch (err) {
+      UI.error(String(err && err.message ? err.message : err));
+    }
+    paintStats();
+  }
+
   $("prompt-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const text = input.value.trim();
     if (!text) return;
     if (Agent.busy) return UI.error("still working — press STOP first");
+
+    input.value = "";
+    grow();
+
+    if (Commands.is(text)) return runCommand(text);
+
     if (!settings.key) {
+      $("tab-keys").checked = true;
       UI.error("no API key. Open the KEYS panel, pick a provider, paste a key, press SAVE.");
+      return;
+    }
+    // The lamp says READY only once the vendor has agreed; make that true
+    // before spending a turn on a key that will be rejected anyway.
+    if (!keyOk && !(await checkKey())) {
       $("tab-keys").checked = true;
       return;
     }
-    input.value = "";
-    grow();
+
     setRunning(true);
     try {
       await Agent.send(text);
@@ -192,15 +261,21 @@
     onError: (msg) => UI.error(msg),
     approve: (name, input) => UI.approve(name, input),
     onStatus: (state, extra) => {
-      UI.status(state === "busy" ? "busy" : "idle",
-        state === "busy" ? `WORKING · STEP ${(extra && extra.step) || 1}` : "READY");
-      const u = Agent.usage;
-      UI.stats({
-        provider: settings.provider, model: settings.model,
-        tokens: u.input + u.output, steps: (extra && extra.step) || 0,
-      });
+      const step = (extra && extra.step) || 0;
+      if (state === "busy") UI.status("busy", `WORKING · STEP ${step || 1}`);
+      else paintReady();
+      paintStats(step);
     },
-    onDone: () => paintStats(),
+    onDone: ({ steps }) => paintStats(steps),
+  });
+
+  Object.assign(Commands.hooks, {
+    mode: () => settings.mode,
+    setMode: (mode) => {
+      settings.mode = mode;
+      $("mode").value = mode;
+      saveSettings();
+    },
   });
 
   Object.assign(Tools.hooks, {
@@ -220,13 +295,13 @@
   UI.renderTools();
   UI.renderTree();
   paintStats();
-  UI.status("idle", "READY");
+  paintReady();
   setRunning(false);
 
   if (Agent.turns) {
     UI.system(`restored a session with ${Agent.turns} message(s) of context. ` +
               `The transcript above is fresh, but the model still remembers. ` +
-              `Use NEW SESSION in KEYS to start clean.`);
+              `Use /clear to start clean.`);
   }
   if (VFS.count()) UI.system(`workspace restored: ${VFS.count()} file(s)`);
   if (location.protocol === "file:") {
@@ -234,6 +309,10 @@
               "need a real origin for ES modules. Use `preview` / `run_agent` here, " +
               "and `python3 -m http.server` after exporting.");
   }
+
+  // No key is the one state where the panel matters more than the prompt.
+  if (settings.key) checkKey({ quiet: true });
+  else $("tab-keys").checked = true;
 
   input.focus();
 })();
