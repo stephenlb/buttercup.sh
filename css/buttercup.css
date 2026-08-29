@@ -210,12 +210,28 @@ button.mini { padding: .18rem .5rem; font-size: .68rem; }
 button.danger { border-color: var(--bad); color: var(--bad); }
 button.danger:hover { background: var(--bad); color: var(--paper); }
 
-/* ── the beach ────────────────────────────────────────────────────────────────
+/* ── the view out the window ──────────────────────────────────────────────────
    Fills whatever room is left under the prompt, which means it is on screen
    exactly while the transcript is short — `flex: 1 1 0` grows into free space
    and can never claim any when there is none, so a busy session hides it
    without a line of JS.
 
+   Four scenes live in here and one is shown per load: js/scenes.js writes a
+   name to `data-scene` and the rules below reveal that scene. The other three
+   are `display: none`, which also parks their animations. `?scene=woods` pins
+   one for a screenshot.
+
+   Every scene obeys the same rules, spelled out under the beach: one ink, one
+   pixel size, no diagonals, no gradient ramps, whole-pixel motion only.
+   ─────────────────────────────────────────────────────────────────────────── */
+.scenes { flex: 1 1 0; min-height: 0; position: relative; overflow: hidden; }
+.scene { position: absolute; inset: 0; overflow: hidden; display: none; }
+.scenes[data-scene="beach"] .beach,
+.scenes[data-scene="city"]  .city,
+.scenes[data-scene="woods"] .woods,
+.scenes[data-scene="orbit"] .orbit { display: block; }
+
+/* ── scene: the beach ─────────────────────────────────────────────────────────
    True pixel art, which sets two rules. Every edge is horizontal or vertical:
    no diagonals, no circles, nothing the browser can anti-alias into a soft
    fringe. And no grid is drawn over the top — pixels sit flush against their
@@ -244,7 +260,6 @@ button.danger:hover { background: var(--bad); color: var(--paper); }
   --surf: 0px; --w6: 0px; --w7: 0px; --w9: 0px; --w11: 0px; --w15: 0px;
   --w16: 0px; --glint: 0px; --cloud-a: 0px; --cloud-b: 0px;
 
-  flex: 1 1 0; min-height: 0; position: relative; overflow: hidden;
   background-repeat: no-repeat;
   background-image:
     /* sand: sparse stipple, no two rows on the same rhythm */
@@ -561,6 +576,985 @@ button.danger:hover { background: var(--bad); color: var(--paper); }
   35%      { transform: translateX(var(--px)); }
   70%      { transform: translateX(0); }
 }
+
+/* ── scene: the city ──────────────────────────────────────────────────────────
+   A skyline has to work at any width, so it is not a row of drawn towers. Each
+   horizontal *band* of the skyline is one `repeating-linear-gradient` whose bars
+   are the towers that reach that high; stack the bands and the towers appear,
+   cut from a pattern that tiles forever. Windows are bands too — a one-pixel
+   row whose lit stops land inside towers tall enough to have that floor.
+
+   Front rank, one period of 24 pixels (`■` a window, `·` a roof):
+
+              ·                    b4  22 tall
+              ■                    b2  15
+         ·    ■  ■  ■              b5  12
+         ■ ·  ■  ■  ■              b1   9
+       ┌───┐┌────┐┌──┐┌────┐┌─┐    b3   7
+     ══╧═══╧╧════╧╧══╧╧════╧╧═╧══  street
+       0   4 5  10 11 14 15 20 21…
+
+   The back rank runs on a period of 31, seven pixels over and two pixels up, in
+   a dimmer ink: two coprime periods, so the joins never line up into wallpaper.
+   ─────────────────────────────────────────────────────────────────────────── */
+.city {
+  --px: 6px;
+  --street:   calc(var(--px) * 5);
+  /* Flat, opaque tones — mixed against the paper, not with `transparent`. The
+     bands of one rank overlap each other by design, and a see-through ink would
+     stack into a brightness ramp up the towers, which is the one thing pixel art
+     may not do: shape has to come from which pixels are lit. */
+  --stone:    color-mix(in srgb, var(--ink) 30%, var(--paper));   /* front rank */
+  --stone-lo: color-mix(in srgb, var(--ink) 16%, var(--paper));   /* back rank  */
+  --glass:    color-mix(in srgb, var(--ink) 78%, var(--paper));   /* windows    */
+  --road:     color-mix(in srgb, var(--ink) 10%, transparent);
+  --drift: calc(100% + var(--px) * 16);   /* overhang for the two moving lanes */
+
+  /* the moving offsets, at rest — animated in whole pixels further down */
+  --tail-a: 0px; --tail-b: 0px;
+
+  background-repeat: no-repeat;
+  background-image:
+    /* two lanes of headlights, running opposite ways */
+    repeating-linear-gradient(90deg, var(--ink) 0 calc(var(--px) * 2), transparent calc(var(--px) * 2) calc(var(--px) * 12)),
+    repeating-linear-gradient(90deg, var(--ink-dim) 0 calc(var(--px) * 2), transparent calc(var(--px) * 2) calc(var(--px) * 14)),
+    /* the kerb: one row where the street meets the towers */
+    linear-gradient(var(--ink-faint), var(--ink-faint)),
+    /* window rows, low to high — floor 2: every tower */
+    repeating-linear-gradient(90deg,
+      transparent 0 var(--px), var(--glass) var(--px) calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 7), var(--glass) calc(var(--px) * 7) calc(var(--px) * 8),
+      transparent calc(var(--px) * 8) calc(var(--px) * 12), var(--glass) calc(var(--px) * 12) calc(var(--px) * 13),
+      transparent calc(var(--px) * 13) calc(var(--px) * 17), var(--glass) calc(var(--px) * 17) calc(var(--px) * 18),
+      transparent calc(var(--px) * 18) calc(var(--px) * 22), var(--glass) calc(var(--px) * 22) calc(var(--px) * 23),
+      transparent calc(var(--px) * 23) calc(var(--px) * 24)),
+    /* floor 5: still every tower */
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 2), var(--glass) calc(var(--px) * 2) calc(var(--px) * 3),
+      transparent calc(var(--px) * 3) calc(var(--px) * 9), var(--glass) calc(var(--px) * 9) calc(var(--px) * 10),
+      transparent calc(var(--px) * 10) calc(var(--px) * 13), var(--glass) calc(var(--px) * 13) calc(var(--px) * 14),
+      transparent calc(var(--px) * 14) calc(var(--px) * 19), var(--glass) calc(var(--px) * 19) calc(var(--px) * 20),
+      transparent calc(var(--px) * 20) calc(var(--px) * 22), var(--glass) calc(var(--px) * 22) calc(var(--px) * 23),
+      transparent calc(var(--px) * 23) calc(var(--px) * 24)),
+    /* floor 9: b3 and b1 have run out of building */
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 8), var(--glass) calc(var(--px) * 8) calc(var(--px) * 9),
+      transparent calc(var(--px) * 9) calc(var(--px) * 16), var(--glass) calc(var(--px) * 16) calc(var(--px) * 17),
+      transparent calc(var(--px) * 17) calc(var(--px) * 22), var(--glass) calc(var(--px) * 22) calc(var(--px) * 23),
+      transparent calc(var(--px) * 23) calc(var(--px) * 24)),
+    /* floor 13: b2 and b4 */
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 6), var(--glass) calc(var(--px) * 6) calc(var(--px) * 7),
+      transparent calc(var(--px) * 7) calc(var(--px) * 17), var(--glass) calc(var(--px) * 17) calc(var(--px) * 18),
+      transparent calc(var(--px) * 18) calc(var(--px) * 24)),
+    /* floor 18: only the tall one is left */
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 19), var(--glass) calc(var(--px) * 19) calc(var(--px) * 20),
+      transparent calc(var(--px) * 20) calc(var(--px) * 24)),
+    /* front rank, band by band: 7 tall (all five towers) … */
+    repeating-linear-gradient(90deg,
+      var(--stone) 0 calc(var(--px) * 4), transparent calc(var(--px) * 4) calc(var(--px) * 5),
+      var(--stone) calc(var(--px) * 5) calc(var(--px) * 10), transparent calc(var(--px) * 10) calc(var(--px) * 11),
+      var(--stone) calc(var(--px) * 11) calc(var(--px) * 14), transparent calc(var(--px) * 14) calc(var(--px) * 15),
+      var(--stone) calc(var(--px) * 15) calc(var(--px) * 20), transparent calc(var(--px) * 20) calc(var(--px) * 21),
+      var(--stone) calc(var(--px) * 21) calc(var(--px) * 23), transparent calc(var(--px) * 23) calc(var(--px) * 24)),
+    /* … 9 tall (b3 stops) … */
+    repeating-linear-gradient(90deg,
+      var(--stone) 0 calc(var(--px) * 4), transparent calc(var(--px) * 4) calc(var(--px) * 5),
+      var(--stone) calc(var(--px) * 5) calc(var(--px) * 10), transparent calc(var(--px) * 10) calc(var(--px) * 15),
+      var(--stone) calc(var(--px) * 15) calc(var(--px) * 20), transparent calc(var(--px) * 20) calc(var(--px) * 21),
+      var(--stone) calc(var(--px) * 21) calc(var(--px) * 23), transparent calc(var(--px) * 23) calc(var(--px) * 24)),
+    /* … 12 tall (b1 stops) … */
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 5), var(--stone) calc(var(--px) * 5) calc(var(--px) * 10),
+      transparent calc(var(--px) * 10) calc(var(--px) * 15), var(--stone) calc(var(--px) * 15) calc(var(--px) * 20),
+      transparent calc(var(--px) * 20) calc(var(--px) * 21), var(--stone) calc(var(--px) * 21) calc(var(--px) * 23),
+      transparent calc(var(--px) * 23) calc(var(--px) * 24)),
+    /* … 15 tall (b5 stops) … */
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 5), var(--stone) calc(var(--px) * 5) calc(var(--px) * 10),
+      transparent calc(var(--px) * 10) calc(var(--px) * 15), var(--stone) calc(var(--px) * 15) calc(var(--px) * 20),
+      transparent calc(var(--px) * 20) calc(var(--px) * 24)),
+    /* … 22 tall (b4 alone) */
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 15), var(--stone) calc(var(--px) * 15) calc(var(--px) * 20),
+      transparent calc(var(--px) * 20) calc(var(--px) * 24)),
+    /* the street */
+    linear-gradient(var(--road), var(--road)),
+    /* back rank: 14, 18, 20 and 26 tall on a period of 31 */
+    repeating-linear-gradient(90deg,
+      var(--stone-lo) 0 calc(var(--px) * 7), transparent calc(var(--px) * 7) calc(var(--px) * 9),
+      var(--stone-lo) calc(var(--px) * 9) calc(var(--px) * 14), transparent calc(var(--px) * 14) calc(var(--px) * 17),
+      var(--stone-lo) calc(var(--px) * 17) calc(var(--px) * 23), transparent calc(var(--px) * 23) calc(var(--px) * 25),
+      var(--stone-lo) calc(var(--px) * 25) calc(var(--px) * 30), transparent calc(var(--px) * 30) calc(var(--px) * 31)),
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 9), var(--stone-lo) calc(var(--px) * 9) calc(var(--px) * 14),
+      transparent calc(var(--px) * 14) calc(var(--px) * 17), var(--stone-lo) calc(var(--px) * 17) calc(var(--px) * 23),
+      transparent calc(var(--px) * 23) calc(var(--px) * 25), var(--stone-lo) calc(var(--px) * 25) calc(var(--px) * 30),
+      transparent calc(var(--px) * 30) calc(var(--px) * 31)),
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 9), var(--stone-lo) calc(var(--px) * 9) calc(var(--px) * 14),
+      transparent calc(var(--px) * 14) calc(var(--px) * 25), var(--stone-lo) calc(var(--px) * 25) calc(var(--px) * 30),
+      transparent calc(var(--px) * 30) calc(var(--px) * 31)),
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 9), var(--stone-lo) calc(var(--px) * 9) calc(var(--px) * 14),
+      transparent calc(var(--px) * 14) calc(var(--px) * 31));
+  background-size:
+    var(--drift) var(--px),                    /* headlights, lane a */
+    var(--drift) var(--px),                    /* headlights, lane b */
+    100% var(--px),                            /* kerb               */
+    100% var(--px),                            /* windows, floor 2   */
+    100% var(--px),                            /* floor 5            */
+    100% var(--px),                            /* floor 9            */
+    100% var(--px),                            /* floor 13           */
+    100% var(--px),                            /* floor 18           */
+    100% calc(var(--px) * 7),                  /* front rank, 7 tall */
+    100% calc(var(--px) * 9),
+    100% calc(var(--px) * 12),
+    100% calc(var(--px) * 15),
+    100% calc(var(--px) * 22),
+    100% var(--street),                        /* the street         */
+    100% calc(var(--px) * 14),                 /* back rank, 14 tall */
+    100% calc(var(--px) * 18),
+    100% calc(var(--px) * 20),
+    100% calc(var(--px) * 26);
+  background-position:
+    bottom var(--px) left calc(0px - var(--tail-a)),
+    bottom calc(var(--px) * 3) left var(--tail-b),
+    bottom var(--street) left 0,
+    bottom calc(var(--street) + var(--px) * 2) left 0,
+    bottom calc(var(--street) + var(--px) * 5) left 0,
+    bottom calc(var(--street) + var(--px) * 9) left 0,
+    bottom calc(var(--street) + var(--px) * 13) left 0,
+    bottom calc(var(--street) + var(--px) * 18) left 0,
+    bottom var(--street) left 0,
+    bottom var(--street) left 0,
+    bottom var(--street) left 0,
+    bottom var(--street) left 0,
+    bottom var(--street) left 0,
+    bottom left,
+    /* the back rank stands two pixels further up the page, seven over */
+    bottom calc(var(--street) + var(--px) * 2) left calc(var(--px) * 7),
+    bottom calc(var(--street) + var(--px) * 2) left calc(var(--px) * 7),
+    bottom calc(var(--street) + var(--px) * 2) left calc(var(--px) * 7),
+    bottom calc(var(--street) + var(--px) * 2) left calc(var(--px) * 7);
+}
+
+/* Stars, and the moon: a seven-pixel disc, one solid bar per row. */
+.city::before {
+  content: ""; position: absolute;
+  right: calc(var(--px) * 20); bottom: calc(var(--street) + var(--px) * 38);
+  width: var(--px); height: var(--px); background: var(--ink-dim);
+  box-shadow:
+    calc(var(--px) * -7) calc(var(--px) * 3) 0 var(--ink-dim),
+    calc(var(--px) * 5) calc(var(--px) * -2) 0 var(--ink-dim),
+    calc(var(--px) * 12) calc(var(--px) * 4) 0 var(--ink-faint),
+    calc(var(--px) * -14) calc(var(--px) * -3) 0 var(--ink-faint),
+    calc(var(--px) * -20) calc(var(--px) * 6) 0 var(--ink-dim),
+    calc(var(--px) * -26) calc(var(--px) * 1) 0 var(--ink-faint),
+    calc(var(--px) * -33) calc(var(--px) * 8) 0 var(--ink-dim),
+    calc(var(--px) * -39) calc(var(--px) * -1) 0 var(--ink-faint),
+    calc(var(--px) * -45) calc(var(--px) * 5) 0 var(--ink-dim);
+}
+.city::after {
+  content: ""; position: absolute;
+  right: calc(var(--px) * 9); bottom: calc(var(--street) + var(--px) * 33);
+  width: calc(var(--px) * 7); height: calc(var(--px) * 7);
+  background-repeat: no-repeat;
+  background-image:
+    linear-gradient(var(--ink-dim), var(--ink-dim)),
+    linear-gradient(var(--ink-dim), var(--ink-dim)),
+    linear-gradient(var(--ink-dim), var(--ink-dim)),
+    linear-gradient(var(--ink-dim), var(--ink-dim)),
+    linear-gradient(var(--ink-dim), var(--ink-dim)),
+    linear-gradient(var(--ink-dim), var(--ink-dim)),
+    linear-gradient(var(--ink-dim), var(--ink-dim));
+  background-size:
+    calc(var(--px) * 3) var(--px),
+    calc(var(--px) * 5) var(--px),
+    calc(var(--px) * 7) var(--px),
+    calc(var(--px) * 7) var(--px),
+    calc(var(--px) * 7) var(--px),
+    calc(var(--px) * 5) var(--px),
+    calc(var(--px) * 3) var(--px);
+  background-position:
+    top 0 left calc(var(--px) * 2),
+    top var(--px) left var(--px),
+    top calc(var(--px) * 2) left 0,
+    top calc(var(--px) * 3) left 0,
+    top calc(var(--px) * 4) left 0,
+    top calc(var(--px) * 5) left var(--px),
+    top calc(var(--px) * 6) left calc(var(--px) * 2);
+}
+
+/* Windows that are awake. Three groups of `box-shadow` pixels, each blinking on
+   its own clock: the element is the pixel at street level on the left edge, so a
+   shadow at (x, -y) is the window x pixels along and y pixels up. Coordinates
+   are inside the first period of the front rank, and the pattern carries them
+   across the rest of the skyline for free. */
+.city .lit {
+  position: absolute; left: 0; bottom: var(--street);
+  width: var(--px); height: var(--px);
+}
+.city .lit:nth-of-type(1) {
+  box-shadow:
+    calc(var(--px) * 2) calc(var(--px) * -6) 0 var(--ink-hot),
+    calc(var(--px) * 9) calc(var(--px) * -13) 0 var(--ink-hot),
+    calc(var(--px) * 18) calc(var(--px) * -21) 0 var(--ink-hot);
+}
+.city .lit:nth-of-type(2) {
+  box-shadow:
+    calc(var(--px) * 7) calc(var(--px) * -4) 0 var(--ink-hot),
+    calc(var(--px) * 13) calc(var(--px) * -3) 0 var(--ink-hot),
+    calc(var(--px) * 22) calc(var(--px) * -7) 0 var(--ink-hot);
+}
+.city .lit:nth-of-type(3) {
+  box-shadow:
+    calc(var(--px) * 3) calc(var(--px) * -4) 0 var(--ink-hot),
+    calc(var(--px) * 6) calc(var(--px) * -10) 0 var(--ink-hot),
+    calc(var(--px) * 16) calc(var(--px) * -10) 0 var(--ink-hot),
+    calc(var(--px) * 19) calc(var(--px) * -15) 0 var(--ink-hot);
+}
+
+/* The aircraft light on the roof of the tall one. */
+.city .beacon {
+  position: absolute; left: calc(var(--px) * 17);
+  bottom: calc(var(--street) + var(--px) * 22);
+  width: var(--px); height: var(--px); background: var(--ink-hot);
+}
+
+/* A blimp, nine pixels of it, drifting over the skyline:
+
+     .######..
+     ########.
+     .######.#
+     ...##....
+   ─────────────────────────────────────────────────────────────────────────── */
+.city .blimp {
+  position: absolute; right: calc(var(--px) * 24);
+  bottom: calc(var(--street) + var(--px) * 30);
+  width: calc(var(--px) * 9); height: calc(var(--px) * 4);
+  background-repeat: no-repeat;
+  background-image:
+    linear-gradient(var(--ink-dim), var(--ink-dim)),      /* row 0: envelope   */
+    linear-gradient(var(--ink-dim), var(--ink-dim)),      /* row 1: envelope   */
+    linear-gradient(var(--ink-dim), var(--ink-dim)),      /* row 2: envelope   */
+    linear-gradient(var(--ink-dim), var(--ink-dim)),      /* row 2: tail fin   */
+    linear-gradient(var(--ink-dim), var(--ink-dim));      /* row 3: gondola    */
+  background-size:
+    calc(var(--px) * 6) var(--px),
+    calc(var(--px) * 8) var(--px),
+    calc(var(--px) * 6) var(--px),
+    var(--px) var(--px),
+    calc(var(--px) * 2) var(--px);
+  background-position:
+    top 0 left var(--px),
+    top var(--px) left 0,
+    top calc(var(--px) * 2) left var(--px),
+    top calc(var(--px) * 2) left calc(var(--px) * 8),
+    top calc(var(--px) * 3) left calc(var(--px) * 3);
+}
+
+/* ── the city, moving ─────────────────────────────────────────────────────── */
+@property --tail-a { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --tail-b { syntax: "<length>"; inherits: false; initial-value: 0px; }
+
+/* Each lane's travel is its own pattern period — twelve pixels for lane a,
+   fourteen for lane b — so the reset lands on an identical frame and the two
+   never share a phase for long. */
+.city {
+  animation:
+    lane-a 3.6s steps(12, end) infinite,
+    lane-b 5.6s steps(14, end) infinite;
+}
+@keyframes lane-a { to { --tail-a: calc(var(--px) * 12); } }
+@keyframes lane-b { to { --tail-b: calc(var(--px) * 14); } }
+
+/* Nothing here moves; a window is lit or it is not. Three clocks, one per
+   group, offset into each other by a negative delay. */
+.city .lit { animation: window-blink 4.4s steps(1, end) infinite; }
+.city .lit:nth-of-type(2) { animation-duration: 6.8s; animation-delay: -2.1s; }
+.city .lit:nth-of-type(3) { animation-duration: 9.2s; animation-delay: -5.4s; }
+@keyframes window-blink { 0%, 61% { opacity: 1; } 62%, 100% { opacity: .16; } }
+
+.city .beacon { animation: beacon 1.9s steps(1, end) infinite; }
+@keyframes beacon { 0%, 56% { opacity: 1; } 57%, 100% { opacity: 0; } }
+
+.city .blimp { animation: blimp-drift 38s steps(10, end) infinite alternate; }
+@keyframes blimp-drift { to { transform: translateX(calc(var(--px) * -10)); } }
+
+.city::before { animation: star-flicker 3.4s steps(1, end) infinite alternate; }
+@keyframes star-flicker { from { opacity: 1; } to { opacity: .4; } }
+
+/* ── scene: the woods ─────────────────────────────────────────────────────────
+   Two treelines cut from the band trick the city uses, one period of nine and
+   one of thirteen, so a fir is four bars stacked into a taper:
+
+     ...#...      9 tall
+     ..###..      7
+     .#####.      5
+     #######      3
+     ═══════      snow
+
+   The snow itself falls in columns: each flake column is one layer, a tile one
+   pixel wide and N pixels deep, tiled with `repeat-y` and slid down exactly
+   N — its own period, so the loop is seamless. Half the columns are anchored to
+   the left edge and half to the right, which keeps the fall spread across a box
+   of any width: a narrow box simply crops the outermost columns.
+
+   Three things keep it from reading as a machine. A tile holds two or three
+   flakes at uneven depths rather than one at the top, so a column never ticks
+   past on a single beat. The periods are mutual near-primes (11 … 31) on
+   durations that share no factor, so no two columns ever pulse together. And
+   every column leans on one of three shared gusts, `--gust-a/b/c`, which shove
+   the whole field a pixel or two sideways on their own slow clocks — the flakes
+   drift as weather does, in gusts, instead of dropping down a plumb line.
+   ─────────────────────────────────────────────────────────────────────────── */
+.woods {
+  --px: 6px;
+  --ground: calc(var(--px) * 9);                       /* depth of the snow  */
+  --snow:    color-mix(in srgb, var(--ink) 52%, transparent);
+  --snow-lo: color-mix(in srgb, var(--ink) 26%, transparent);
+  /* opaque, for the reason spelled out over the city: stacked bands */
+  --fir:     color-mix(in srgb, var(--ink) 40%, var(--paper));   /* near line  */
+  --fir-lo:  color-mix(in srgb, var(--ink) 19%, var(--paper));   /* far line   */
+
+  --sn1: 0px; --sn2: 0px;  --sn3: 0px;  --sn4: 0px;  --sn5: 0px;
+  --sn6: 0px; --sn7: 0px;  --sn8: 0px;  --sn9: 0px;  --sn10: 0px;
+  --sn11: 0px; --sn12: 0px; --sn13: 0px; --sn14: 0px;
+  --gust-a: 0px; --gust-b: 0px; --gust-c: 0px;
+
+  background-repeat:
+    repeat-y, repeat-y, repeat-y, repeat-y,            /* the fourteen falls */
+    repeat-y, repeat-y, repeat-y, repeat-y,
+    repeat-y, repeat-y, repeat-y, repeat-y,
+    repeat-y, repeat-y,
+    no-repeat, no-repeat, no-repeat,                   /* everything else    */
+    no-repeat, no-repeat, no-repeat, no-repeat,
+    no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+  background-image:
+    /* falling snow: two or three lit pixels per tile, at uneven depths, so the
+       flakes in one column are spaced the way real ones are — the rest of the
+       tile is the gap. Near columns are lit, far ones dim. */
+    linear-gradient(var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 9), var(--snow) calc(var(--px) * 9) calc(var(--px) * 10), transparent calc(var(--px) * 10)),
+    linear-gradient(var(--snow-lo) 0 var(--px), transparent var(--px) calc(var(--px) * 7), var(--snow-lo) calc(var(--px) * 7) calc(var(--px) * 8), transparent calc(var(--px) * 8) calc(var(--px) * 15), var(--snow-lo) calc(var(--px) * 15) calc(var(--px) * 16), transparent calc(var(--px) * 16)),
+    linear-gradient(var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 6), var(--snow) calc(var(--px) * 6) calc(var(--px) * 7), transparent calc(var(--px) * 7)),
+    linear-gradient(var(--snow-lo) 0 var(--px), transparent var(--px) calc(var(--px) * 5), var(--snow-lo) calc(var(--px) * 5) calc(var(--px) * 6), transparent calc(var(--px) * 6) calc(var(--px) * 12), var(--snow-lo) calc(var(--px) * 12) calc(var(--px) * 13), transparent calc(var(--px) * 13)),
+    linear-gradient(var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 5), var(--snow) calc(var(--px) * 5) calc(var(--px) * 6), transparent calc(var(--px) * 6)),
+    linear-gradient(var(--snow-lo) 0 var(--px), transparent var(--px) calc(var(--px) * 8), var(--snow-lo) calc(var(--px) * 8) calc(var(--px) * 9), transparent calc(var(--px) * 9) calc(var(--px) * 19), var(--snow-lo) calc(var(--px) * 19) calc(var(--px) * 20), transparent calc(var(--px) * 20)),
+    linear-gradient(var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 7), var(--snow) calc(var(--px) * 7) calc(var(--px) * 8), transparent calc(var(--px) * 8)),
+    linear-gradient(var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 6), var(--snow) calc(var(--px) * 6) calc(var(--px) * 7), transparent calc(var(--px) * 7)),
+    linear-gradient(var(--snow-lo) 0 var(--px), transparent var(--px) calc(var(--px) * 9), var(--snow-lo) calc(var(--px) * 9) calc(var(--px) * 10), transparent calc(var(--px) * 10)),
+    linear-gradient(var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 7), var(--snow) calc(var(--px) * 7) calc(var(--px) * 8), transparent calc(var(--px) * 8)),
+    linear-gradient(var(--snow-lo) 0 var(--px), transparent var(--px) calc(var(--px) * 7), var(--snow-lo) calc(var(--px) * 7) calc(var(--px) * 8), transparent calc(var(--px) * 8) calc(var(--px) * 16), var(--snow-lo) calc(var(--px) * 16) calc(var(--px) * 17), transparent calc(var(--px) * 17)),
+    linear-gradient(var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 5), var(--snow) calc(var(--px) * 5) calc(var(--px) * 6), transparent calc(var(--px) * 6)),
+    linear-gradient(var(--snow-lo) 0 var(--px), transparent var(--px) calc(var(--px) * 11), var(--snow-lo) calc(var(--px) * 11) calc(var(--px) * 12), transparent calc(var(--px) * 12) calc(var(--px) * 22), var(--snow-lo) calc(var(--px) * 22) calc(var(--px) * 23), transparent calc(var(--px) * 23)),
+    linear-gradient(var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 8), var(--snow) calc(var(--px) * 8) calc(var(--px) * 9), transparent calc(var(--px) * 9)),
+    /* drift stipple, three rows, no two on the same rhythm */
+    repeating-linear-gradient(90deg, var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 6)),
+    repeating-linear-gradient(90deg, var(--snow) 0 calc(var(--px) * 2), transparent calc(var(--px) * 2) calc(var(--px) * 9)),
+    repeating-linear-gradient(90deg, var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 7)),
+    /* near treeline, band by band, on a period of nine */
+    repeating-linear-gradient(90deg, var(--fir) 0 calc(var(--px) * 7), transparent calc(var(--px) * 7) calc(var(--px) * 9)),
+    repeating-linear-gradient(90deg, transparent 0 var(--px), var(--fir) var(--px) calc(var(--px) * 6), transparent calc(var(--px) * 6) calc(var(--px) * 9)),
+    repeating-linear-gradient(90deg, transparent 0 calc(var(--px) * 2), var(--fir) calc(var(--px) * 2) calc(var(--px) * 5), transparent calc(var(--px) * 5) calc(var(--px) * 9)),
+    repeating-linear-gradient(90deg, transparent 0 calc(var(--px) * 3), var(--fir) calc(var(--px) * 3) calc(var(--px) * 4), transparent calc(var(--px) * 4) calc(var(--px) * 9)),
+    /* the snow field */
+    linear-gradient(var(--snow-lo), var(--snow-lo)),
+    /* far treeline, taller and dimmer, on a period of thirteen */
+    repeating-linear-gradient(90deg, var(--fir-lo) 0 calc(var(--px) * 9), transparent calc(var(--px) * 9) calc(var(--px) * 13)),
+    repeating-linear-gradient(90deg, transparent 0 var(--px), var(--fir-lo) var(--px) calc(var(--px) * 8), transparent calc(var(--px) * 8) calc(var(--px) * 13)),
+    repeating-linear-gradient(90deg, transparent 0 calc(var(--px) * 3), var(--fir-lo) calc(var(--px) * 3) calc(var(--px) * 6), transparent calc(var(--px) * 6) calc(var(--px) * 13)),
+    repeating-linear-gradient(90deg, transparent 0 calc(var(--px) * 4), var(--fir-lo) calc(var(--px) * 4) calc(var(--px) * 5), transparent calc(var(--px) * 5) calc(var(--px) * 13));
+  background-size:
+    var(--px) calc(var(--px) * 17),            /* falls: tile depth = period */
+    var(--px) calc(var(--px) * 23),
+    var(--px) calc(var(--px) * 13),
+    var(--px) calc(var(--px) * 19),
+    var(--px) calc(var(--px) * 11),
+    var(--px) calc(var(--px) * 29),
+    var(--px) calc(var(--px) * 15),
+    var(--px) calc(var(--px) * 14),
+    var(--px) calc(var(--px) * 21),
+    var(--px) calc(var(--px) * 16),
+    var(--px) calc(var(--px) * 26),
+    var(--px) calc(var(--px) * 12),
+    var(--px) calc(var(--px) * 31),
+    var(--px) calc(var(--px) * 18),
+    100% var(--px),                            /* drift stipple              */
+    100% var(--px),
+    100% var(--px),
+    100% calc(var(--px) * 3),                  /* near treeline              */
+    100% calc(var(--px) * 5),
+    100% calc(var(--px) * 7),
+    100% calc(var(--px) * 9),
+    100% var(--ground),                        /* the snow field             */
+    100% calc(var(--px) * 4),                  /* far treeline               */
+    100% calc(var(--px) * 8),
+    100% calc(var(--px) * 12),
+    100% calc(var(--px) * 15);
+  background-position:
+    /* Uneven spacing, and the gust is added on the left-anchored columns and
+       subtracted on the right-anchored ones so a gust blows every flake the
+       same way across the box. */
+    left  calc(var(--px) * 3   + var(--gust-a)) top var(--sn1),
+    left  calc(var(--px) * 22  + var(--gust-b)) top var(--sn2),
+    left  calc(var(--px) * 45  + var(--gust-c)) top var(--sn3),
+    left  calc(var(--px) * 67  + var(--gust-a)) top var(--sn4),
+    left  calc(var(--px) * 88  + var(--gust-b)) top var(--sn5),
+    left  calc(var(--px) * 109 + var(--gust-c)) top var(--sn6),
+    left  calc(var(--px) * 127 + var(--gust-a)) top var(--sn7),
+    right calc(var(--px) * 8   - var(--gust-b)) top var(--sn8),
+    right calc(var(--px) * 26  - var(--gust-c)) top var(--sn9),
+    right calc(var(--px) * 43  - var(--gust-a)) top var(--sn10),
+    right calc(var(--px) * 64  - var(--gust-b)) top var(--sn11),
+    right calc(var(--px) * 84  - var(--gust-c)) top var(--sn12),
+    right calc(var(--px) * 104 - var(--gust-a)) top var(--sn13),
+    right calc(var(--px) * 124 - var(--gust-b)) top var(--sn14),
+    bottom var(--px) left 0,
+    bottom calc(var(--px) * 3) left calc(var(--px) * 2),
+    bottom calc(var(--px) * 6) left calc(var(--px) * 5),
+    bottom var(--ground) left 0,
+    bottom var(--ground) left 0,
+    bottom var(--ground) left 0,
+    bottom var(--ground) left 0,
+    bottom left,
+    /* the far line stands two pixels further up the page, five over */
+    bottom calc(var(--ground) + var(--px) * 2) left calc(var(--px) * 5),
+    bottom calc(var(--ground) + var(--px) * 2) left calc(var(--px) * 5),
+    bottom calc(var(--ground) + var(--px) * 2) left calc(var(--px) * 5),
+    bottom calc(var(--ground) + var(--px) * 2) left calc(var(--px) * 5);
+}
+
+/* A moon behind the trees, five pixels of disc. */
+.woods::after {
+  content: ""; position: absolute;
+  right: calc(var(--px) * 12); bottom: calc(var(--ground) + var(--px) * 24);
+  width: calc(var(--px) * 5); height: calc(var(--px) * 5);
+  background-repeat: no-repeat;
+  background-image:
+    linear-gradient(var(--ink-dim), var(--ink-dim)),
+    linear-gradient(var(--ink-dim), var(--ink-dim)),
+    linear-gradient(var(--ink-dim), var(--ink-dim)),
+    linear-gradient(var(--ink-dim), var(--ink-dim)),
+    linear-gradient(var(--ink-dim), var(--ink-dim));
+  background-size:
+    calc(var(--px) * 3) var(--px),
+    calc(var(--px) * 5) var(--px),
+    calc(var(--px) * 5) var(--px),
+    calc(var(--px) * 5) var(--px),
+    calc(var(--px) * 3) var(--px);
+  background-position:
+    top 0 left var(--px),
+    top var(--px) left 0,
+    top calc(var(--px) * 2) left 0,
+    top calc(var(--px) * 3) left 0,
+    top calc(var(--px) * 4) left var(--px);
+}
+
+/* The fir in the foreground, drawn double-size from this map — one solid bar
+   per row, because every row of it is a single run of pixels:
+
+     ....#....
+     ...###...
+     ..#####..
+     ...###...
+     ..#####..
+     .#######.
+     ..#####..
+     .#######.
+     #########
+     .#######.
+     ....#....      trunk
+     ....#....      trunk
+     ..#####..      snow at the foot
+   ─────────────────────────────────────────────────────────────────────────── */
+.woods .pine {
+  --pp: calc(var(--px) * 2);                    /* the fir is drawn double-size */
+  /* Opaque tones, mixed against the paper rather than transparent: a see-through
+     fir would show the treeline and the snowfall straight through its trunk. */
+  --bough: color-mix(in srgb, var(--ink) 46%, var(--paper));
+  --trunk: color-mix(in srgb, var(--ink) 30%, var(--paper));
+  --cap:   color-mix(in srgb, var(--ink) 58%, var(--paper));
+  /* Its foot sits on the snow line, same as the treelines: the last row of the
+     map is the snow at the base, so `bottom` is the drift top, not an offset. */
+  position: absolute; z-index: 1; left: calc(var(--px) * 6);
+  bottom: var(--ground);
+  width: calc(var(--pp) * 9); height: calc(var(--pp) * 13);
+  background-repeat: no-repeat;
+  background-image:
+    linear-gradient(var(--bough), var(--bough)),
+    linear-gradient(var(--bough), var(--bough)),
+    linear-gradient(var(--bough), var(--bough)),
+    linear-gradient(var(--bough), var(--bough)),
+    linear-gradient(var(--bough), var(--bough)),
+    linear-gradient(var(--bough), var(--bough)),
+    linear-gradient(var(--bough), var(--bough)),
+    linear-gradient(var(--bough), var(--bough)),
+    linear-gradient(var(--bough), var(--bough)),
+    linear-gradient(var(--bough), var(--bough)),
+    linear-gradient(var(--trunk), var(--trunk)),
+    linear-gradient(var(--trunk), var(--trunk)),
+    linear-gradient(var(--cap), var(--cap));
+  background-size:
+    var(--pp) var(--pp),
+    calc(var(--pp) * 3) var(--pp),
+    calc(var(--pp) * 5) var(--pp),
+    calc(var(--pp) * 3) var(--pp),
+    calc(var(--pp) * 5) var(--pp),
+    calc(var(--pp) * 7) var(--pp),
+    calc(var(--pp) * 5) var(--pp),
+    calc(var(--pp) * 7) var(--pp),
+    calc(var(--pp) * 9) var(--pp),
+    calc(var(--pp) * 7) var(--pp),
+    var(--pp) var(--pp),
+    var(--pp) var(--pp),
+    calc(var(--pp) * 5) var(--pp);
+  background-position:
+    top 0 left calc(var(--pp) * 4),
+    top var(--pp) left calc(var(--pp) * 3),
+    top calc(var(--pp) * 2) left calc(var(--pp) * 2),
+    top calc(var(--pp) * 3) left calc(var(--pp) * 3),
+    top calc(var(--pp) * 4) left calc(var(--pp) * 2),
+    top calc(var(--pp) * 5) left var(--pp),
+    top calc(var(--pp) * 6) left calc(var(--pp) * 2),
+    top calc(var(--pp) * 7) left var(--pp),
+    top calc(var(--pp) * 8) left 0,
+    top calc(var(--pp) * 9) left var(--pp),
+    top calc(var(--pp) * 10) left calc(var(--pp) * 4),
+    top calc(var(--pp) * 11) left calc(var(--pp) * 4),
+    top calc(var(--pp) * 12) left calc(var(--pp) * 2);
+}
+
+/* The cabin, one pixel to the grid, standing further off than the fir:
+
+     .........#...      chimney
+     ......#..#...      roof peak
+     .....###.#...
+     ....#####....
+     ...#######...
+     ..#########..      eave, under snow
+     ...#######...
+     ...#■■####...      a lit window
+     ...#■■##.#...      and a door
+     ...#####.#...
+   ─────────────────────────────────────────────────────────────────────────── */
+.woods .cabin {
+  /* darker than the firs it stands in front of, or the cabin disappears into
+     the treeline: the only thing separating them is tone. */
+  --wall: color-mix(in srgb, var(--ink) 24%, var(--paper));
+  --roof: color-mix(in srgb, var(--ink) 15%, var(--paper));
+  --eave: color-mix(in srgb, var(--ink) 58%, var(--paper));
+  /* Standing three pixels down into the drift rather than on the snow line: it
+     sets the cabin in front of the near treeline instead of among it, and dark
+     walls against the lit snow are what make it read at this size. */
+  position: absolute; z-index: 1; right: calc(var(--px) * 15);
+  bottom: calc(var(--ground) + var(--px) * 6);
+  width: calc(var(--px) * 13); height: calc(var(--px) * 10);
+  background-repeat: no-repeat;
+  background-image:
+    linear-gradient(var(--ink-hot), var(--ink-hot)),   /* the lit window     */
+    linear-gradient(var(--roof), var(--roof)),         /* chimney            */
+    linear-gradient(var(--roof), var(--roof)),         /* roof peak          */
+    linear-gradient(var(--roof), var(--roof)),         /* roof, row 2        */
+    linear-gradient(var(--roof), var(--roof)),         /* roof, row 3        */
+    linear-gradient(var(--roof), var(--roof)),         /* roof, row 4        */
+    linear-gradient(var(--eave), var(--eave)),         /* snowy eave         */
+    linear-gradient(var(--wall), var(--wall)),         /* wall, row 6        */
+    linear-gradient(var(--wall), var(--wall)),         /* wall, row 7        */
+    linear-gradient(var(--wall), var(--wall)),         /* wall, row 8, left  */
+    linear-gradient(var(--wall), var(--wall)),         /* wall, row 8, right */
+    linear-gradient(var(--wall), var(--wall)),         /* wall, row 9, left  */
+    linear-gradient(var(--wall), var(--wall));         /* wall, row 9, right */
+  background-size:
+    calc(var(--px) * 2) calc(var(--px) * 2),
+    var(--px) calc(var(--px) * 3),
+    var(--px) var(--px),
+    calc(var(--px) * 3) var(--px),
+    calc(var(--px) * 5) var(--px),
+    calc(var(--px) * 7) var(--px),
+    calc(var(--px) * 9) var(--px),
+    calc(var(--px) * 7) var(--px),
+    calc(var(--px) * 7) var(--px),
+    calc(var(--px) * 5) var(--px),
+    var(--px) var(--px),
+    calc(var(--px) * 5) var(--px),
+    var(--px) var(--px);
+  background-position:
+    top calc(var(--px) * 7) left calc(var(--px) * 4),
+    top 0 left calc(var(--px) * 9),
+    top var(--px) left calc(var(--px) * 6),
+    top calc(var(--px) * 2) left calc(var(--px) * 5),
+    top calc(var(--px) * 3) left calc(var(--px) * 4),
+    top calc(var(--px) * 4) left calc(var(--px) * 3),
+    top calc(var(--px) * 5) left calc(var(--px) * 2),
+    top calc(var(--px) * 6) left calc(var(--px) * 3),
+    top calc(var(--px) * 7) left calc(var(--px) * 3),
+    top calc(var(--px) * 8) left calc(var(--px) * 3),
+    top calc(var(--px) * 8) left calc(var(--px) * 9),
+    top calc(var(--px) * 9) left calc(var(--px) * 3),
+    top calc(var(--px) * 9) left calc(var(--px) * 9);
+}
+
+/* Two puffs out of the chimney, one pixel each, half a cycle apart. */
+.woods .puff {
+  position: absolute; z-index: 1; right: calc(var(--px) * 18);
+  bottom: calc(var(--ground) + var(--px) * 7);
+  width: var(--px); height: var(--px); background: var(--ink-faint);
+}
+
+/* ── the woods, moving ────────────────────────────────────────────────────── */
+@property --sn1 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --sn2 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --sn3 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --sn4 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --sn5 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --sn6 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --sn7 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --sn8 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --sn9 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --sn10 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --sn11 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --sn12 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --sn13 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --sn14 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --gust-a { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --gust-b { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --gust-c { syntax: "<length>"; inherits: false; initial-value: 0px; }
+
+/* Every column falls exactly one tile — its own period — in `steps(period)`, so
+   each flake lands a whole pixel lower each step and the loop is invisible. The
+   near columns fall faster than the far ones, which is the whole parallax; the
+   durations are deliberately off each other's multiples, so the fourteen clocks
+   only line up again long after anyone is still watching.
+
+   The three gusts run slower than any fall and on their own lengths, each one
+   leaning its share of the columns a pixel or two sideways and letting them
+   back — the field never leans as a single sheet. */
+.woods {
+  animation:
+    fall-1   3.4s steps(17, end) infinite,
+    fall-2   6.1s steps(23, end) infinite,
+    fall-3   2.6s steps(13, end) infinite,
+    fall-4   5.2s steps(19, end) infinite,
+    fall-5   2.2s steps(11, end) infinite,
+    fall-6   7.0s steps(29, end) infinite,
+    fall-7   3.0s steps(15, end) infinite,
+    fall-8   2.9s steps(14, end) infinite,
+    fall-9   5.6s steps(21, end) infinite,
+    fall-10  3.3s steps(16, end) infinite,
+    fall-11  6.5s steps(26, end) infinite,
+    fall-12  2.4s steps(12, end) infinite,
+    fall-13  7.4s steps(31, end) infinite,
+    fall-14  3.7s steps(18, end) infinite,
+    gust-a  11.0s steps(1, end)  infinite,
+    gust-b  17.0s steps(1, end)  infinite,
+    gust-c  13.0s steps(1, end)  infinite;
+}
+@keyframes fall-1  { to { --sn1:  calc(var(--px) * 17); } }
+@keyframes fall-2  { to { --sn2:  calc(var(--px) * 23); } }
+@keyframes fall-3  { to { --sn3:  calc(var(--px) * 13); } }
+@keyframes fall-4  { to { --sn4:  calc(var(--px) * 19); } }
+@keyframes fall-5  { to { --sn5:  calc(var(--px) * 11); } }
+@keyframes fall-6  { to { --sn6:  calc(var(--px) * 29); } }
+@keyframes fall-7  { to { --sn7:  calc(var(--px) * 15); } }
+@keyframes fall-8  { to { --sn8:  calc(var(--px) * 14); } }
+@keyframes fall-9  { to { --sn9:  calc(var(--px) * 21); } }
+@keyframes fall-10 { to { --sn10: calc(var(--px) * 16); } }
+@keyframes fall-11 { to { --sn11: calc(var(--px) * 26); } }
+@keyframes fall-12 { to { --sn12: calc(var(--px) * 12); } }
+@keyframes fall-13 { to { --sn13: calc(var(--px) * 31); } }
+@keyframes fall-14 { to { --sn14: calc(var(--px) * 18); } }
+
+@keyframes gust-a {
+  0%, 100% { --gust-a: 0px; }
+  22%      { --gust-a: var(--px); }
+  46%      { --gust-a: calc(var(--px) * 2); }
+  68%      { --gust-a: var(--px); }
+  85%      { --gust-a: 0px; }
+}
+@keyframes gust-b {
+  0%, 100% { --gust-b: 0px; }
+  17%      { --gust-b: var(--px); }
+  38%      { --gust-b: 0px; }
+  59%      { --gust-b: var(--px); }
+  74%      { --gust-b: calc(var(--px) * 2); }
+  91%      { --gust-b: var(--px); }
+}
+@keyframes gust-c {
+  0%, 100% { --gust-c: 0px; }
+  29%      { --gust-c: calc(var(--px) * -1); }
+  51%      { --gust-c: 0px; }
+  73%      { --gust-c: var(--px); }
+  88%      { --gust-c: 0px; }
+}
+
+/* The fir shrugs off a pixel of snow every so often. */
+.woods .pine { animation: pine-sway 17s steps(1, end) infinite; }
+@keyframes pine-sway {
+  0%, 100% { transform: translateX(0); }
+  42%      { transform: translateX(var(--px)); }
+  84%      { transform: translateX(0); }
+}
+
+/* Smoke: up two pixels a beat, one pixel of lean, gone by the top. */
+.woods .puff { animation: puff-up 4.8s steps(1, end) infinite; }
+.woods .puff:nth-of-type(2) { animation-delay: -2.4s; }
+@keyframes puff-up {
+  0%   { transform: translate(0, 0); opacity: .85; }
+  25%  { transform: translate(0, calc(var(--px) * -2)); opacity: .7; }
+  50%  { transform: translate(var(--px), calc(var(--px) * -4)); opacity: .5; }
+  75%  { transform: translate(var(--px), calc(var(--px) * -6)); opacity: .25; }
+  100% { transform: translate(calc(var(--px) * 2), calc(var(--px) * -8)); opacity: 0; }
+}
+
+/* ── scene: orbit ─────────────────────────────────────────────────────────────
+   A grey plain under a big sky. The horizon is the band trick again — mesas on
+   a period of seventeen in front, a further ridge on a period of twenty-three
+   behind — and everything above it is a sprite: a banded planet with a ring, a
+   moonlet stepping round it, a station drifting past.
+   ─────────────────────────────────────────────────────────────────────────── */
+.orbit {
+  --px: 6px;
+  --rim: calc(var(--px) * 8);                        /* the plain underfoot  */
+  /* opaque, for the reason spelled out over the city: stacked bands */
+  --dust:    color-mix(in srgb, var(--ink) 36%, var(--paper));
+  --dust-lo: color-mix(in srgb, var(--ink) 18%, var(--paper));
+  --pit:     color-mix(in srgb, var(--ink) 22%, var(--paper));
+
+  background-repeat: no-repeat;
+  background-image:
+    /* two rows of pits, for a surface that is not a flat wash */
+    repeating-linear-gradient(90deg, var(--pit) 0 calc(var(--px) * 3), transparent calc(var(--px) * 3) calc(var(--px) * 11)),
+    repeating-linear-gradient(90deg, var(--pit) 0 calc(var(--px) * 2), transparent calc(var(--px) * 2) calc(var(--px) * 13)),
+    /* near mesas: 10, 12 and 15 tall on a period of seventeen */
+    repeating-linear-gradient(90deg,
+      var(--dust) 0 calc(var(--px) * 6), transparent calc(var(--px) * 6) calc(var(--px) * 9),
+      var(--dust) calc(var(--px) * 9) calc(var(--px) * 15), transparent calc(var(--px) * 15) calc(var(--px) * 17)),
+    repeating-linear-gradient(90deg,
+      transparent 0 var(--px), var(--dust) var(--px) calc(var(--px) * 5),
+      transparent calc(var(--px) * 5) calc(var(--px) * 10), var(--dust) calc(var(--px) * 10) calc(var(--px) * 14),
+      transparent calc(var(--px) * 14) calc(var(--px) * 17)),
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 2), var(--dust) calc(var(--px) * 2) calc(var(--px) * 4),
+      transparent calc(var(--px) * 4) calc(var(--px) * 11), var(--dust) calc(var(--px) * 11) calc(var(--px) * 13),
+      transparent calc(var(--px) * 13) calc(var(--px) * 17)),
+    /* the plain */
+    linear-gradient(var(--dust), var(--dust)),
+    /* the far ridge: 12, 15 and 18 tall on a period of twenty-three */
+    repeating-linear-gradient(90deg,
+      var(--dust-lo) 0 calc(var(--px) * 8), transparent calc(var(--px) * 8) calc(var(--px) * 12),
+      var(--dust-lo) calc(var(--px) * 12) calc(var(--px) * 21), transparent calc(var(--px) * 21) calc(var(--px) * 23)),
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 2), var(--dust-lo) calc(var(--px) * 2) calc(var(--px) * 7),
+      transparent calc(var(--px) * 7) calc(var(--px) * 14), var(--dust-lo) calc(var(--px) * 14) calc(var(--px) * 19),
+      transparent calc(var(--px) * 19) calc(var(--px) * 23)),
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 4), var(--dust-lo) calc(var(--px) * 4) calc(var(--px) * 6),
+      transparent calc(var(--px) * 6) calc(var(--px) * 16), var(--dust-lo) calc(var(--px) * 16) calc(var(--px) * 18),
+      transparent calc(var(--px) * 18) calc(var(--px) * 23));
+  background-size:
+    100% var(--px),                            /* pits, low row              */
+    100% var(--px),                            /* pits, high row             */
+    100% calc(var(--px) * 10),                 /* near mesas                 */
+    100% calc(var(--px) * 12),
+    100% calc(var(--px) * 15),
+    100% var(--rim),                           /* the plain                  */
+    100% calc(var(--px) * 12),                 /* far ridge                  */
+    100% calc(var(--px) * 15),
+    100% calc(var(--px) * 18);
+  background-position:
+    bottom calc(var(--px) * 3) left 0,
+    bottom calc(var(--px) * 6) left calc(var(--px) * 4),
+    bottom left 0,
+    bottom left 0,
+    bottom left 0,
+    bottom left,
+    bottom left calc(var(--px) * 9),
+    bottom left calc(var(--px) * 9),
+    bottom left calc(var(--px) * 9);
+}
+
+/* Two sets of stars on two clocks, so the sky never blinks all at once. */
+.orbit::before, .orbit::after {
+  content: ""; position: absolute;
+  width: var(--px); height: var(--px);
+}
+.orbit::before {
+  right: calc(var(--px) * 26); bottom: calc(var(--rim) + var(--px) * 40);
+  background: var(--ink-dim);
+  box-shadow:
+    calc(var(--px) * 9) calc(var(--px) * 4) 0 var(--ink-dim),
+    calc(var(--px) * 15) calc(var(--px) * -3) 0 var(--ink-dim),
+    calc(var(--px) * -8) calc(var(--px) * 7) 0 var(--ink-dim),
+    calc(var(--px) * -17) calc(var(--px) * 2) 0 var(--ink-dim),
+    calc(var(--px) * -24) calc(var(--px) * 11) 0 var(--ink-dim),
+    calc(var(--px) * -31) calc(var(--px) * -2) 0 var(--ink-dim),
+    calc(var(--px) * -38) calc(var(--px) * 6) 0 var(--ink-dim),
+    calc(var(--px) * -46) calc(var(--px) * 13) 0 var(--ink-dim);
+}
+.orbit::after {
+  right: calc(var(--px) * 12); bottom: calc(var(--rim) + var(--px) * 33);
+  background: var(--ink-faint);
+  box-shadow:
+    calc(var(--px) * -5) calc(var(--px) * 9) 0 var(--ink-faint),
+    calc(var(--px) * -13) calc(var(--px) * -4) 0 var(--ink-faint),
+    calc(var(--px) * -21) calc(var(--px) * 14) 0 var(--ink-faint),
+    calc(var(--px) * -28) calc(var(--px) * 5) 0 var(--ink-faint),
+    calc(var(--px) * -35) calc(var(--px) * 17) 0 var(--ink-faint),
+    calc(var(--px) * -43) calc(var(--px) * 1) 0 var(--ink-faint),
+    calc(var(--px) * -52) calc(var(--px) * 10) 0 var(--ink-faint);
+}
+
+/* The planet: a thirteen-pixel disc drawn double-size, one solid bar per row —
+   a real circle would be anti-aliased, and a soft edge is the one thing pixel
+   art cannot have. Two dimmer bands sit inside it and step sideways, which is
+   as much rotation as a disc this size can honestly show. */
+.orbit .planet {
+  --pl: calc(var(--px) * 2);
+  --globe: color-mix(in srgb, var(--ink) 40%, var(--paper));
+  --band:  color-mix(in srgb, var(--ink) 66%, var(--paper));
+  --spin: 0px;
+  position: absolute; right: calc(var(--px) * 14);
+  bottom: calc(var(--rim) + var(--px) * 22);
+  width: calc(var(--pl) * 13); height: calc(var(--pl) * 12);
+  background-repeat: no-repeat;
+  background-image:
+    linear-gradient(var(--band), var(--band)),         /* bands, in front    */
+    linear-gradient(var(--band), var(--band)),
+    linear-gradient(var(--globe), var(--globe)),       /* then the disc      */
+    linear-gradient(var(--globe), var(--globe)),
+    linear-gradient(var(--globe), var(--globe)),
+    linear-gradient(var(--globe), var(--globe)),
+    linear-gradient(var(--globe), var(--globe)),
+    linear-gradient(var(--globe), var(--globe)),
+    linear-gradient(var(--globe), var(--globe)),
+    linear-gradient(var(--globe), var(--globe)),
+    linear-gradient(var(--globe), var(--globe)),
+    linear-gradient(var(--globe), var(--globe)),
+    linear-gradient(var(--globe), var(--globe)),
+    linear-gradient(var(--globe), var(--globe));
+  background-size:
+    calc(var(--pl) * 9) var(--pl),
+    calc(var(--pl) * 7) var(--pl),
+    calc(var(--pl) * 5) var(--pl),
+    calc(var(--pl) * 9) var(--pl),
+    calc(var(--pl) * 11) var(--pl),
+    calc(var(--pl) * 11) var(--pl),
+    calc(var(--pl) * 13) var(--pl),
+    calc(var(--pl) * 13) var(--pl),
+    calc(var(--pl) * 13) var(--pl),
+    calc(var(--pl) * 13) var(--pl),
+    calc(var(--pl) * 11) var(--pl),
+    calc(var(--pl) * 11) var(--pl),
+    calc(var(--pl) * 9) var(--pl),
+    calc(var(--pl) * 5) var(--pl);
+  background-position:
+    top calc(var(--pl) * 4) left calc(var(--pl) * 2 + var(--spin)),
+    top calc(var(--pl) * 7) left calc(var(--pl) * 3 - var(--spin)),
+    top 0 left calc(var(--pl) * 4),
+    top var(--pl) left calc(var(--pl) * 2),
+    top calc(var(--pl) * 2) left var(--pl),
+    top calc(var(--pl) * 3) left var(--pl),
+    top calc(var(--pl) * 4) left 0,
+    top calc(var(--pl) * 5) left 0,
+    top calc(var(--pl) * 6) left 0,
+    top calc(var(--pl) * 7) left 0,
+    top calc(var(--pl) * 8) left var(--pl),
+    top calc(var(--pl) * 9) left var(--pl),
+    top calc(var(--pl) * 10) left calc(var(--pl) * 2),
+    top calc(var(--pl) * 11) left calc(var(--pl) * 4);
+}
+
+/* The ring, seen almost edge-on: one row either side of the disc, and nothing
+   across it — the far half would have to cross the globe, and a ring that thin
+   in front of a body this bright reads as a smudge. */
+.orbit .planet::before {
+  content: ""; position: absolute;
+  left: calc(var(--pl) * -5); top: calc(var(--pl) * 6);
+  width: calc(var(--pl) * 23); height: var(--pl);
+  background-repeat: no-repeat;
+  background-image:
+    linear-gradient(var(--ink-faint), var(--ink-faint)),
+    linear-gradient(var(--ink-faint), var(--ink-faint));
+  background-size: calc(var(--pl) * 5) var(--pl), calc(var(--pl) * 5) var(--pl);
+  background-position: left 0 top 0, right 0 top 0;
+}
+
+/* A moonlet, one pixel, stepping round the planet in eight discrete places. It
+   is centred on the disc and moved by `transform`, so the eight stops are the
+   keyframes and nothing in between is ever sampled. */
+.orbit .moonlet {
+  position: absolute; right: calc(var(--px) * 27);
+  bottom: calc(var(--rim) + var(--px) * 34);
+  width: var(--px); height: var(--px); background: var(--ink-hot);
+}
+
+/* The station: two panels, a boom and a hub.
+
+     ###.....###
+     ###########
+     ###.###.###
+     .....#.....
+   ─────────────────────────────────────────────────────────────────────────── */
+.orbit .station {
+  position: absolute; left: calc(var(--px) * 9);
+  bottom: calc(var(--rim) + var(--px) * 29);
+  width: calc(var(--px) * 11); height: calc(var(--px) * 4);
+  background-repeat: no-repeat;
+  background-image:
+    linear-gradient(var(--ink-dim), var(--ink-dim)),   /* panel, left        */
+    linear-gradient(var(--ink-dim), var(--ink-dim)),   /* panel, right       */
+    linear-gradient(var(--ink-dim), var(--ink-dim)),   /* the boom           */
+    linear-gradient(var(--ink-dim), var(--ink-dim)),   /* panel foot, left   */
+    linear-gradient(var(--ink), var(--ink)),           /* the hub            */
+    linear-gradient(var(--ink-dim), var(--ink-dim)),   /* panel foot, right  */
+    linear-gradient(var(--ink-dim), var(--ink-dim));   /* antenna            */
+  background-size:
+    calc(var(--px) * 3) var(--px),
+    calc(var(--px) * 3) var(--px),
+    calc(var(--px) * 11) var(--px),
+    calc(var(--px) * 3) var(--px),
+    calc(var(--px) * 3) var(--px),
+    calc(var(--px) * 3) var(--px),
+    var(--px) var(--px);
+  background-position:
+    top 0 left 0,
+    top 0 right 0,
+    top var(--px) left 0,
+    top calc(var(--px) * 2) left 0,
+    top calc(var(--px) * 2) left calc(var(--px) * 4),
+    top calc(var(--px) * 2) right 0,
+    top calc(var(--px) * 3) left calc(var(--px) * 5);
+}
+
+/* ── orbit, moving ────────────────────────────────────────────────────────── */
+@property --spin { syntax: "<length>"; inherits: false; initial-value: 0px; }
+
+/* The bands step two planet-pixels out and back; the two go opposite ways, so
+   the disc reads as turning rather than sliding. */
+.orbit .planet { animation: globe-spin 7.4s steps(2, end) infinite alternate; }
+@keyframes globe-spin { to { --spin: calc(var(--pl) * 2); } }
+
+.orbit .moonlet { animation: moonlet 26s steps(1, end) infinite; }
+@keyframes moonlet {
+  0%     { transform: translate(calc(var(--px) * 20), 0); }
+  12.5%  { transform: translate(calc(var(--px) * 14), calc(var(--px) * -14)); }
+  25%    { transform: translate(0, calc(var(--px) * -20)); }
+  37.5%  { transform: translate(calc(var(--px) * -14), calc(var(--px) * -14)); }
+  50%    { transform: translate(calc(var(--px) * -20), 0); }
+  62.5%  { transform: translate(calc(var(--px) * -14), calc(var(--px) * 14)); }
+  75%    { transform: translate(0, calc(var(--px) * 20)); }
+  87.5%  { transform: translate(calc(var(--px) * 14), calc(var(--px) * 14)); }
+  100%   { transform: translate(calc(var(--px) * 20), 0); }
+}
+
+/* The station crosses eight pixels and back, a pixel at a time. */
+.orbit .station { animation: station-drift 34s steps(8, end) infinite alternate; }
+@keyframes station-drift { to { transform: translateX(calc(var(--px) * 8)); } }
+
+.orbit::before { animation: star-flicker 3.9s steps(1, end) infinite alternate; }
+.orbit::after  { animation: star-flicker 5.7s steps(1, end) infinite alternate; }
 
 /* ── tab deck (CSS-only) ──────────────────────────────────────────────────── */
 .rack { grid-template-rows: auto minmax(0,1fr) auto; }

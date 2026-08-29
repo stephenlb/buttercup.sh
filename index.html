@@ -58,10 +58,25 @@
       </form>
 
       <!-- ══ the view out the window: only visible while the transcript is
-              short enough that the prompt has not reached the bottom. Pure
-              CSS — gradients for the water and sand, box-shadow pixels for
-              the palm and the gulls. ══════════════════════════════════════ -->
-      <div class="beach" aria-hidden="true"><i class="palm"></i></div>
+              short enough that the prompt has not reached the bottom. Four
+              scenes, one on screen per load — js/scenes.js picks it at random
+              and writes it to data-scene, CSS shows that one. All pure CSS:
+              gradients for the flat bands and the drifting rows, box-shadow
+              pixels for every sprite. ═══════════════════════════════════ -->
+      <div class="scenes" id="scenes" data-scene="beach" aria-hidden="true">
+        <div class="scene beach"><i class="palm"></i></div>
+        <div class="scene city">
+          <i class="lit"></i><i class="lit"></i><i class="lit"></i>
+          <i class="beacon"></i><i class="blimp"></i>
+        </div>
+        <div class="scene woods">
+          <i class="pine"></i><i class="cabin"></i>
+          <i class="puff"></i><i class="puff"></i>
+        </div>
+        <div class="scene orbit">
+          <i class="planet"></i><i class="moonlet"></i><i class="station"></i>
+        </div>
+      </div>
     </section>
 
     <!-- ══ right: CSS-only tab deck ════════════════════════════════════════ -->
@@ -299,6 +314,7 @@
 <script src="js/llm.js"></script>
 <script src="js/agent.js"></script>
 <script src="js/commands.js"></script>
+<script src="js/scenes.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/main.js"></script>
 </body>

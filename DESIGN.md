@@ -202,7 +202,7 @@ scroll horizontally with a visible, styled scrollbar.
 │  └──────────────────────────────┘    │                             │
 │                                      │                             │
 │ >  ask for what you want…   RUN STOP │                             │  prompt
-│ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~  │                             │  beach
+│ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~  │                             │  scene
 ├──────────────────────────────────────┼─────────────────────────────┤
 │                                      │ (\_/)  warm and idle        │  mascot
 └──────────────────────────────────────┴─────────────────────────────┘  (auto)
@@ -217,7 +217,7 @@ scroll horizontally with a visible, styled scrollbar.
 - Console column: a flex column, not a grid. The scroller is `flex: 0 1 auto`
   (may shrink, never grows past its content) so the prompt bar sits directly
   under the last line of the transcript and only parks at the bottom edge once
-  the transcript has grown that far. The beach below it is `flex: 1 1 0`: it
+  the transcript has grown that far. The scene below it is `flex: 1 1 0`: it
   takes the leftover room and collapses to nothing when there is none.
 - Below `960px` the deck stacks; the rack collapses to a `<details>` drawer that
   overlays the transcript. The prompt bar stays pinned.
@@ -308,10 +308,16 @@ fluted inner edge, so agent output is visibly *inside* something and visibly not
 part of the chrome. Empty state is a centered cup mark at 20% opacity with one
 line of monospace explanation.
 
-### The beach
+### The scenes
 
 The empty room under a short transcript is a view out the window, not padding:
-a low-resolution monochrome beach, 100% CSS, `aria-hidden`.
+a low-resolution monochrome scene, 100% CSS, `aria-hidden`. There are four of
+them — `beach`, `city`, `woods`, `orbit` — and which one you get is a coin toss
+per load. `js/scenes.js` writes the name to `data-scene` on the container and
+stops there; `.scenes[data-scene="city"] .city { display: block }` does the rest,
+which also parks the other three scenes' animations. `?scene=woods` pins one for
+a screenshot. Adding a fifth is a `<div class="scene …">`, a block of CSS, and a
+string in the array — nothing else knows the list exists.
 
 True pixel art sets two rules. **Every edge is horizontal or vertical** — no
 diagonals, no circles, nothing the browser can anti-alias into a soft fringe —
@@ -328,6 +334,19 @@ solid. Shape comes from which pixels are lit, never from a gradient ramp.
 | sun | a nine-pixel disc, one solid bar per row, plus three pixels of glint on the water below it |
 | clouds | two pixel rows each, offset |
 | palm, gulls | `box-shadow` sprites; the palm is drawn from an ASCII map kept in the comment above it |
+
+The other three lean on two more techniques, both of which fall out of the rules
+above rather than around them:
+
+| Technique | Where | How |
+| --- | --- | --- |
+| bands | city skyline, both treelines, the mesas in orbit | Each horizontal band of a silhouette is one `repeating-linear-gradient` whose bars are the shapes tall enough to reach it. Stack the bands and the towers (or firs, or mesas) appear, cut from a pattern that tiles across a box of any width. Two ranks run on coprime periods — 24 and 31 in the city, 9 and 13 in the woods — so the joins never line up into wallpaper. |
+| bars, not shadows | fir, cabin, blimp, station, planet | A sprite whose every row is a single run of pixels is cheaper and more legible as one solid `background` bar per row than as N `box-shadow` pixels. Scattered pixels — lit windows, stars, gulls — stay `box-shadow`. |
+
+One consequence worth writing down: the tones in the band scenes are **opaque**
+mixes against `--paper`, not mixes with `transparent`. Bands of one rank overlap
+each other by design, and a see-through ink stacks into a brightness ramp up the
+towers — which is exactly the gradient ramp the rules forbid.
 
 One ink, one pixel. `--px` is the size of a single pixel of the art and *every*
 offset is `calc(var(--px) * n)` — including the palm, which draws at
