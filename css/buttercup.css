@@ -236,6 +236,13 @@ button.danger:hover { background: var(--bad); color: var(--paper); }
   --shore: calc(var(--px) * 14);              /* sand height  */
   --water: calc(var(--px) * 18);              /* ocean height */
   --sky: calc(var(--shore) + var(--water));   /* top row of the sea */
+  --tide: calc(100% + var(--px) * 16);        /* drift overhang, see below */
+
+  /* Every moving part of the scene is one of these offsets, at rest here and
+     animated in whole `--px` steps further down. Nothing else about the art
+     changes: drop the animations and these zeros are the still life again. */
+  --surf: 0px; --w6: 0px; --w7: 0px; --w9: 0px; --w11: 0px; --w15: 0px;
+  --w16: 0px; --glint: 0px; --cloud-a: 0px; --cloud-b: 0px;
 
   flex: 1 1 0; min-height: 0; position: relative; overflow: hidden;
   background-repeat: no-repeat;
@@ -279,15 +286,17 @@ button.danger:hover { background: var(--bad); color: var(--paper); }
     100% var(--px),
     100% var(--px),
     100% var(--px),
-    100% var(--px),
-    100% var(--px),
-    100% var(--px),
-    100% var(--px),
-    100% var(--px),
-    100% var(--px),
-    100% var(--px),
-    100% var(--px),
-    100% var(--px),
+    /* the surf and the crests drift, so they are cut wider than the box: the
+       overhang keeps a shifted row from opening a gap at either edge */
+    var(--tide) var(--px),
+    var(--tide) var(--px),
+    var(--tide) var(--px),
+    var(--tide) var(--px),
+    var(--tide) var(--px),
+    var(--tide) var(--px),
+    var(--tide) var(--px),
+    var(--tide) var(--px),
+    var(--tide) var(--px),
     calc(var(--px) * 3) var(--px),
     calc(var(--px) * 5) var(--px),
     calc(var(--px) * 2) var(--px),
@@ -305,25 +314,25 @@ button.danger:hover { background: var(--bad); color: var(--paper); }
     bottom calc(var(--px) * 8) left var(--px),
     bottom calc(var(--px) * 11) left calc(var(--px) * 4),
     bottom calc(var(--px) * 13) left calc(var(--px) * 6),
-    bottom var(--shore) left 0,
-    bottom calc(var(--shore) + calc(var(--px) * 2)) left calc(var(--px) * 2),
-    bottom calc(var(--shore) + calc(var(--px) * 4)) left calc(var(--px) * 5),
-    bottom calc(var(--shore) + calc(var(--px) * 6)) left var(--px),
-    bottom calc(var(--shore) + calc(var(--px) * 8)) left calc(var(--px) * 3),
-    bottom calc(var(--shore) + calc(var(--px) * 10)) left calc(var(--px) * 6),
-    bottom calc(var(--shore) + calc(var(--px) * 12)) left calc(var(--px) * 2),
-    bottom calc(var(--shore) + calc(var(--px) * 14)) left calc(var(--px) * 8),
-    bottom calc(var(--shore) + calc(var(--px) * 16)) left calc(var(--px) * 4),
-    bottom calc(var(--shore) + calc(var(--px) * 3)) right calc(var(--px) * 17),
-    bottom calc(var(--shore) + calc(var(--px) * 6)) right calc(var(--px) * 16),
-    bottom calc(var(--shore) + calc(var(--px) * 10)) right calc(var(--px) * 18),
+    bottom var(--shore) left calc(0px - var(--surf)),
+    bottom calc(var(--shore) + calc(var(--px) * 2)) left calc(var(--px) * 2 - var(--w11)),
+    bottom calc(var(--shore) + calc(var(--px) * 4)) left calc(var(--px) * 5 - var(--w7)),
+    bottom calc(var(--shore) + calc(var(--px) * 6)) left calc(var(--px) * 1 - var(--w15)),
+    bottom calc(var(--shore) + calc(var(--px) * 8)) left calc(var(--px) * 3 - var(--w6)),
+    bottom calc(var(--shore) + calc(var(--px) * 10)) left calc(var(--px) * 6 - var(--w15)),
+    bottom calc(var(--shore) + calc(var(--px) * 12)) left calc(var(--px) * 2 - var(--w9)),
+    bottom calc(var(--shore) + calc(var(--px) * 14)) left calc(var(--px) * 8 - var(--w16)),
+    bottom calc(var(--shore) + calc(var(--px) * 16)) left calc(var(--px) * 4 - var(--w11)),
+    bottom calc(var(--shore) + calc(var(--px) * 3)) right calc(var(--px) * 17 + var(--glint)),
+    bottom calc(var(--shore) + calc(var(--px) * 6)) right calc(var(--px) * 16 - var(--glint)),
+    bottom calc(var(--shore) + calc(var(--px) * 10)) right calc(var(--px) * 18 + var(--glint)),
     bottom var(--sky) left 0,
     bottom var(--shore) left 0,
     bottom left,
-    bottom calc(var(--sky) + calc(var(--px) * 11)) right calc(var(--px) * 40),
-    bottom calc(var(--sky) + calc(var(--px) * 10)) right calc(var(--px) * 38),
-    bottom calc(var(--sky) + calc(var(--px) * 18)) right calc(var(--px) * 24),
-    bottom calc(var(--sky) + calc(var(--px) * 17)) right calc(var(--px) * 22);
+    bottom calc(var(--sky) + calc(var(--px) * 11)) right calc(var(--px) * 40 + var(--cloud-a)),
+    bottom calc(var(--sky) + calc(var(--px) * 10)) right calc(var(--px) * 38 + var(--cloud-a)),
+    bottom calc(var(--sky) + calc(var(--px) * 18)) right calc(var(--px) * 24 + var(--cloud-b)),
+    bottom calc(var(--sky) + calc(var(--px) * 17)) right calc(var(--px) * 22 + var(--cloud-b));
 }
 
 /* two gulls, three pixels each */
@@ -468,6 +477,84 @@ button.danger:hover { background: var(--bad); color: var(--paper); }
     calc(var(--pp) * 4) calc(var(--pp) * 15) 0 var(--sand),
     calc(var(--pp) * 5) calc(var(--pp) * 15) 0 var(--sand),
     calc(var(--pp) * 6) calc(var(--pp) * 15) 0 var(--sand);
+}
+
+/* ── the beach, moving ────────────────────────────────────────────────────────
+   The scene breathes, and it does it without breaking either pixel rule. Each
+   offset is registered as a `<length>` so it can be animated at all, and every
+   animation is timed with `steps(n)` where `n` is exactly how many `--px` the
+   offset travels — so the sampled value is always a whole pixel and a crest
+   never tweens through a half-lit column.
+
+   Each crest row also loops seamlessly, because a row's travel is its own
+   pattern period: the row named `--w11` repeats every 11 pixels and slides
+   exactly 11 before restarting, so the reset lands on an identical frame.
+   Rows near the shore run faster than the ones at the horizon, which is the
+   whole parallax — no row shares a phase for long.
+   ─────────────────────────────────────────────────────────────────────────── */
+@property --surf   { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --w6     { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --w7     { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --w9     { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --w11    { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --w15    { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --w16    { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --glint  { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --cloud-a { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --cloud-b { syntax: "<length>"; inherits: false; initial-value: 0px; }
+
+/* The scene animates regardless of prefers-reduced-motion, on the same grounds
+   as the mascot: nothing here travels across the page or parallaxes the layout,
+   it is a handful of pixels sliding a pixel at a time inside a decorative box
+   that is `aria-hidden` anyway. The page's own motion — CRT sweep, caret blink,
+   entry transitions — still honours the setting. */
+.beach {
+  animation:
+    surf-in   3.5s  steps(7, end)  infinite,
+    wave-11   7.7s  steps(11, end) infinite,
+    wave-7    4.2s  steps(7, end)  infinite,
+    wave-15  12s    steps(15, end) infinite,
+    wave-6    3s    steps(6, end)  infinite,
+    wave-9    7.2s  steps(9, end)  infinite,
+    wave-16  14.4s  steps(16, end) infinite,
+    /* the sun's reflection is not travelling anywhere, it just glitters */
+    glint     2.6s  steps(2, end)  infinite alternate,
+    /* clouds drift out and back rather than looping, so there is no teleport
+       when a six-pixel drift runs out of room */
+    cloud-a  30s    steps(6, end)  infinite alternate,
+    cloud-b  44s    steps(8, end)  infinite alternate;
+}
+@keyframes surf-in { to { --surf: calc(var(--px) * 7); } }
+@keyframes wave-11 { to { --w11: calc(var(--px) * 11); } }
+@keyframes wave-7  { to { --w7:  calc(var(--px) * 7); } }
+@keyframes wave-15 { to { --w15: calc(var(--px) * 15); } }
+@keyframes wave-6  { to { --w6:  calc(var(--px) * 6); } }
+@keyframes wave-9  { to { --w9:  calc(var(--px) * 9); } }
+@keyframes wave-16 { to { --w16: calc(var(--px) * 16); } }
+@keyframes glint   { to { --glint: calc(var(--px) * 2); } }
+@keyframes cloud-a { to { --cloud-a: calc(var(--px) * 6); } }
+@keyframes cloud-b { to { --cloud-b: calc(var(--px) * 8); } }
+
+/* The gulls glide four pixels out and back, rising a pixel between beats, so
+   the pair reads as circling rather than sliding. One transform for both,
+   since they are two shadows of one element. */
+.beach::before { animation: gulls 14s steps(1, end) infinite alternate; }
+@keyframes gulls {
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(var(--px), calc(var(--px) * -1)); }
+  50%  { transform: translate(calc(var(--px) * 2), 0); }
+  75%  { transform: translate(calc(var(--px) * 3), calc(var(--px) * -1)); }
+  100% { transform: translate(calc(var(--px) * 4), 0); }
+}
+
+/* The palm leans one `--px` with the breeze and back. That is half a palm
+   pixel — the fronds are drawn double-size — but it is still a whole pixel of
+   the underlying grid, so every edge stays crisp. */
+.palm { animation: palm-sway 13s steps(1, end) infinite; }
+@keyframes palm-sway {
+  0%, 100% { transform: translateX(0); }
+  35%      { transform: translateX(var(--px)); }
+  70%      { transform: translateX(0); }
 }
 
 /* ── tab deck (CSS-only) ──────────────────────────────────────────────────── */
