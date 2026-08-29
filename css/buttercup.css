@@ -412,8 +412,13 @@ button.danger:hover { background: var(--bad); color: var(--paper); }
    `bottom` is the top of the art, 16 rows of it. */
 .palm {
   --ink-palm: var(--ink-dim);
+  /* The tuft is sand-coloured but must not be sand-*transparent*: `--sand` is a
+     mix with `transparent`, so reusing it here let the stipple and the surf show
+     straight through the foot of the palm. Same tone, mixed against the paper
+     instead, which puts the whole tree in front of the water. */
+  --tuft: color-mix(in srgb, var(--ink) 60%, var(--paper));
   --pp: calc(var(--px) * 2);                   /* the palm is drawn double-size */
-  position: absolute; left: calc(var(--px) * 6);
+  position: absolute; z-index: 1; left: calc(var(--px) * 6);
   bottom: calc(var(--shore) + var(--pp) * 15);
   width: var(--pp); height: var(--pp);
   box-shadow:
@@ -467,16 +472,16 @@ button.danger:hover { background: var(--bad); color: var(--paper); }
     calc(var(--pp) * 3) calc(var(--pp) * 13) 0 var(--ink-palm),
     calc(var(--pp) * 4) calc(var(--pp) * 13) 0 var(--ink-palm),
     /* the tuft it grows out of */
-    calc(var(--pp) * 2) calc(var(--pp) * 14) 0 var(--sand),
-    calc(var(--pp) * 3) calc(var(--pp) * 14) 0 var(--sand),
-    calc(var(--pp) * 4) calc(var(--pp) * 14) 0 var(--sand),
-    calc(var(--pp) * 5) calc(var(--pp) * 14) 0 var(--sand),
-    var(--pp) calc(var(--pp) * 15) 0 var(--sand),
-    calc(var(--pp) * 2) calc(var(--pp) * 15) 0 var(--sand),
-    calc(var(--pp) * 3) calc(var(--pp) * 15) 0 var(--sand),
-    calc(var(--pp) * 4) calc(var(--pp) * 15) 0 var(--sand),
-    calc(var(--pp) * 5) calc(var(--pp) * 15) 0 var(--sand),
-    calc(var(--pp) * 6) calc(var(--pp) * 15) 0 var(--sand);
+    calc(var(--pp) * 2) calc(var(--pp) * 14) 0 var(--tuft),
+    calc(var(--pp) * 3) calc(var(--pp) * 14) 0 var(--tuft),
+    calc(var(--pp) * 4) calc(var(--pp) * 14) 0 var(--tuft),
+    calc(var(--pp) * 5) calc(var(--pp) * 14) 0 var(--tuft),
+    var(--pp) calc(var(--pp) * 15) 0 var(--tuft),
+    calc(var(--pp) * 2) calc(var(--pp) * 15) 0 var(--tuft),
+    calc(var(--pp) * 3) calc(var(--pp) * 15) 0 var(--tuft),
+    calc(var(--pp) * 4) calc(var(--pp) * 15) 0 var(--tuft),
+    calc(var(--pp) * 5) calc(var(--pp) * 15) 0 var(--tuft),
+    calc(var(--pp) * 6) calc(var(--pp) * 15) 0 var(--tuft);
 }
 
 /* ── the beach, moving ────────────────────────────────────────────────────────
