@@ -150,11 +150,18 @@
       <figure class="mascot" aria-hidden="true">
         <svg class="cup" viewBox="0 0 120 108" role="presentation">
           <g class="rig">
-            <!-- sparks: only lit while the agent is working -->
+            <!-- sparkles: faint at rest, lit while the agent is working -->
+            <defs>
+              <path id="sparkle" d="M0-5Q1-1 5 0Q1 1 0 5Q-1 1-5 0Q-1-1 0-5Z"/>
+            </defs>
             <g class="spark">
-              <circle cx="26" cy="26" r="1.8"/>
-              <circle cx="60" cy="9" r="2.2"/>
-              <circle cx="94" cy="26" r="1.8"/>
+              <g transform="translate(60 10)scale(1.1)"><use href="#sparkle"/></g>
+              <g transform="translate(25 29)scale(.85)"><use href="#sparkle"/></g>
+              <g transform="translate(95 29)scale(.85)"><use href="#sparkle"/></g>
+              <g transform="translate(13 45)scale(.55)"><use href="#sparkle"/></g>
+              <g transform="translate(107 45)scale(.55)"><use href="#sparkle"/></g>
+              <g transform="translate(42 17)scale(.5)"><use href="#sparkle"/></g>
+              <g transform="translate(78 17)scale(.5)"><use href="#sparkle"/></g>
             </g>
 
             <!-- arms, thrown up in a wave -->
