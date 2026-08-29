@@ -156,6 +156,8 @@ window.UI = (function () {
       const node = $("status");
       node.dataset.state = state;
       node.textContent = label || state.toUpperCase();
+      /* the mascot reads its mood off the body; the CSS does the rest. */
+      document.body.dataset.agent = state;
     },
 
     stats({ provider, model, tokens, steps }) {

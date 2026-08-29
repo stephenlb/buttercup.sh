@@ -1,0 +1,423 @@
+# ButterCup — Design System
+
+**buttercup.sh** — pure vintage charm; aggressively anti-dystopian.
+
+The product is a terminal for building AI agents. The costume is a peanut butter
+cup: dark chocolate shell, warm peanut-butter filling, a fluted paper wrapper,
+and a face that is genuinely pleased to see you. Every decision below serves one
+sentence:
+
+> **Serious tool. Sweet wrapper.**
+
+Nothing here requires a build step. Every token is a CSS custom property in
+`css/buttercup.css`; every shape is a border, a gradient, or a `clip-path`.
+
+---
+
+## 1. Brand
+
+### Name and mark
+
+| Layer | Rule |
+| --- | --- |
+| Wordmark | `ButterCup` — one word, two capitals. Rounded, warm, slightly retro (Baloo 2 / Quicksand / system rounded fallback). |
+| Domain lockup | `buttercup.sh` — always monospace, always lowercase. This is the *tool* voice. |
+| Symbol | A fluted peanut butter cup, viewed head-on, with a peanut-butter face: two dot eyes, one closed-curve smile, optional blush. |
+| Tagline | `pure vintage charm · aggressively anti-dystopian` — em-middot separated, letterspaced small caps. |
+| Never | Do not stretch the cup, do not add a bite mark to the primary mark, do not put the face on the chocolate (it lives on the filling), do not render the wordmark in monospace. |
+
+### The cup, in CSS
+
+The mark is buildable without an asset. It is the canonical decorative motif —
+avatars, favicons, bullets, the boot glyph, loading indicator.
+
+```
+      ╭───────────────╮        chocolate rim: repeating-conic-gradient flutes
+     ╭│  ●        ●   │╮       filling: radial-gradient(--pb-light → --pb)
+     ││       ‿       ││       shell:   linear-gradient(--cocoa-2 → --cocoa-3)
+     ╰│               │╯       shadow:  0 2px 0 var(--cocoa-4)
+      ╰───────────────╯
+```
+
+Flute the rim with `repeating-conic-gradient(from 0deg, var(--cocoa-3) 0 6deg,
+var(--cocoa-2) 6deg 12deg)` and mask the center. Twenty-four flutes reads best
+at 32px and above; below that, drop to a plain ring.
+
+### Voice
+
+Terse, mechanical, kind. The UI shouts short words in small caps — `RUN`,
+`STOP`, `EXPORT .ZIP`, `WIPE` — while prose in panels stays lowercase and
+explanatory. Errors state the fact and the fix; they never scold and never
+apologize twice. No dark patterns, no urgency, no confetti.
+
+---
+
+## 2. Color
+
+Two ramps and one accent set. Chocolate is structure, peanut butter is
+attention, cream is text. That is the entire system.
+
+### 2.1 Chocolate — surfaces and chrome
+
+| Token | Hex | Use |
+| --- | --- | --- |
+| `--cocoa-5` | `#160E09` | Page void, behind everything. |
+| `--cocoa-4` | `#20140D` | App background, sunken wells, inset shadows. |
+| `--cocoa-3` | `#2E1D12` | Panel body — the default surface. |
+| `--cocoa-2` | `#3E2718` | Raised surface: title bar, tab bar, buttons at rest. |
+| `--cocoa-1` | `#54341F` | Hover surface, active tab, code block ground. |
+| `--rim` | `#6B4326` | Borders, rules, the fluted edge. |
+| `--rim-hi` | `#8A5A33` | Focus ring outer, top bevel highlight. |
+
+### 2.2 Peanut butter — ink and emphasis
+
+| Token | Hex | Use |
+| --- | --- | --- |
+| `--pb-hot` | `#FFE7B4` | Cursor, focused label, the single brightest thing on screen. |
+| `--pb-light` | `#F5CE84` | Headings, agent text, primary ink. |
+| `--pb` | `#E5A93F` | Brand fill, active states, links, the cup filling. |
+| `--pb-mid` | `#C08636` | Secondary labels, panel chrome, icon strokes. |
+| `--pb-dim` | `#8A6128` | Disabled text, hairlines, watermarks. |
+
+### 2.3 Cream — paper and light mode
+
+| Token | Hex | Use |
+| --- | --- | --- |
+| `--cream` | `#FBF3E2` | Light-mode text, on-chocolate labels in badges. |
+| `--kraft` | `#E4CBA4` | Light-mode page — the wrapper card stock. |
+| `--kraft-2` | `#D6B98D` | Light-mode panels. |
+| `--kraft-3` | `#C4A377` | Light-mode raised surfaces and rules. |
+
+### 2.4 Accents — meaning only, never decoration
+
+| Token | Hex | Meaning |
+| --- | --- | --- |
+| `--pistachio` | `#93C97A` | Success, tool result OK, connected. |
+| `--caramel` | `#F0A24A` | Warning, awaiting approval, streaming. |
+| `--jam` | `#E4705C` | Error, denied, destructive (`WIPE`). |
+| `--blueberry` | `#9BCFE8` | The human. User turns, user avatar, prompt sigil. |
+| `--mallow` | `#C9A8E0` | Thinking / reasoning blocks. Reserved; nothing else. |
+
+Rules:
+
+1. **One accent per element.** A row is either warning or error, never striped.
+2. **Never color-only.** Every accent pairs with a glyph or a word — `● OK`,
+   `▲ APPROVE`, `✕ DENIED`. Status must survive grayscale and every common form
+   of color blindness.
+3. **`--mallow` is a promise.** Purple means "the model is thinking." Using it
+   anywhere else breaks the only piece of visual vocabulary the user has to
+   learn.
+
+### 2.5 Contrast floor
+
+All body text ≥ 7:1 against its surface (AAA). Chrome, hairlines, and disabled
+text ≥ 3:1. Verified pairs:
+
+| Foreground | Background | Ratio |
+| --- | --- | --- |
+| `--pb-light` on `--cocoa-3` | `#F5CE84` / `#2E1D12` | 9.8:1 |
+| `--pb` on `--cocoa-3` | `#E5A93F` / `#2E1D12` | 7.6:1 |
+| `--pb-mid` on `--cocoa-3` | `#C08636` / `#2E1D12` | 4.9:1 — labels only, ≥ 12px bold |
+| `--cocoa-4` on `--kraft` | light mode body | 12.4:1 |
+
+Never place `--pb-dim` on `--cocoa-1` or lighter; it is a `--cocoa-4`-and-below
+token.
+
+### 2.6 Light mode
+
+`prefers-color-scheme: light` flips to kraft paper: `--kraft` page, `--cocoa-4`
+ink, `--cocoa-2` headings, `--pb` reserved for fills and brand only (amber text
+on cream fails contrast — it becomes `#7A4A12` instead). Scanlines drop to 20%
+opacity. The mark is unchanged: chocolate on kraft is the wrapper as it really
+looks.
+
+### 2.7 Gradients
+
+Three, all subtle, all optional:
+
+```css
+--grad-page:   radial-gradient(120% 90% at 50% 0%, #33210F 0%, var(--cocoa-4) 55%, var(--cocoa-5) 100%);
+--grad-raised: linear-gradient(var(--cocoa-2), var(--cocoa-3));
+--grad-filling:radial-gradient(circle at 38% 32%, var(--pb-hot) 0%, var(--pb) 55%, #B4791F 100%);
+```
+
+`--grad-filling` is the only glossy thing in the product, and it appears only on
+the cup. Gloss is the logo's job, not the interface's.
+
+---
+
+## 3. Typography
+
+| Role | Stack | Treatment |
+| --- | --- | --- |
+| Interface + transcript | `"Berkeley Mono", "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace` | 14px / 1.5. The tool is a terminal; monospace is not a style choice, it is the medium. |
+| Wordmark + panel headings | `"Baloo 2", "Quicksand", ui-rounded, "Segoe UI", system-ui, sans-serif` | Rounded, 600 weight. Used sparingly — brand and `<h2>` only. |
+| Micro-labels | monospace | 11px, `letter-spacing: .12em`, uppercase, `--pb-mid`. |
+
+Scale (only these six):
+
+```
+11px  micro-label / status lamp
+14px  body, transcript, code          ← default
+16px  panel heading
+20px  section title
+28px  wordmark in the title bar
+44px  wordmark on the splash / boot screen
+```
+
+Line length in the transcript caps at `72ch`. Code blocks do not wrap; they
+scroll horizontally with a visible, styled scrollbar.
+
+---
+
+## 4. Form language
+
+| Property | Value | Why |
+| --- | --- | --- |
+| Radius | `--r-sm: 3px`, `--r-md: 6px`, `--r-lg: 12px`, `--r-cup: 999px` | Softened, not pill-shaped. Terminals have corners. |
+| Border | `1px solid var(--rim)`; `2px` on the machine shell and the title bar | Heavier outer chrome reads as a physical case. |
+| Bevel | `inset 0 1px 0 rgb(255 231 180 / .07)` on raised surfaces | One-pixel top highlight. That is the whole skeuomorphism budget. |
+| Shadow | `--sh-1: 0 1px 0 var(--cocoa-5)`, `--sh-2: 0 6px 18px -8px #000` | Chocolate casts hard, short shadows. No soft blooms. |
+| Spacing | 4px base: `4 8 12 16 24 32 48` | `--pad: 12px` is the panel gutter. |
+| Flute | `repeating-conic-gradient` at 12deg intervals | The signature texture. Rim of the cup; nothing else. |
+| Scanlines | `repeating-linear-gradient(rgb(0 0 0/.22) 0 1px, transparent 1px 3px)` | Fixed overlay, `mix-blend-mode: multiply`, 55% dark / 20% light. |
+
+---
+
+## 5. Layout
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│ ●●●  🥜 ButterCup  buttercup.sh rev.1        pure vintage charm ·  │  titlebar
+│                                                    READY ●         │  (auto)
+├──────────────────────────────────────┬─────────────────────────────┤
+│                                      │ FILES TOOLS PREVIEW KEYS    │  tabbar
+│  transcript                          ├─────────────────────────────┤
+│  ┌ you ─────────────────────────┐    │                             │
+│  │ scaffold a blocks.ai agent   │    │  panel                      │
+│  └──────────────────────────────┘    │  (deck: 4 radios,           │
+│  ┌ 🥜 buttercup ────────────────┐    │   :checked ~ sibling)       │
+│  │ …streaming…                  │    │                             │
+│  │ ▸ write  handler.js     ● OK │    │                             │
+│  └──────────────────────────────┘    │                             │
+│                                      │                             │
+├──────────────────────────────────────┼─────────────────────────────┤
+│ >  ask for what you want…   RUN STOP │ (\_/)  warm and idle        │  mascot
+└──────────────────────────────────────┴─────────────────────────────┘  (auto)
+   minmax(0,1fr)                          clamp(300px, 32%, 460px)
+```
+
+- Outer `.machine`: `max-width: 1500px`, centered, `grid-template-rows: auto minmax(0,1fr) auto`.
+- Deck: `grid-template-columns: minmax(0,1fr) clamp(300px, 32%, 460px)`.
+- Rack: `grid-template-rows: auto minmax(0,1fr) auto` — tab bar, active panel,
+  mascot shelf. The shelf is the visual foot of the right column, matching the
+  prompt bar's foot on the left.
+- Below `960px` the deck stacks; the rack collapses to a `<details>` drawer that
+  overlays the transcript. The prompt bar stays pinned.
+- Only the transcript scroll region and each panel body scroll. `body` never does.
+- The panel deck is four `input[type=radio]` + sibling selectors — no JS, per
+  the architecture contract. `style` attributes are never written from script.
+
+---
+
+## 6. Components
+
+### Title bar
+
+Three lamps (`--jam`, `--caramel`, `--pistachio`) as 8px discs with a 1px
+`--cocoa-5` ring — decorative, `aria-hidden`. Wordmark in rounded 28px, `rev.1`
+in 11px `--pb-dim`. Status lamp right-aligned: `<output aria-live="polite">`,
+11px letterspaced, dot + word, colored by state (`READY` pistachio, `THINKING`
+mallow, `RUNNING` caramel, `ERROR` jam).
+
+### Transcript entries
+
+| Turn | Left border | Ink | Label |
+| --- | --- | --- | --- |
+| user | 3px `--blueberry` | `--pb-light` | `you` |
+| agent | 3px `--pb` | `--pb-light` | 🥜 `buttercup` |
+| thinking | 3px dashed `--mallow` | `--pb-mid`, italic | `thinking` — inside `<details>`, closed by default |
+| tool call | 3px `--caramel` | mono | `▸ tool_name` + argument summary, one line, `<details>` for the full payload |
+| tool result | 3px `--pistachio` / `--jam` | `--pb-mid` | `● OK` / `✕ ERROR` + duration |
+| boot | 3px `--rim` | `--pb-mid` | no label |
+
+Entries never nest more than one `<details>` deep. Streaming text gets a 1ch
+block cursor in `--pb-hot` that blinks at 1.1s — removed under
+`prefers-reduced-motion`.
+
+### Prompt bar
+
+`--grad-raised`, 2px `--rim` top border, `>` sigil in `--blueberry`.
+`RUN` is the only filled button in the product: `--pb` background, `--cocoa-4`
+text, 600 weight. `STOP` is ghost with a `--jam` border, disabled until a run
+starts.
+
+### Buttons
+
+| Variant | Rest | Hover | Active | Disabled |
+| --- | --- | --- | --- | --- |
+| primary (`RUN`) | `--pb` on `--cocoa-4` | `--pb-light` | translate 1px down, `--sh-1` removed | `--pb-dim` on `--cocoa-2` |
+| mini | `--cocoa-2`, `--pb-mid` text, 1px `--rim` | `--cocoa-1`, `--pb-light` | as above | 45% opacity |
+| danger (`WIPE`) | `--cocoa-2`, `--jam` text + border | `--jam` bg, `--cocoa-5` text | as above | — |
+
+Focus, universally: `outline: 2px solid var(--pb-hot); outline-offset: 2px`.
+Never removed, never replaced with a shadow.
+
+### Approval gate
+
+The one place the UI raises its voice. Full-width card in the transcript,
+`--caramel` 2px border, `--cocoa-2` fill, wrapper-flute strip along the top
+edge. Shows tool name, the exact arguments in a `<pre>`, and three buttons:
+`ALLOW` (primary), `ALLOW ALL` (mini), `DENY` (danger). Focus moves to `ALLOW`
+on mount; `Esc` denies. Never auto-dismisses.
+
+### File tree
+
+Monospace rows, 22px tall. Directory rows use `▾`/`▸`; file rows use a 10px cup
+glyph in `--pb-mid`. Selected row: `--cocoa-1` fill, 2px `--pb` left border.
+Modified-this-turn rows briefly flash `--pb` at 12% opacity, 600ms, once.
+
+### Tool cards
+
+Each of the 18 tools is a `<li>`: name in `--pb-light` mono, one-line
+description in `--pb-mid`, and a `●` in `--caramel` when the tool requires
+approval. Arguments in a closed `<details>`.
+
+### Preview frame
+
+The sandboxed iframe sits in a "wrapper": 12px `--cocoa-2` padding with a
+fluted inner edge, so agent output is visibly *inside* something and visibly not
+part of the chrome. Empty state is a centered cup mark at 20% opacity with one
+line of monospace explanation.
+
+### Mascot shelf
+
+The rack ends in a shelf: a dashed top rule, `--cocoa-2` ground, and the cup
+mascot bottom-aligned at the left with one line of letterspaced caption beside
+it. It is the third grid row of `.rack`
+(`grid-template-rows: auto minmax(0,1fr) auto`), so it survives every tab and
+never scrolls away with the panel.
+
+Rules for the mascot:
+
+| Layer | Rule |
+| --- | --- |
+| Drawing | Inline SVG, one 120×108 viewBox: dome head over a fluted wrapper, four ridges, two waving arms with round hands. No asset, no image request. |
+| Ink | **Monochrome.** Every stroke is `currentColor` at 2px; ridges and blush drop to 1.5px at 60% opacity. Fills are `--paper` (knockout) or `currentColor` (eyes) only — never a second hue. |
+| Mood | The colour and face come from `body[data-agent]`: idle → `--ink-dim` + grin; busy → `--warn` + open mouth + lit sparks; error → `--bad` + flat mouth + smaller eyes. |
+| Caption | Generated by CSS `content` per state — *warm and idle* / *on it — whisking* / *that went sideways*. Lowercase small caps, `--ink-faint`. |
+| Wiring | JS sets exactly one word: `document.body.dataset.agent`. Every visual consequence is a stylesheet rule, matching the harness rule that JS never sets style. |
+| Never | Do not tint it a second colour, do not give it a drop shadow, do not let it block or overlay content, do not animate it as a progress indicator — it reflects state, it does not report it. |
+
+The shelf is decorative: the whole `<figure>` is `aria-hidden="true"`, because
+`#status` already announces the same state to assistive tech.
+
+### Keys panel
+
+The security note renders as a `--caramel`-bordered aside with a `⚠` glyph:
+*keys live in this browser's localStorage.* The key input is `type="password"`
+with a `SHOW` mini-button. Vendor select, model combobox, and effort select are
+plain rows: label in 11px letterspaced `--pb-mid` on the left, control right.
+
+---
+
+## 7. Motion
+
+Budget: four interface animations, all under 200ms except the two ambient ones,
+plus the mascot's idle loop.
+
+| Thing | Duration | Curve |
+| --- | --- | --- |
+| Hover / focus / tab change | 120ms | `cubic-bezier(.2,.7,.3,1)` |
+| Entry appears | 160ms fade + 4px rise | same |
+| Cursor blink | 1.1s step | `steps(2, jump-none)` |
+| CRT sweep | 9s linear loop, 5% opacity | linear |
+| Mascot breath | 3.6s loop, 3px rise + 3% squash | `ease-in-out` |
+| Mascot blink | 5.4s loop, `scaleY(.1)` for 3% of the cycle | `ease-in-out` |
+| Mascot wave | 2.8s loop, −6° → 12°, arms mirrored | `ease-in-out` |
+| Mascot sparks | 1.4s loop, staggered 180ms, busy only | `ease-in-out` |
+
+While `body[data-agent="busy"]`, the breath drops to 1.1s and the wave to 0.7s —
+same keyframes, faster clock. The mascot never gains new motion when working; it
+only gets more excited about the motion it already had.
+
+Under `prefers-reduced-motion: reduce`: sweep, blink, and the entire mascot rig
+hold still. The mascot's colour and face still change, so its state reading
+survives with zero motion. Nothing in the product depends on motion to convey
+state.
+
+The cup may nod — a 3° rotate, 400ms, once — when a run completes successfully.
+That is the entire celebration.
+
+---
+
+## 8. Accessibility
+
+- Semantic HTML first: `<main>`, `<header>`, `<section aria-label>`, `<nav>`,
+  `<output>`, `<details>`. The tab deck uses real radios, so it is keyboard
+  navigable with arrow keys for free.
+- Transcript is `role="log" aria-live="polite"`; the status lamp is a separate
+  `<output aria-live="polite">`. Streaming deltas are not announced per token —
+  only completed blocks are.
+- Every icon-only control has a `aria-label`. Every emoji is `aria-hidden` with
+  a text sibling.
+- Target size ≥ 24×24px; the prompt bar's buttons are 32px tall.
+- Full keyboard path: `Tab` through chrome, `⌘/Ctrl+Enter` submits, `Esc` closes
+  the viewer or denies an approval, `⌘/Ctrl+K` focuses the prompt.
+- Text scales to 200% without clipping; the deck stacks rather than shrinking.
+
+---
+
+## 9. Token reference
+
+Paste-ready, dark mode:
+
+```css
+:root {
+  /* chocolate */
+  --cocoa-5:#160E09; --cocoa-4:#20140D; --cocoa-3:#2E1D12;
+  --cocoa-2:#3E2718; --cocoa-1:#54341F; --rim:#6B4326; --rim-hi:#8A5A33;
+  /* peanut butter */
+  --pb-hot:#FFE7B4; --pb-light:#F5CE84; --pb:#E5A93F;
+  --pb-mid:#C08636; --pb-dim:#8A6128;
+  /* cream / kraft */
+  --cream:#FBF3E2; --kraft:#E4CBA4; --kraft-2:#D6B98D; --kraft-3:#C4A377;
+  /* accents */
+  --pistachio:#93C97A; --caramel:#F0A24A; --jam:#E4705C;
+  --blueberry:#9BCFE8; --mallow:#C9A8E0;
+  /* semantic aliases — components use these, not the ramps */
+  --bg:var(--cocoa-4); --surface:var(--cocoa-3); --surface-raised:var(--cocoa-2);
+  --surface-hover:var(--cocoa-1); --border:var(--rim);
+  --text:var(--pb-light); --text-dim:var(--pb-mid); --text-faint:var(--pb-dim);
+  --accent:var(--pb); --accent-hot:var(--pb-hot);
+  /* form */
+  --r-sm:3px; --r-md:6px; --r-lg:12px; --r-cup:999px;
+  --pad:12px; --sh-1:0 1px 0 var(--cocoa-5); --sh-2:0 6px 18px -8px #000;
+  --mono:"Berkeley Mono","IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --round:"Baloo 2","Quicksand",ui-rounded,system-ui,sans-serif;
+  color-scheme: dark;
+}
+```
+
+Components reference the **semantic aliases** only. Changing a ramp value must
+never require touching a component rule — that is how the wrapper stays
+swappable while the tool underneath stays the same.
+
+---
+
+## 10. Anti-goals
+
+The tagline is a constraint, not a joke.
+
+- No spinners that imply the machine is more certain than it is. Show tokens,
+  show steps, show elapsed time.
+- No dark UI patterns: no fake scarcity, no pre-checked uploads, no telemetry
+  toggles buried in a submenu. There is no backend; there is nothing to phone
+  home with, and the design should make that obvious.
+- No blue-gray "AI product" chrome. No neon gradients, no glassmorphism, no
+  glow for glow's sake.
+- No hidden destructive actions. `WIPE` is always red-bordered, always
+  confirmed.
+- No motion that cannot be turned off.
+- No cuteness where clarity is needed: the cup smiles in the title bar and the
+  empty state. It does not smile inside an error message.

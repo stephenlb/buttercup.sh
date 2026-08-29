@@ -73,6 +73,37 @@ window.LLM = (function () {
     throw new Error(`${provider} HTTP ${res.status}${hint}\n${detail.slice(0, 1200)}`);
   }
 
+  /* Header values must be Latin-1. Keys pasted out of a doc, chat client or PDF
+     often carry invisible passengers — non-breaking spaces, zero-width joiners,
+     a BOM — and `fetch` answers with an opaque TypeError ("String contains non
+     ISO-8859-1 code point") that names neither the header nor the character.
+     So: strip the invisibles, then explain anything still left. */
+  const INVISIBLE = /[\u00ad\u180e\u200b-\u200f\u2060\ufeff]/g;      // soft hyphen, zero-width, BOM
+  const SPACES = /[\u00a0\u1680\u2000-\u200a\u202f\u205f\u3000]/g;  // NBSP and its relatives
+
+  /** Trim a pasted key and report leftover characters an API key cannot contain. */
+  function cleanKey(raw) {
+    const key = String(raw ?? "").replace(INVISIBLE, "").replace(SPACES, " ").trim();
+    const bad = [...new Set(key.match(/[^\x20-\x7e]/gu) || [])];
+    return { key, bad };
+  }
+
+  function checkedKey(provider, raw) {
+    const { key, bad } = cleanKey(raw);
+    if (!key) throw new Error(`no ${provider} API key — open the KEYS panel and paste one`);
+    if (bad.length) {
+      const points = bad
+        .map((c) => `U+${c.codePointAt(0).toString(16).toUpperCase().padStart(4, "0")}`)
+        .join(", ");
+      throw new Error(
+        `${provider} API key contains ${bad.length} character(s) that do not belong in ` +
+        `an API key (${points}) — it was probably copied from formatted text. ` +
+        `Re-copy it as plain text, or retype it, then SAVE again.`
+      );
+    }
+    return key;
+  }
+
   /** Gemini rejects JSON Schema keywords it does not know; keep the subset. */
   function geminiSchema(schema) {
     if (!schema || typeof schema !== "object") return schema;
@@ -360,6 +391,7 @@ window.LLM = (function () {
   return {
     providers: MODELS,
     defaultModel: (provider) => MODELS[provider].models[0],
+    cleanKey,
 
     /**
      * One assistant turn, streamed.
@@ -368,8 +400,8 @@ window.LLM = (function () {
     complete({ provider, model, apiKey, system, messages, tools = [], effort = "high", signal, on = {} }) {
       const adapter = ADAPTERS[provider];
       if (!adapter) throw new Error(`unknown provider: ${provider}`);
-      if (!apiKey) throw new Error(`no ${provider} API key — open the KEYS panel and paste one`);
-      return adapter({ model, apiKey, system, messages, tools, effort, signal, on });
+      const key = checkedKey(provider, apiKey);
+      return adapter({ model, apiKey: key, system, messages, tools, effort, signal, on });
     },
   };
 })();

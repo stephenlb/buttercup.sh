@@ -65,10 +65,20 @@
   }
 
   function readSettings() {
+    // A key pasted from formatted text can carry characters an HTTP header
+    // cannot hold; catch it here rather than mid-turn on the first request.
+    const { key, bad } = LLM.cleanKey($("key").value);
+    if (bad.length) {
+      UI.error(
+        `that key contains ${bad.length} character(s) that do not belong in an API key ` +
+        `— it looks copied from formatted text. Re-copy it as plain text or retype it.`
+      );
+    }
+    $("key").value = key;
     settings = {
       provider: $("provider").value,
       model: $("model").value.trim() || LLM.defaultModel($("provider").value),
-      key: $("key").value.trim(),
+      key,
       effort: $("effort").value,
       yolo: $("yolo").checked,
       showThinking: $("showThinking").checked,

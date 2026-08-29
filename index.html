@@ -145,6 +145,54 @@
              prefer a key you don't mind rotating.</p>
         </form>
       </div>
+
+      <!-- ══ mascot: bottom of the rack, monochrome, CSS-animated ═══════════ -->
+      <figure class="mascot" aria-hidden="true">
+        <svg class="cup" viewBox="0 0 120 108" role="presentation">
+          <g class="rig">
+            <!-- sparks: only lit while the agent is working -->
+            <g class="spark">
+              <circle cx="26" cy="26" r="1.8"/>
+              <circle cx="60" cy="9" r="2.2"/>
+              <circle cx="94" cy="26" r="1.8"/>
+            </g>
+
+            <!-- arms, thrown up in a wave -->
+            <g class="arm left">
+              <path d="M29 74C18 74 12 68 12 60"/>
+              <circle cx="12" cy="57" r="3.4"/>
+            </g>
+            <g class="arm right">
+              <path d="M91 74C102 74 108 68 108 60"/>
+              <circle cx="108" cy="57" r="3.4"/>
+            </g>
+
+            <!-- buttery dome -->
+            <path class="dome" d="M28 70C26 42 40 26 60 26S94 42 92 70Z"/>
+
+            <!-- fluted wrapper -->
+            <path class="body" d="M26 68 33 94Q60 100 87 94L94 68Z"/>
+            <g class="ridges">
+              <path d="M40 70 44.8 91"/>
+              <path d="M53 70 54.7 92"/>
+              <path d="M67 70 65.3 92"/>
+              <path d="M80 70 75.2 91"/>
+            </g>
+
+            <!-- face -->
+            <g class="face">
+              <circle class="eye" cx="50" cy="50" r="3.4"/>
+              <circle class="eye" cx="70" cy="50" r="3.4"/>
+              <path class="mouth grin" d="M50 57q10 9 20 0"/>
+              <path class="mouth oh" d="M54 60a6 5 0 1 0 12 0a6 5 0 1 0-12 0"/>
+              <path class="mouth flat" d="M51 61h18"/>
+              <path class="blush" d="M38 58q2 3 4 0"/>
+              <path class="blush" d="M78 58q2 3 4 0"/>
+            </g>
+          </g>
+        </svg>
+        <figcaption class="mascot-say"></figcaption>
+      </figure>
     </section>
   </div>
 
