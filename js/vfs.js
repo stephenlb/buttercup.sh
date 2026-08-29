@@ -126,6 +126,18 @@ window.VFS = (function () {
 
     snapshot() { return { ...files }; },
 
+    /**
+     * Replace the whole workspace with a previous `snapshot()`. Used by the
+     * checkpoint stack: undo has to put deleted files back, not just rewind the
+     * ones that still exist.
+     */
+    restore(snapshot) {
+      if (!snapshot || typeof snapshot !== "object") throw new Error("restore needs a snapshot");
+      files = { ...snapshot };
+      persist();
+      return api.count();
+    },
+
     wipe() { files = {}; persist(); },
 
     onChange(fn) { watchers.push(fn); },

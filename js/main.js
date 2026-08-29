@@ -16,6 +16,8 @@
     yolo: true,
     showThinking: true,
     maxSteps: 40,
+    autoCompact: true,
+    compactAt: 120000,
   };
 
   let settings = loadSettings();
@@ -43,6 +45,8 @@
       model: settings.model || "(no model)",
       mode: settings.mode,
       tokens: u.input + u.output,
+      context: Agent.context,
+      limit: settings.autoCompact ? Agent.contextLimit() : 0,
       steps: step,
     });
   }
@@ -108,6 +112,8 @@
     $("yolo").checked = settings.yolo;
     $("showThinking").checked = settings.showThinking;
     $("maxSteps").value = settings.maxSteps;
+    $("autoCompact").checked = settings.autoCompact;
+    $("compactAt").value = settings.compactAt;
     fillModelList();
   }
 
@@ -133,6 +139,8 @@
       yolo: $("yolo").checked,
       showThinking: $("showThinking").checked,
       maxSteps: Number($("maxSteps").value) || 40,
+      autoCompact: $("autoCompact").checked,
+      compactAt: Number($("compactAt").value) || DEFAULTS.compactAt,
     };
     saveSettings();
   }
@@ -197,29 +205,29 @@
     }
   });
 
-  /** Run a slash command and report it in the transcript. */
+  /**
+   * Run a slash command and report it in the transcript. A command that hands
+   * back a prompt (`/init`) then runs as a normal request.
+   */
   async function runCommand(text) {
     UI.user(text);
+    let out;
+    // `/compact` spends a model call, so STOP has to work while it runs.
+    setRunning(true);
     try {
-      const out = await Commands.run(text);
-      if (out) UI.system(out);
+      out = await Commands.run(text);
+      if (out.text) UI.system(out.text);
     } catch (err) {
       UI.error(String(err && err.message ? err.message : err));
+    } finally {
+      setRunning(false);
     }
     paintStats();
+    if (out && out.prompt) await runPrompt(out.prompt);
   }
 
-  $("prompt-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const text = input.value.trim();
-    if (!text) return;
-    if (Agent.busy) return UI.error("still working — press STOP first");
-
-    input.value = "";
-    grow();
-
-    if (Commands.is(text)) return runCommand(text);
-
+  /** Send one request to the model, once we know the key is good for it. */
+  async function runPrompt(text) {
     if (!settings.key) {
       $("tab-keys").checked = true;
       UI.error("no API key. Open the KEYS panel, pick a provider, paste a key, press SAVE.");
@@ -239,6 +247,19 @@
       setRunning(false);
       input.focus();
     }
+  }
+
+  $("prompt-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+    if (Agent.busy) return UI.error("still working — press STOP first");
+
+    input.value = "";
+    grow();
+
+    if (Commands.is(text)) return runCommand(text);
+    await runPrompt(text);
   });
 
   $("stop").addEventListener("click", () => Agent.stop());
@@ -259,10 +280,12 @@
     onToolStart: (name, input) => UI.toolStart(name, input),
     onToolEnd: (handle, result) => UI.toolEnd(handle, result),
     onError: (msg) => UI.error(msg),
+    onNote: (msg) => UI.system(msg),
     approve: (name, input) => UI.approve(name, input),
     onStatus: (state, extra) => {
       const step = (extra && extra.step) || 0;
-      if (state === "busy") UI.status("busy", `WORKING · STEP ${step || 1}`);
+      const note = extra && extra.note;
+      if (state === "busy") UI.status("busy", note ? note.toUpperCase() : `WORKING · STEP ${step || 1}`);
       else paintReady();
       paintStats(step);
     },
@@ -304,6 +327,14 @@
               `Use /clear to start clean.`);
   }
   if (VFS.count()) UI.system(`workspace restored: ${VFS.count()} file(s)`);
+  const rules = Agent.rulesFiles();
+  if (rules.length) {
+    UI.system(`project rules loaded: ${rules.map((f) => `${f.path} (${f.bytes}b)`).join(", ")} ` +
+              `— appended to the system prompt on every turn. /rules to review.`);
+  } else if (VFS.count()) {
+    UI.system("no AGENTS.md in this workspace — /init writes one, and every turn " +
+              "after that carries it.");
+  }
   if (location.protocol === "file:") {
     UI.system("running from file:// — the harness works, but agents you build " +
               "need a real origin for ES modules. Use `preview` / `run_agent` here, " +

@@ -43,7 +43,9 @@
              then ask for an agent. Try:
              <em>&ldquo;scaffold a blocks.ai research agent, then run it&rdquo;</em>.</p>
           <p>Type <code>/help</code> for the commands this tab handles itself
-             — <code>/mode</code>, <code>/clear</code>, <code>/wipe</code>.</p>
+             — <code>/init</code> writes the project rules, <code>/undo</code>
+             rewinds the files and the context together, <code>/compact</code>
+             folds a long session into a handover note.</p>
         </article>
       </div>
 
@@ -153,6 +155,10 @@
               <span>show reasoning</span></label>
             <label class="row"><span>max steps</span>
               <input name="maxSteps" id="maxSteps" type="number" min="1" max="200" value="40"></label>
+            <label class="check"><input type="checkbox" name="autoCompact" id="autoCompact" checked>
+              <span>auto&#8209;compact context</span></label>
+            <label class="row"><span>compact at</span>
+              <input name="compactAt" id="compactAt" type="number" min="8000" step="1000" value="120000"></label>
           </fieldset>
           <div class="panel-head">
             <button type="submit" class="mini">SAVE</button>
@@ -164,6 +170,11 @@
              vendor accepts it. <code>base url</code> appears for OpenAI-compatible
              backends, so any gateway that speaks
              <code>/chat/completions</code> works without a code change.</p>
+          <p class="note">When the last request's token count crosses
+             <code>compact at</code>, the conversation is summarized into one
+             handover note and the session continues from it — workspace files
+             are never touched, and <code>/undo</code> restores the full context.
+             Set it below your model's window with room for one more turn.</p>
           <p class="note">A key in <code>localStorage</code> is readable by anything
              that can run script in this origin. Use a scoped, revocable key, and
              prefer a key you don't mind rotating.</p>
@@ -271,6 +282,7 @@
     <span id="stat-provider">—</span>
     <span id="stat-mode">—</span>
     <span id="stat-tokens">0 tok</span>
+    <span id="stat-context">ctx ~0</span>
     <span id="stat-steps">step 0</span>
     <span id="stat-files">0 files</span>
     <span class="grow"></span>
@@ -279,6 +291,7 @@
 </main>
 
 <script src="js/vfs.js"></script>
+<script src="js/checkpoints.js"></script>
 <script src="js/zip.js"></script>
 <script src="js/frameworks.js"></script>
 <script src="js/sandbox.js"></script>

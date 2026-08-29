@@ -165,10 +165,15 @@ window.UI = (function () {
       document.body.dataset.agent = state;
     },
 
-    stats({ provider, model, mode, tokens, steps }) {
+    stats({ provider, model, mode, tokens, context, limit, steps }) {
       $("stat-provider").textContent = `${provider} · ${model}`;
       $("stat-mode").textContent = mode;
       $("stat-tokens").textContent = `${tokens} tok`;
+      // Context is what the next request will carry; the total above is what the
+      // session has cost. They are different numbers and both matter.
+      const ctx = $("stat-context");
+      ctx.textContent = limit ? `ctx ~${context}/${limit}` : `ctx ~${context}`;
+      ctx.dataset.state = limit && context >= limit * 0.8 ? "high" : "";
       $("stat-steps").textContent = `step ${steps}`;
       $("stat-files").textContent = `${VFS.count()} files`;
     },

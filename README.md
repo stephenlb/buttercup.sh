@@ -22,23 +22,24 @@ requirement: the source runs as-is.
 
 ## Architecture
 
-100% static HTML, CSS and JavaScript. Ten classic `<script>` tags, no modules,
+100% static HTML, CSS and JavaScript. Eleven classic `<script>` tags, no modules,
 no bundler, no dependencies, nothing to compile.
 
 | File | Lines | What it is |
 | --- | --- | --- |
-| `index.html` | 252 | The entire UI. Structure only — no styles, no logic. |
-| `css/buttercup.css` | 560 | Amber-phosphor CRT skin, layout, tab deck, and the beach. |
-| `js/vfs.js` | 135 | Virtual filesystem: path → text, persisted in `localStorage`. |
+| `index.html` | 305 | The entire UI. Structure only — no styles, no logic. |
+| `css/buttercup.css` | 790 | Amber-phosphor CRT skin, layout, tab deck, and the beach. |
+| `js/vfs.js` | 147 | Virtual filesystem: path → text, persisted in `localStorage`. |
+| `js/checkpoints.js` | 64 | The undo stack: conversation + workspace, frozen together. |
 | `js/sandbox.js` | 243 | Sandboxed execution + a hand-written ES-module linker. |
 | `js/tools.js` | 528 | The 18 tool definitions handed to the model. |
 | `js/frameworks.js` | 698 | Bundled framework knowledge and code scaffolds. |
 | `js/llm.js` | 490 | Six providers over three wire formats, streaming, no SDKs. |
-| `js/agent.js` | 221 | The agent loop and the per-mode system prompts. |
-| `js/commands.js` | 102 | Slash commands, answered in-tab without a round trip. |
-| `js/ui.js` | 246 | Transcript rendering and the approval gate. |
+| `js/agent.js` | 488 | The agent loop, the system prompts, rules, and compaction. |
+| `js/commands.js` | 199 | Slash commands, answered in-tab without a round trip. |
+| `js/ui.js` | 251 | Transcript rendering and the approval gate. |
 | `js/zip.js` | 103 | A store-only ZIP writer, so you can export the workspace. |
-| `js/main.js` | 318 | Settings, key validation, and wiring. |
+| `js/main.js` | 349 | Settings, key validation, and wiring. |
 | `build.mjs` | 211 | Optional: fold everything into `public/index.html`. |
 
 The UI mechanics are CSS, not JavaScript. The right-hand panel deck is four
@@ -109,7 +110,8 @@ it on a real origin for the full behaviour.
 
 ## Slash commands
 
-Typed into the prompt, answered by the tab itself — no model call, no tokens.
+Typed into the prompt and handled by the tab itself. Free unless the table says
+otherwise.
 
 | Command | What it does |
 | --- | --- |
@@ -117,8 +119,85 @@ Typed into the prompt, answered by the tab itself — no model call, no tokens.
 | `/mode` | Shows the current mode. |
 | `/mode agent-builder` | Default. The system prompt that builds AI agents, blocks.ai first. |
 | `/mode general` | The same tools and sandbox, pointed at anything static. |
+| `/init` | Hands the agent one request: read the workspace, write `AGENTS.md`. |
+| `/rules` | Shows which rules files are in the system prompt right now. |
+| `/undo` | Rewinds the conversation *and* the files to before the last request. |
+| `/redo` | Puts back what `/undo` rewound. |
+| `/compact` | Summarizes the session into a handover note and continues from it. |
 | `/clear` | Drops the conversation and the transcript; keeps every file. |
 | `/wipe` | Deletes the files *and* the conversation, after a confirm. |
+
+`/init` is the one command that does reach the model: a command may hand back a
+prompt instead of an answer, and the harness runs it as if you had typed it.
+`/compact` spends one completion of its own; everything else is free.
+
+---
+
+## Project rules — `AGENTS.md`
+
+Write `AGENTS.md` in the workspace and every turn from then on carries it,
+appended to the mode's system prompt under a heading that tells the model it is
+instruction rather than reference — where it disagrees with the built-in prompt,
+the file wins. `.buttercup/AGENTS.md` and `CLAUDE.md` are read too, in that
+order, so a repo you paste in with rules already in it just works.
+
+The file is read fresh on every request. Edit it and the next turn has it: no
+reload, no `/clear`, no session reset. `/rules` prints what is currently loaded
+and how many bytes of every request it is costing; anything past 20 000
+characters is truncated in the prompt (with a note saying so) rather than
+silently eating the context window.
+
+`/init` asks the agent to write it: read the workspace first, then record what a
+fresh session needs on its first turn and cannot get from a filename — how to
+run and verify the thing, where the seams are, the conventions this code already
+follows. If `AGENTS.md` exists it is improved in place, never blanked.
+
+---
+
+## Undo — `/undo` and `/redo`
+
+Every request checkpoints the harness first, and a checkpoint is both halves of
+the state at once: the conversation as the model sees it *and* every workspace
+file. `/undo` restores both. Rewinding one without the other would leave the
+model remembering edits that are no longer on disk — which is the failure this
+exists to prevent, not a detail of the implementation.
+
+```
+/undo     → context 4 message(s) (−6) · workspace 7 file(s) (−2)
+```
+
+So it puts deleted files back, reverts overwritten ones, and drops the turn that
+did it. `/clear` and `/wipe` checkpoint too, which makes both of them
+recoverable — the confirm dialog on `/wipe` says so.
+
+The transcript is deliberately not rewound. It is scrollback: a terminal keeps
+the record of what happened, and what happened includes the part you undid.
+
+Twenty-five checkpoints deep, and **in memory only**. A workspace snapshot per
+turn would evict the workspace itself from a 5 MB `localStorage` quota, so the
+stack lasts as long as the page does. A reload keeps your files and your
+context; it drops the ability to step back through them.
+
+---
+
+## Compaction — `/compact`
+
+A long session eventually will not fit in the model's window. When the last
+request's token count crosses **compact at** (120 000 by default), the harness
+spends one completion with no tools attached: the model writes a handover note
+to itself — goal, what is done file by file, what was actually verified, what was
+decided and ruled out, the exact next step — and that note becomes the entire
+conversation. A request already in flight is carried across verbatim, because
+paraphrasing what you just asked for is the one thing a summary must not do.
+
+The workspace is never touched, which is what makes this safe: the files are the
+real state, and the note says so. `/undo` restores the full pre-compaction
+context if the summary lost something you needed.
+
+`ctx ~91300/120000` in the status bar is the estimate this runs on — the last
+reply's own token count, since a browser tab cannot tokenize and every vendor
+counts differently. It turns amber at 80% of the threshold. Turn
+**auto-compact** off and `/compact` still works by hand.
 
 ---
 
@@ -199,7 +278,8 @@ Each scaffold is a real, runnable multi-file agent: `agent.js` (the loop),
 
 Settings that matter: **auto-approve tool calls** (on by default; turn it off to
 get an ALLOW / ALLOW ALL / DENY gate on every write and every execution),
-**show reasoning**, **mode**, and **max steps**. The workspace and the
+**show reasoning**, **mode**, **max steps**, and **auto-compact** with its
+**compact at** threshold. The workspace and the
 conversation both survive a reload; **NEW SESSION** (`/clear`) clears the model's
 memory and keeps the files, **WIPE** (`/wipe`) does the opposite.
 
@@ -246,3 +326,11 @@ Not "should work" — run and checked in a real browser over CDP:
   Anthropic, and session persistence
 - ZIP output, npm registry and jsDelivr tools, preview mounting, transcript
   rendering
+- rules, undo and compaction against a stubbed provider: `AGENTS.md` reaching
+  the system prompt and picking up an edit on the next turn with no reset;
+  `/undo` restoring deleted files, reverted contents and the dropped turns
+  together, `/redo` replaying them, and both refusing past the ends of the
+  stack; compaction leaving one message, attaching no tools, surviving a tool
+  round trip in the tail, reporting its own before/after, and firing by itself
+  when the context estimate crosses the threshold with the in-flight request
+  carried across intact

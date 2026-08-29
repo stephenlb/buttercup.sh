@@ -776,6 +776,8 @@ body[data-agent="busy"] .mascot .arms .b { animation-duration: .7s; }
   padding: .3rem .75rem; font-size: .72rem; letter-spacing: .1em;
   color: var(--ink-faint); text-transform: uppercase; }
 .statusbar .grow { flex: 1; }
+/* context nearing the auto-compact threshold: the one status worth noticing */
+.statusbar #stat-context[data-state="high"] { color: var(--warn); }
 
 /* ── narrow tubes ─────────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
