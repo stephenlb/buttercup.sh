@@ -137,21 +137,22 @@ body {
 .entry.error { border-left: 3px solid var(--bad); padding-left: .7rem; color: var(--bad); }
 .entry.system { color: var(--ink-dim); font-size: .82rem; }
 
-/* streaming caret */
-.entry.model.live .body::after {
+/* streaming caret — on the last block, so it trails the last word rather than
+   sitting alone under the reply; on the body itself before the first block. */
+.entry.model.live .body > :last-child::after,
+.entry.model.live .body:empty::after {
   content: "█"; color: var(--ink-hot); margin-left: 1px;
 }
 @media (prefers-reduced-motion: no-preference) {
-  .entry.model.live .body::after { animation: blink 1s steps(2) infinite; }
+  .entry.model.live .body > :last-child::after,
+  .entry.model.live .body:empty::after { animation: blink 1s steps(2) infinite; }
   @keyframes blink { 50% { opacity: 0; } }
 }
 
 /* ── markdown the renderer emits ──────────────────────────────────────────────
-   While a reply streams, the raw text is shown as-is and needs its newlines
-   kept; the moment it finishes, `live` comes off and the same node is replaced
-   by real blocks, which lay themselves out. Hence pre-wrap on `live` only.
-   Every element below is a bare tag: js/ui.js sets no styles. */
-.entry.model.live .body { white-space: pre-wrap; }
+   A reply is parsed into these blocks as it streams, once per frame, so a live
+   reply and a finished one are the same markup — no pre-wrap fallback for the
+   streaming case. Every element below is a bare tag: js/ui.js sets no styles. */
 .body > :first-child { margin-top: 0; }
 .body > :last-child { margin-bottom: 0; }
 .entry.model .body p { color: var(--ink); margin: .5rem 0; }

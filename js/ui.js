@@ -271,13 +271,23 @@ window.UI = (function () {
       const node = entry("model live", "buttercup");
       const body = el("span", "body");
       node.appendChild(body);
-      return { node, body, raw: "", think: null };
+      return { node, body, raw: "", think: null, frame: 0 };
     },
 
+    /**
+     * Markdown is rendered while the reply streams, so a half-arrived answer
+     * reads like the finished one instead of like raw `**bold**` and `-` bullets.
+     * Deltas land per token and the parse is linear in the reply so far, so
+     * paints are coalesced to one per frame: the screen cannot show more.
+     */
     text(view, delta) {
       view.raw += delta;
-      view.body.appendChild(document.createTextNode(delta));
-      autoscroll();
+      if (view.frame) return;
+      view.frame = requestAnimationFrame(() => {
+        view.frame = 0;
+        view.body.innerHTML = format(view.raw);
+        autoscroll();
+      });
     },
 
     thinking(view, delta) {
@@ -294,8 +304,9 @@ window.UI = (function () {
 
     assistantEnd(view) {
       view.node.classList.remove("live");
-      // Re-render once at the end so fences and emphasis land without
-      // re-parsing markdown on every token.
+      if (view.frame) { cancelAnimationFrame(view.frame); view.frame = 0; }
+      // The last frame may never have run, and the closing tokens — a fence's
+      // back-ticks, a table's final row — are the ones that change the shape.
       if (view.raw) view.body.innerHTML = format(view.raw);
       else if (!view.think) view.node.remove();
       autoscroll();
