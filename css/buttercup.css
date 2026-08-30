@@ -247,11 +247,14 @@ details.think > pre { font-style: italic; }
 .queue .qtext { color: var(--user); overflow: hidden; text-overflow: ellipsis;
   white-space: nowrap; }
 .queue li button { padding: 0 .35rem; font-size: .7rem; line-height: 1.4; }
-/* held: one request is out in the composer, so nothing here is going to run
-   until it comes back. Said with the warm rule rather than a second widget. */
+/* held: the recall cursor is out in the composer, so nothing here is going to
+   run until it comes home. Said with the warm rule rather than a second widget,
+   and the line being edited keeps the prompt's own colour. */
 .queue[data-paused="1"] { border-top-color: var(--ink-hot); }
 .queue[data-paused="1"] .qhead { color: var(--ink-hot); }
 .queue[data-paused="1"] .qtext { color: var(--ink-dim); }
+.queue li[data-editing="1"] .qn { color: var(--ink-hot); }
+.queue[data-paused="1"] li[data-editing="1"] .qtext { color: var(--user); }
 
 /* ── prompt ───────────────────────────────────────────────────────────────── */
 .prompt {

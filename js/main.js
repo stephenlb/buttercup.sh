@@ -203,12 +203,13 @@
       e.preventDefault();
       $("prompt-form").requestSubmit();
     }
-    // Up on an empty composer takes the last queued request back for editing —
-    // also terminal muscle memory, and the only way to fix a typo in something
-    // already waiting. With text in the box, Up is still cursor movement.
-    if (e.key === "ArrowUp" && !e.shiftKey && !e.altKey && !input.value && editQueued()) {
-      e.preventDefault();
-    }
+    if (e.shiftKey || e.altKey) return;
+    // Up and Down walk back through the strip and then through history, which
+    // is the same key that recalls in a shell. Inside a multi-line draft they
+    // stay cursor keys: recall only starts from the edge the caret is at.
+    const caret = input.selectionStart === input.selectionEnd ? input.selectionStart : -1;
+    if (e.key === "ArrowUp" && caret === 0 && recall(1)) e.preventDefault();
+    if (e.key === "ArrowDown" && caret === input.value.length && recall(-1)) e.preventDefault();
   });
 
   /**
@@ -283,38 +284,91 @@
 
   const queue = [];
   let draining = false;
-  /* One queued request is in the composer being edited: nothing behind it may
-     start, or the edit would land after work that assumed it. ENTER puts it
-     back and the queue picks up where it left off. */
+
+  /* ── recall ───────────────────────────────────────────────────────────────
+     One cursor walks up out of the composer, through the strip newest-first,
+     and on into what has already been sent. `browse` is where it stands: 0 is
+     the draft the user was typing, 1 is the last line on deck, and past the end
+     of the strip it is history. While it stands anywhere but 0 the queue is
+     held — running the next line would move the ground under the cursor, and an
+     edit meant for the third request would land after the second had gone.
+     ───────────────────────────────────────────────────────────────────────── */
+
+  const history = [];   // requests already sent, oldest first
+  let browse = 0;
+  let draft = "";       // the composer's own text, kept while the cursor is out
   let paused = false;
+
+  const recallEnd = () => queue.length + history.length;
+
+  /** Where position `k` points. Queue first, newest first, then history. */
+  const recallAt = (k) =>
+    k <= queue.length
+      ? { kind: "queue", i: queue.length - k }
+      : { kind: "history", i: history.length - (k - queue.length) };
+
+  const recallText = (at) => (at.kind === "queue" ? queue[at.i] : history[at.i]) || "";
+
+  /**
+   * Move the cursor by `step` and load what it lands on. Edits to a line on
+   * deck are kept as the cursor passes over it, so walking the strip to check
+   * something does not undo a fix made on the way. False when there is nowhere
+   * to go, which leaves the arrow key to the caret.
+   */
+  function recall(step) {
+    const next = browse + step;
+    if (next < 0 || next > recallEnd()) return false;
+
+    // Leaving a line on deck: what is in the box is now that line. Emptying it
+    // is not a delete — `×` is — so an empty box leaves the line alone.
+    if (!browse) draft = input.value;
+    else {
+      const at = recallAt(browse);
+      if (at.kind === "queue" && input.value.trim()) queue[at.i] = input.value;
+    }
+
+    browse = next;
+    paused = browse > 0;
+    input.value = browse ? recallText(recallAt(browse)) : draft;
+    grow();
+    input.setSelectionRange(input.value.length, input.value.length);
+    paintQueue();
+    if (!browse) drain();   // back in the composer: the queue runs again
+    return true;
+  }
+
+  /** Remember a request the way a shell does: no run of identical lines. */
+  function remember(text) {
+    if (history[history.length - 1] !== text) history.push(text);
+    if (history.length > 200) history.shift();
+  }
 
   function paintQueue() {
     UI.queue(queue, {
       paused,
-      drop: (i) => { queue.splice(i, 1); paintQueue(); },
+      // Which line is in the composer right now, so the strip says where the
+      // cursor is instead of leaving the box's text looking like a stray draft.
+      editing: paused && browse <= queue.length ? queue.length - browse : -1,
+      // `×` while the cursor is out would leave it pointing at a line that no
+      // longer exists, so it comes home; the recalled text stays as a draft.
+      drop: (i) => {
+        queue.splice(i, 1);
+        browse = 0;
+        paused = false;
+        paintQueue();
+        drain();
+      },
       clear: () => dropQueue((n) => UI.system(`queue cleared — ${n} request(s) dropped`)),
     });
-  }
-
-  /**
-   * Pull the last queued request into the composer and hold the queue there.
-   * Refused when the composer already holds a draft, which would be lost.
-   */
-  function editQueued() {
-    if (!queue.length || input.value) return false;
-    paused = true;
-    input.value = queue.pop();
-    grow();
-    input.setSelectionRange(input.value.length, input.value.length);
-    paintQueue();
-    UI.system("queue held — edit the request and press ENTER to put it back");
-    return true;
   }
 
   /** Empty the queue, reporting through `say` only if there was anything in it. */
   function dropQueue(say) {
     const n = queue.length;
     queue.length = 0;
+    // The cursor was pointing into what just went away; whatever is in the box
+    // stays there as an ordinary draft.
+    browse = 0;
     paused = false;
     paintQueue();
     if (n && say) say(n);
@@ -327,6 +381,7 @@
     try {
       while (queue.length && !paused) {
         const text = queue.shift();
+        remember(text);
         paintQueue();
         let ok = true;
         try {
@@ -348,18 +403,35 @@
   $("prompt-form").addEventListener("submit", (e) => {
     e.preventDefault();
     const text = input.value.trim();
-    if (!text) return;
+    const at = browse ? recallAt(browse) : null;
 
+    // Whatever this was, the composer is clear and the cursor is home again,
+    // so the hold is over and the queue runs from the front.
     input.value = "";
+    draft = "";
+    browse = 0;
+    paused = false;
     grow();
 
-    // Mid-turn `/help` and `/queue` skip the queue: they only read state.
-    if (draining && Commands.isInstant(text)) return runInstant(text);
+    // A line from the strip goes back where it was rather than to the end:
+    // its place in the order is part of what the user asked for. Sent empty,
+    // it leaves the strip — that is the one way ENTER drops a line.
+    if (at && at.kind === "queue") {
+      if (text) queue[at.i] = text;
+      else queue.splice(at.i, 1);
+      paintQueue();
+      return void drain();
+    }
 
-    // Whatever this was — a new request or the edited one coming back — the
-    // hold is over, so the queue runs again from the front.
+    if (!text) return void drain();
+
+    // Mid-turn `/help` and `/queue` skip the queue: they only read state.
+    if (draining && Commands.isInstant(text)) {
+      remember(text);
+      return runInstant(text);
+    }
+
     queue.push(text);
-    paused = false;
     paintQueue();
     drain();
   });

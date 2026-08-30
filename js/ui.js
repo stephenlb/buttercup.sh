@@ -396,11 +396,12 @@ window.UI = (function () {
     /**
      * Paint the waiting-requests strip. `drop(i)` removes one, `clear()` drops
      * them all; both are handed in fresh on every paint so this stays stateless.
-     * `paused` means one request is out in the composer being edited.
+     * `paused` means the recall cursor is out of the composer and nothing here
+     * is going to start; `editing` is the index it is standing on, or -1.
      */
-    queue(items, { drop, clear, paused } = {}) {
+    queue(items, { drop, clear, paused, editing = -1 } = {}) {
       const box = $("queue");
-      box.hidden = !items.length && !paused;
+      box.hidden = !items.length;
       box.dataset.paused = paused ? "1" : "";
       // "on deck" and "held" rather than "queued" and "paused": this is a
       // counter with an order rail, not a job scheduler.
@@ -412,7 +413,10 @@ window.UI = (function () {
       list.replaceChildren();
       items.forEach((text, i) => {
         const li = el("li");
-        li.appendChild(el("span", "qn", `${i + 1}.`));
+        // The line in the composer is marked where it sits, so the strip and
+        // the box read as one thing rather than two copies of the request.
+        if (i === editing) li.dataset.editing = "1";
+        li.appendChild(el("span", "qn", i === editing ? "›" : `${i + 1}.`));
         li.appendChild(el("span", "qtext", text.split("\n")[0]));
         const x = el("button", "mini", "×");
         x.type = "button";

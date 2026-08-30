@@ -147,11 +147,16 @@ ON DECK 2   1. now write the tests           ×
             2. /compact                      ×      CLEAR
 ```
 
-Press `↑` on an empty prompt and the last queued line comes back into the box
-for editing. The strip reads `HELD` while it is out, and nothing behind it
-starts — the request in flight finishes, but the queue waits. `ENTER` puts the
-edited line back at the end and the queue runs on; `CLEAR` or `STOP` ends the
-hold too, along with everything waiting.
+`↑` and `↓` walk back out of the prompt: first up the strip, newest line first,
+then on into requests already sent. Whatever the cursor lands on is in the box
+and editable, `›` marks it on the strip, and the head reads `HELD` — nothing
+starts while the cursor is out, though a request already in flight finishes.
+`ENTER` sends: a line off the strip goes back to its own place in the order
+rather than to the end, and sending it empty is what drops it. Edits survive
+walking past them, so `↑ ↑ ↓` leaves a fix in place. Inside a multi-line draft
+the arrows are still cursor keys — recall only starts from the top or bottom
+edge, and the draft comes back when the cursor does. `CLEAR`, `×` and `STOP`
+all end the hold.
 
 `×` drops one line, `CLEAR` and `/queue clear` drop all of them, and `STOP`
 drops the queue along with the request it interrupts. Slash commands queue like
