@@ -2496,7 +2496,7 @@ button.danger:hover { background: var(--bad); color: var(--paper); }
 .settings .check input { accent-color: var(--ink); }
 
 /* ── mascot ───────────────────────────────────────────────────────────────────
-   A buttercup in one ink, drawn as a pixel sprite on the 30×28 grid its
+   A buttercup in one ink, drawn as a pixel sprite on the 44×28 grid its
    viewBox sets up. Nothing here anti-aliases and nothing moves by a fraction
    of a cell: shapes are fills (a stroke would sit half in, half out of a
    cell), `shape-rendering: crispEdges` kills the smoothing, and the motion is
@@ -2510,7 +2510,9 @@ button.danger:hover { background: var(--bad); color: var(--paper); }
   padding: .4rem .75rem .3rem;
   color: var(--ink-dim);
 }
-.mascot .cup { width: 6rem; height: 5.6rem; flex: none; overflow: visible;
+/* 44 cells wide at the same cell size the 30-cell cup had, so adding the kit
+   margins did not shrink the buttercup. */
+.mascot .cup { width: 8.8rem; height: 5.6rem; flex: none; overflow: visible;
   shape-rendering: crispEdges; }
 .mascot .cup rect, .mascot .cup path, .mascot .cup use {
   fill: currentColor; stroke: none; }
@@ -2574,6 +2576,52 @@ body[data-agent="ready"] .mascot-say::before { content: "warm and ready"; }
 body[data-agent="check"] .mascot-say::before { content: "checking the key"; }
 body[data-agent="notready"] .mascot { color: var(--bad); }
 body[data-agent="notready"] .mascot-say::before { content: "needs an api key"; }
+
+/* ── busy kits ────────────────────────────────────────────────────────────────
+   Four things the buttercup can be caught doing while a task runs: a land line
+   next to a side desk, a keyboard and monitor, a bowl and whisk, a flip chart.
+   JS rolls one word into body[data-busy] when work starts; everything else is
+   here. Each kit is two DOM groups — furniture on the floor (outside `.rig`, so
+   it stands still) and the arms plus whatever they hold (inside it, so they bob
+   with the cup) — and its motion is a pair of poses, `.f1` and `.f2`, trading
+   places on `steps(1, end)`. Same trick as the wave: two frames, no tween.
+
+   With no kit rolled the sprite falls back to the plain wave, so a stuck or
+   pinned body[data-busy] can only ever cost the props, never the busy tell.
+   ─────────────────────────────────────────────────────────────────────────── */
+.mascot .kit > g { display: none; }
+.mascot .kit .f2 { opacity: 0; }   /* rest pose == frame one */
+
+body[data-agent="busy"][data-busy="phone"] .mascot .kit > g.phone,
+body[data-agent="busy"][data-busy="keys"]  .mascot .kit > g.keys,
+body[data-agent="busy"][data-busy="bowl"]  .mascot .kit > g.bowl,
+body[data-agent="busy"][data-busy="board"] .mascot .kit > g.board { display: block; }
+
+/* a kit draws its own arms, so the waving pair steps aside */
+body[data-agent="busy"][data-busy="phone"] .mascot .arms,
+body[data-agent="busy"][data-busy="keys"]  .mascot .arms,
+body[data-agent="busy"][data-busy="bowl"]  .mascot .arms,
+body[data-agent="busy"][data-busy="board"] .mascot .arms { display: none; }
+
+/* the two twinkles on the cup's right sit exactly where a kit puts the working
+   arm, so they step aside rather than speckle it */
+body[data-busy] .mascot .spark g:nth-child(3),
+body[data-busy] .mascot .spark g:nth-child(5) { display: none; }
+
+body[data-agent="busy"] .mascot .kit .f1 { animation: cup-wave-a .6s steps(1, end) infinite; }
+body[data-agent="busy"] .mascot .kit .f2 { animation: cup-wave-b .6s steps(1, end) infinite; }
+/* each job has its own tempo: hammering keys is quick, a chart is not */
+body[data-busy="keys"]  .mascot .kit .f1, body[data-busy="keys"]  .mascot .kit .f2 { animation-duration: .3s; }
+body[data-busy="bowl"]  .mascot .kit .f1, body[data-busy="bowl"]  .mascot .kit .f2 { animation-duration: .22s; }
+body[data-busy="board"] .mascot .kit .f1, body[data-busy="board"] .mascot .kit .f2 { animation-duration: 1.1s; }
+body[data-agent="busy"] .mascot .kit .blink {
+  animation: cup-wave-a 1s steps(1, end) infinite;   /* the screen's caret */
+}
+
+body[data-agent="busy"][data-busy="phone"] .mascot-say::before { content: "on it — on the phone"; }
+body[data-agent="busy"][data-busy="keys"]  .mascot-say::before { content: "on it — typing it up"; }
+body[data-agent="busy"][data-busy="bowl"]  .mascot-say::before { content: "on it — whisking"; }
+body[data-agent="busy"][data-busy="board"] .mascot-say::before { content: "on it — at the board"; }
 
 /* The whole rig animates regardless of prefers-reduced-motion: it is a 6rem
    sprite hopping one cell in place, no travel and no parallax, and the

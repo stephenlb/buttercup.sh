@@ -21,6 +21,20 @@ window.UI = (function () {
     if (slack < 120) log.scrollTop = log.scrollHeight;
   }
 
+  /* ── what the mascot is caught doing while a task runs ────────────────────
+     One word into body[data-busy] and the stylesheet swaps in a whole kit:
+     props, arms, caption. Rolled once per run rather than per step, so a
+     six-step task is one continuous scene instead of a slideshow.
+     `?busy=phone` pins one, which is what screenshots and CSS work want. */
+  const BUSY_KITS = ["phone", "keys", "bowl", "board"];
+  const pinnedKit = new URLSearchParams(location.search).get("busy");
+
+  function rollBusyKit() {
+    document.body.dataset.busy = BUSY_KITS.includes(pinnedKit)
+      ? pinnedKit
+      : BUSY_KITS[Math.floor(Math.random() * BUSY_KITS.length)];
+  }
+
   function entry(cls, who) {
     const node = el("article", "entry " + cls);
     if (who) node.appendChild(el("span", "who", who));
@@ -162,7 +176,9 @@ window.UI = (function () {
       node.dataset.state = state;
       node.textContent = label || state.toUpperCase();
       /* the mascot reads its mood off the body; the CSS does the rest. */
+      const was = document.body.dataset.agent;
       document.body.dataset.agent = state;
+      if (state === "busy" && was !== "busy") rollBusyKit();
     },
 
     stats({ provider, model, mode, tokens, context, limit, steps }) {
