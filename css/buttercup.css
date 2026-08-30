@@ -960,59 +960,91 @@ button.danger:hover { background: var(--bad); color: var(--paper); }
      ═══════      snow
 
    The snow itself falls in columns: each flake column is one layer, a tile one
-   pixel wide and N pixels deep, tiled with `repeat-y` and slid down exactly
-   N — its own period, so the loop is seamless. Half the columns are anchored to
-   the left edge and half to the right, which keeps the fall spread across a box
-   of any width: a narrow box simply crops the outermost columns.
+   or two pixels wide and N pixels deep, tiled with `repeat-y` and slid down
+   exactly N — its own period, so the loop is seamless. Half the columns are
+   anchored to the left edge and half to the right, which keeps the fall spread
+   across a box of any width: a narrow box simply crops the outermost columns.
 
-   Three things keep it from reading as a machine. A tile holds two or three
-   flakes at uneven depths rather than one at the top, so a column never ticks
-   past on a single beat. The periods are mutual near-primes (11 … 31) on
-   durations that share no factor, so no two columns ever pulse together. And
-   every column leans on one of three shared gusts, `--gust-a/b/c`, which shove
-   the whole field a pixel or two sideways on their own slow clocks — the flakes
-   drift as weather does, in gusts, instead of dropping down a plumb line.
+   A single column is unavoidably a plumb line of dots, and on its own that is a
+   sand trickle, not weather. What makes it a flurry is that the thirty-two
+   columns come in ribbons — two columns three to six pixels apart, on unrelated
+   periods, at unrelated phases — so the eye finds no line to follow, only
+   scatter. Three things more: a tile holds two to four flakes at uneven depths
+   and never within seven pixels of each other, so a column never ticks past on
+   a single beat; the periods run 17 to 56 on durations that share no factor, so
+   no two columns pulse together; and four of the near columns carry flakes two
+   pixels square and brighter, which gives the field a front and a back. Every
+   column then leans on one of four shared gusts, `--gust-a/b/c/d`, each of
+   which walks the whole field a pixel at a time out to three and back, and on
+   past zero into a lean the other way.
    ─────────────────────────────────────────────────────────────────────────── */
 .woods {
   --px: 6px;
   --ground: calc(var(--px) * 9);                       /* depth of the snow  */
+  --snow-hi: color-mix(in srgb, var(--ink) 78%, transparent);   /* fat, close  */
   --snow:    color-mix(in srgb, var(--ink) 52%, transparent);
   --snow-lo: color-mix(in srgb, var(--ink) 26%, transparent);
   /* opaque, for the reason spelled out over the city: stacked bands */
   --fir:     color-mix(in srgb, var(--ink) 40%, var(--paper));   /* near line  */
   --fir-lo:  color-mix(in srgb, var(--ink) 19%, var(--paper));   /* far line   */
 
-  --sn1: 0px; --sn2: 0px;  --sn3: 0px;  --sn4: 0px;  --sn5: 0px;
-  --sn6: 0px; --sn7: 0px;  --sn8: 0px;  --sn9: 0px;  --sn10: 0px;
-  --sn11: 0px; --sn12: 0px; --sn13: 0px; --sn14: 0px;
-  --gust-a: 0px; --gust-b: 0px; --gust-c: 0px;
+  --sn1: 0px; --sn2: 0px; --sn3: 0px; --sn4: 0px; --sn5: 0px;
+  --sn6: 0px; --sn7: 0px; --sn8: 0px; --sn9: 0px; --sn10: 0px;
+  --sn11: 0px; --sn12: 0px; --sn13: 0px; --sn14: 0px; --sn15: 0px;
+  --sn16: 0px; --sn17: 0px; --sn18: 0px; --sn19: 0px; --sn20: 0px;
+  --sn21: 0px; --sn22: 0px; --sn23: 0px; --sn24: 0px; --sn25: 0px;
+  --sn26: 0px; --sn27: 0px; --sn28: 0px; --sn29: 0px; --sn30: 0px;
+  --sn31: 0px; --sn32: 0px;
+  --gust-a: 0px; --gust-b: 0px; --gust-c: 0px; --gust-d: 0px;
 
   background-repeat:
-    repeat-y, repeat-y, repeat-y, repeat-y,            /* the fourteen falls */
-    repeat-y, repeat-y, repeat-y, repeat-y,
-    repeat-y, repeat-y, repeat-y, repeat-y,
+    repeat-y, repeat-y, repeat-y, repeat-y, repeat-y,        /* the 32 falls */
+    repeat-y, repeat-y, repeat-y, repeat-y, repeat-y,
+    repeat-y, repeat-y, repeat-y, repeat-y, repeat-y,
+    repeat-y, repeat-y, repeat-y, repeat-y, repeat-y,
+    repeat-y, repeat-y, repeat-y, repeat-y, repeat-y,
+    repeat-y, repeat-y, repeat-y, repeat-y, repeat-y,
     repeat-y, repeat-y,
     no-repeat, no-repeat, no-repeat,                   /* everything else    */
     no-repeat, no-repeat, no-repeat, no-repeat,
     no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
   background-image:
-    /* falling snow: two or three lit pixels per tile, at uneven depths, so the
-       flakes in one column are spaced the way real ones are — the rest of the
-       tile is the gap. Near columns are lit, far ones dim. */
-    linear-gradient(var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 9), var(--snow) calc(var(--px) * 9) calc(var(--px) * 10), transparent calc(var(--px) * 10)),
-    linear-gradient(var(--snow-lo) 0 var(--px), transparent var(--px) calc(var(--px) * 7), var(--snow-lo) calc(var(--px) * 7) calc(var(--px) * 8), transparent calc(var(--px) * 8) calc(var(--px) * 15), var(--snow-lo) calc(var(--px) * 15) calc(var(--px) * 16), transparent calc(var(--px) * 16)),
-    linear-gradient(var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 6), var(--snow) calc(var(--px) * 6) calc(var(--px) * 7), transparent calc(var(--px) * 7)),
-    linear-gradient(var(--snow-lo) 0 var(--px), transparent var(--px) calc(var(--px) * 5), var(--snow-lo) calc(var(--px) * 5) calc(var(--px) * 6), transparent calc(var(--px) * 6) calc(var(--px) * 12), var(--snow-lo) calc(var(--px) * 12) calc(var(--px) * 13), transparent calc(var(--px) * 13)),
-    linear-gradient(var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 5), var(--snow) calc(var(--px) * 5) calc(var(--px) * 6), transparent calc(var(--px) * 6)),
-    linear-gradient(var(--snow-lo) 0 var(--px), transparent var(--px) calc(var(--px) * 8), var(--snow-lo) calc(var(--px) * 8) calc(var(--px) * 9), transparent calc(var(--px) * 9) calc(var(--px) * 19), var(--snow-lo) calc(var(--px) * 19) calc(var(--px) * 20), transparent calc(var(--px) * 20)),
-    linear-gradient(var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 7), var(--snow) calc(var(--px) * 7) calc(var(--px) * 8), transparent calc(var(--px) * 8)),
-    linear-gradient(var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 6), var(--snow) calc(var(--px) * 6) calc(var(--px) * 7), transparent calc(var(--px) * 7)),
-    linear-gradient(var(--snow-lo) 0 var(--px), transparent var(--px) calc(var(--px) * 9), var(--snow-lo) calc(var(--px) * 9) calc(var(--px) * 10), transparent calc(var(--px) * 10)),
-    linear-gradient(var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 7), var(--snow) calc(var(--px) * 7) calc(var(--px) * 8), transparent calc(var(--px) * 8)),
-    linear-gradient(var(--snow-lo) 0 var(--px), transparent var(--px) calc(var(--px) * 7), var(--snow-lo) calc(var(--px) * 7) calc(var(--px) * 8), transparent calc(var(--px) * 8) calc(var(--px) * 16), var(--snow-lo) calc(var(--px) * 16) calc(var(--px) * 17), transparent calc(var(--px) * 17)),
-    linear-gradient(var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 5), var(--snow) calc(var(--px) * 5) calc(var(--px) * 6), transparent calc(var(--px) * 6)),
+    /* falling snow: two to four flakes per tile, at uneven depths and never
+       within seven pixels of each other, so a column reads as scatter rather
+       than as a dotted line — the rest of the tile is the gap. Near columns are
+       lit, and four of them two pixels square. Far ones are a single dim pixel. */
+    linear-gradient(var(--snow-hi) 0 calc(var(--px) * 2), transparent calc(var(--px) * 2) calc(var(--px) * 13), var(--snow-hi) calc(var(--px) * 13) calc(var(--px) * 15), transparent calc(var(--px) * 15)),
+    linear-gradient(var(--snow-lo) 0 var(--px), transparent var(--px) calc(var(--px) * 10), var(--snow-lo) calc(var(--px) * 10) calc(var(--px) * 11), transparent calc(var(--px) * 11) calc(var(--px) * 17), var(--snow-lo) calc(var(--px) * 17) calc(var(--px) * 18), transparent calc(var(--px) * 18) calc(var(--px) * 35), var(--snow-lo) calc(var(--px) * 35) calc(var(--px) * 36), transparent calc(var(--px) * 36)),
+    linear-gradient(var(--snow-lo) 0 var(--px), transparent var(--px) calc(var(--px) * 8), var(--snow-lo) calc(var(--px) * 8) calc(var(--px) * 9), transparent calc(var(--px) * 9) calc(var(--px) * 17), var(--snow-lo) calc(var(--px) * 17) calc(var(--px) * 18), transparent calc(var(--px) * 18)),
+    linear-gradient(var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 11), var(--snow) calc(var(--px) * 11) calc(var(--px) * 12), transparent calc(var(--px) * 12) calc(var(--px) * 23), var(--snow) calc(var(--px) * 23) calc(var(--px) * 24), transparent calc(var(--px) * 24)),
+    linear-gradient(var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 8), var(--snow) calc(var(--px) * 8) calc(var(--px) * 9), transparent calc(var(--px) * 9) calc(var(--px) * 21), var(--snow) calc(var(--px) * 21) calc(var(--px) * 22), transparent calc(var(--px) * 22)),
     linear-gradient(var(--snow-lo) 0 var(--px), transparent var(--px) calc(var(--px) * 11), var(--snow-lo) calc(var(--px) * 11) calc(var(--px) * 12), transparent calc(var(--px) * 12) calc(var(--px) * 22), var(--snow-lo) calc(var(--px) * 22) calc(var(--px) * 23), transparent calc(var(--px) * 23)),
-    linear-gradient(var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 8), var(--snow) calc(var(--px) * 8) calc(var(--px) * 9), transparent calc(var(--px) * 9)),
+    linear-gradient(var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 8), var(--snow) calc(var(--px) * 8) calc(var(--px) * 9), transparent calc(var(--px) * 9) calc(var(--px) * 17), var(--snow) calc(var(--px) * 17) calc(var(--px) * 18), transparent calc(var(--px) * 18)),
+    linear-gradient(var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 7), var(--snow) calc(var(--px) * 7) calc(var(--px) * 8), transparent calc(var(--px) * 8)),
+    linear-gradient(var(--snow-hi) 0 calc(var(--px) * 2), transparent calc(var(--px) * 2) calc(var(--px) * 14), var(--snow-hi) calc(var(--px) * 14) calc(var(--px) * 16), transparent calc(var(--px) * 16)),
+    linear-gradient(var(--snow-lo) 0 var(--px), transparent var(--px) calc(var(--px) * 9), var(--snow-lo) calc(var(--px) * 9) calc(var(--px) * 10), transparent calc(var(--px) * 10) calc(var(--px) * 16), var(--snow-lo) calc(var(--px) * 16) calc(var(--px) * 17), transparent calc(var(--px) * 17)),
+    linear-gradient(var(--snow-lo) 0 var(--px), transparent var(--px) calc(var(--px) * 8), var(--snow-lo) calc(var(--px) * 8) calc(var(--px) * 9), transparent calc(var(--px) * 9) calc(var(--px) * 17), var(--snow-lo) calc(var(--px) * 17) calc(var(--px) * 18), transparent calc(var(--px) * 18)),
+    linear-gradient(var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 9), var(--snow) calc(var(--px) * 9) calc(var(--px) * 10), transparent calc(var(--px) * 10)),
+    linear-gradient(var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 7), var(--snow) calc(var(--px) * 7) calc(var(--px) * 8), transparent calc(var(--px) * 8) calc(var(--px) * 21), var(--snow) calc(var(--px) * 21) calc(var(--px) * 22), transparent calc(var(--px) * 22)),
+    linear-gradient(var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 13), var(--snow) calc(var(--px) * 13) calc(var(--px) * 14), transparent calc(var(--px) * 14)),
+    linear-gradient(var(--snow-lo) 0 var(--px), transparent var(--px) calc(var(--px) * 7), var(--snow-lo) calc(var(--px) * 7) calc(var(--px) * 8), transparent calc(var(--px) * 8) calc(var(--px) * 21), var(--snow-lo) calc(var(--px) * 21) calc(var(--px) * 22), transparent calc(var(--px) * 22) calc(var(--px) * 42), var(--snow-lo) calc(var(--px) * 42) calc(var(--px) * 43), transparent calc(var(--px) * 43)),
+    linear-gradient(var(--snow-lo) 0 var(--px), transparent var(--px) calc(var(--px) * 8), var(--snow-lo) calc(var(--px) * 8) calc(var(--px) * 9), transparent calc(var(--px) * 9) calc(var(--px) * 20), var(--snow-lo) calc(var(--px) * 20) calc(var(--px) * 21), transparent calc(var(--px) * 21) calc(var(--px) * 34), var(--snow-lo) calc(var(--px) * 34) calc(var(--px) * 35), transparent calc(var(--px) * 35)),
+    linear-gradient(var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 7), var(--snow) calc(var(--px) * 7) calc(var(--px) * 8), transparent calc(var(--px) * 8)),
+    linear-gradient(var(--snow-lo) 0 var(--px), transparent var(--px) calc(var(--px) * 10), var(--snow-lo) calc(var(--px) * 10) calc(var(--px) * 11), transparent calc(var(--px) * 11) calc(var(--px) * 25), var(--snow-lo) calc(var(--px) * 25) calc(var(--px) * 26), transparent calc(var(--px) * 26)),
+    linear-gradient(var(--snow-lo) 0 var(--px), transparent var(--px) calc(var(--px) * 11), var(--snow-lo) calc(var(--px) * 11) calc(var(--px) * 12), transparent calc(var(--px) * 12) calc(var(--px) * 23), var(--snow-lo) calc(var(--px) * 23) calc(var(--px) * 24), transparent calc(var(--px) * 24)),
+    linear-gradient(var(--snow-lo) 0 var(--px), transparent var(--px) calc(var(--px) * 11), var(--snow-lo) calc(var(--px) * 11) calc(var(--px) * 12), transparent calc(var(--px) * 12) calc(var(--px) * 21), var(--snow-lo) calc(var(--px) * 21) calc(var(--px) * 22), transparent calc(var(--px) * 22)),
+    linear-gradient(var(--snow-hi) 0 calc(var(--px) * 2), transparent calc(var(--px) * 2) calc(var(--px) * 12), var(--snow-hi) calc(var(--px) * 12) calc(var(--px) * 14), transparent calc(var(--px) * 14)),
+    linear-gradient(var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 10), var(--snow) calc(var(--px) * 10) calc(var(--px) * 11), transparent calc(var(--px) * 11)),
+    linear-gradient(var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 12), var(--snow) calc(var(--px) * 12) calc(var(--px) * 13), transparent calc(var(--px) * 13)),
+    linear-gradient(var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 12), var(--snow) calc(var(--px) * 12) calc(var(--px) * 13), transparent calc(var(--px) * 13) calc(var(--px) * 19), var(--snow) calc(var(--px) * 19) calc(var(--px) * 20), transparent calc(var(--px) * 20)),
+    linear-gradient(var(--snow-lo) 0 var(--px), transparent var(--px) calc(var(--px) * 8), var(--snow-lo) calc(var(--px) * 8) calc(var(--px) * 9), transparent calc(var(--px) * 9) calc(var(--px) * 20), var(--snow-lo) calc(var(--px) * 20) calc(var(--px) * 21), transparent calc(var(--px) * 21) calc(var(--px) * 42), var(--snow-lo) calc(var(--px) * 42) calc(var(--px) * 43), transparent calc(var(--px) * 43)),
+    linear-gradient(var(--snow-lo) 0 var(--px), transparent var(--px) calc(var(--px) * 9), var(--snow-lo) calc(var(--px) * 9) calc(var(--px) * 10), transparent calc(var(--px) * 10) calc(var(--px) * 26), var(--snow-lo) calc(var(--px) * 26) calc(var(--px) * 27), transparent calc(var(--px) * 27) calc(var(--px) * 40), var(--snow-lo) calc(var(--px) * 40) calc(var(--px) * 41), transparent calc(var(--px) * 41)),
+    linear-gradient(var(--snow-hi) 0 calc(var(--px) * 2), transparent calc(var(--px) * 2) calc(var(--px) * 24), var(--snow-hi) calc(var(--px) * 24) calc(var(--px) * 26), transparent calc(var(--px) * 26)),
+    linear-gradient(var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 7), var(--snow) calc(var(--px) * 7) calc(var(--px) * 8), transparent calc(var(--px) * 8) calc(var(--px) * 14), var(--snow) calc(var(--px) * 14) calc(var(--px) * 15), transparent calc(var(--px) * 15)),
+    linear-gradient(var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 13), var(--snow) calc(var(--px) * 13) calc(var(--px) * 14), transparent calc(var(--px) * 14) calc(var(--px) * 21), var(--snow) calc(var(--px) * 21) calc(var(--px) * 22), transparent calc(var(--px) * 22)),
+    linear-gradient(var(--snow-lo) 0 var(--px), transparent var(--px) calc(var(--px) * 14), var(--snow-lo) calc(var(--px) * 14) calc(var(--px) * 15), transparent calc(var(--px) * 15)),
+    linear-gradient(var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 10), var(--snow) calc(var(--px) * 10) calc(var(--px) * 11), transparent calc(var(--px) * 11) calc(var(--px) * 23), var(--snow) calc(var(--px) * 23) calc(var(--px) * 24), transparent calc(var(--px) * 24) calc(var(--px) * 37), var(--snow) calc(var(--px) * 37) calc(var(--px) * 38), transparent calc(var(--px) * 38)),
+    linear-gradient(var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 9), var(--snow) calc(var(--px) * 9) calc(var(--px) * 10), transparent calc(var(--px) * 10) calc(var(--px) * 20), var(--snow) calc(var(--px) * 20) calc(var(--px) * 21), transparent calc(var(--px) * 21) calc(var(--px) * 38), var(--snow) calc(var(--px) * 38) calc(var(--px) * 39), transparent calc(var(--px) * 39)),
     /* drift stipple, three rows, no two on the same rhythm */
     repeating-linear-gradient(90deg, var(--snow) 0 var(--px), transparent var(--px) calc(var(--px) * 6)),
     repeating-linear-gradient(90deg, var(--snow) 0 calc(var(--px) * 2), transparent calc(var(--px) * 2) calc(var(--px) * 9)),
@@ -1030,20 +1062,38 @@ button.danger:hover { background: var(--bad); color: var(--paper); }
     repeating-linear-gradient(90deg, transparent 0 calc(var(--px) * 3), var(--fir-lo) calc(var(--px) * 3) calc(var(--px) * 6), transparent calc(var(--px) * 6) calc(var(--px) * 13)),
     repeating-linear-gradient(90deg, transparent 0 calc(var(--px) * 4), var(--fir-lo) calc(var(--px) * 4) calc(var(--px) * 5), transparent calc(var(--px) * 5) calc(var(--px) * 13));
   background-size:
-    var(--px) calc(var(--px) * 17),            /* falls: tile depth = period */
-    var(--px) calc(var(--px) * 23),
-    var(--px) calc(var(--px) * 13),
-    var(--px) calc(var(--px) * 19),
-    var(--px) calc(var(--px) * 11),
-    var(--px) calc(var(--px) * 29),
-    var(--px) calc(var(--px) * 15),
-    var(--px) calc(var(--px) * 14),
-    var(--px) calc(var(--px) * 21),
-    var(--px) calc(var(--px) * 16),
-    var(--px) calc(var(--px) * 26),
-    var(--px) calc(var(--px) * 12),
+    calc(var(--px) * 2) calc(var(--px) * 51),            /* falls: tile depth = period */
+    var(--px) calc(var(--px) * 46),
+    var(--px) calc(var(--px) * 34),
+    var(--px) calc(var(--px) * 33),
     var(--px) calc(var(--px) * 31),
+    var(--px) calc(var(--px) * 37),
+    var(--px) calc(var(--px) * 26),
+    var(--px) calc(var(--px) * 21),
+    calc(var(--px) * 2) calc(var(--px) * 44),
+    var(--px) calc(var(--px) * 28),
+    var(--px) calc(var(--px) * 27),
     var(--px) calc(var(--px) * 18),
+    var(--px) calc(var(--px) * 32),
+    var(--px) calc(var(--px) * 22),
+    var(--px) calc(var(--px) * 52),
+    var(--px) calc(var(--px) * 48),
+    var(--px) calc(var(--px) * 17),
+    var(--px) calc(var(--px) * 38),
+    var(--px) calc(var(--px) * 39),
+    var(--px) calc(var(--px) * 42),
+    calc(var(--px) * 2) calc(var(--px) * 41),
+    var(--px) calc(var(--px) * 19),
+    var(--px) calc(var(--px) * 24),
+    var(--px) calc(var(--px) * 36),
+    var(--px) calc(var(--px) * 53),
+    var(--px) calc(var(--px) * 56),
+    calc(var(--px) * 2) calc(var(--px) * 54),
+    var(--px) calc(var(--px) * 29),
+    var(--px) calc(var(--px) * 43),
+    var(--px) calc(var(--px) * 23),
+    var(--px) calc(var(--px) * 49),
+    var(--px) calc(var(--px) * 47),
     100% var(--px),                            /* drift stipple              */
     100% var(--px),
     100% var(--px),
@@ -1060,20 +1110,38 @@ button.danger:hover { background: var(--bad); color: var(--paper); }
     /* Uneven spacing, and the gust is added on the left-anchored columns and
        subtracted on the right-anchored ones so a gust blows every flake the
        same way across the box. */
-    left  calc(var(--px) * 3   + var(--gust-a)) top var(--sn1),
-    left  calc(var(--px) * 22  + var(--gust-b)) top var(--sn2),
-    left  calc(var(--px) * 45  + var(--gust-c)) top var(--sn3),
-    left  calc(var(--px) * 67  + var(--gust-a)) top var(--sn4),
-    left  calc(var(--px) * 88  + var(--gust-b)) top var(--sn5),
-    left  calc(var(--px) * 109 + var(--gust-c)) top var(--sn6),
-    left  calc(var(--px) * 127 + var(--gust-a)) top var(--sn7),
-    right calc(var(--px) * 8   - var(--gust-b)) top var(--sn8),
-    right calc(var(--px) * 26  - var(--gust-c)) top var(--sn9),
-    right calc(var(--px) * 43  - var(--gust-a)) top var(--sn10),
-    right calc(var(--px) * 64  - var(--gust-b)) top var(--sn11),
-    right calc(var(--px) * 84  - var(--gust-c)) top var(--sn12),
-    right calc(var(--px) * 104 - var(--gust-a)) top var(--sn13),
-    right calc(var(--px) * 124 - var(--gust-b)) top var(--sn14),
+    left  calc(var(--px) *   3 + var(--gust-a) * 2) top var(--sn1),
+    left  calc(var(--px) *   9 + var(--gust-b)) top var(--sn2),
+    left  calc(var(--px) *  22 + var(--gust-c)) top var(--sn3),
+    left  calc(var(--px) *  26 + var(--gust-d) * 2) top var(--sn4),
+    left  calc(var(--px) *  42 + var(--gust-a) * 2) top var(--sn5),
+    left  calc(var(--px) *  48 + var(--gust-b)) top var(--sn6),
+    left  calc(var(--px) *  63 + var(--gust-c) * 2) top var(--sn7),
+    left  calc(var(--px) *  69 + var(--gust-d) * 2) top var(--sn8),
+    left  calc(var(--px) *  86 + var(--gust-a) * 2) top var(--sn9),
+    left  calc(var(--px) *  92 + var(--gust-b)) top var(--sn10),
+    left  calc(var(--px) * 108 + var(--gust-c)) top var(--sn11),
+    left  calc(var(--px) * 112 + var(--gust-d) * 2) top var(--sn12),
+    left  calc(var(--px) * 131 + var(--gust-a) * 2) top var(--sn13),
+    left  calc(var(--px) * 135 + var(--gust-b) * 2) top var(--sn14),
+    left  calc(var(--px) * 152 + var(--gust-c)) top var(--sn15),
+    left  calc(var(--px) * 155 + var(--gust-d)) top var(--sn16),
+    right calc(var(--px) *   7 - var(--gust-a) * 2) top var(--sn17),
+    right calc(var(--px) *  12 - var(--gust-b)) top var(--sn18),
+    right calc(var(--px) *  26 - var(--gust-c)) top var(--sn19),
+    right calc(var(--px) *  29 - var(--gust-d)) top var(--sn20),
+    right calc(var(--px) *  46 - var(--gust-a) * 2) top var(--sn21),
+    right calc(var(--px) *  49 - var(--gust-b) * 2) top var(--sn22),
+    right calc(var(--px) *  68 - var(--gust-c) * 2) top var(--sn23),
+    right calc(var(--px) *  74 - var(--gust-d) * 2) top var(--sn24),
+    right calc(var(--px) *  90 - var(--gust-a)) top var(--sn25),
+    right calc(var(--px) *  95 - var(--gust-b)) top var(--sn26),
+    right calc(var(--px) * 112 - var(--gust-c) * 2) top var(--sn27),
+    right calc(var(--px) * 117 - var(--gust-d) * 2) top var(--sn28),
+    right calc(var(--px) * 134 - var(--gust-a) * 2) top var(--sn29),
+    right calc(var(--px) * 139 - var(--gust-b)) top var(--sn30),
+    right calc(var(--px) * 155 - var(--gust-c) * 2) top var(--sn31),
+    right calc(var(--px) * 160 - var(--gust-d) * 2) top var(--sn32),
     bottom var(--px) left 0,
     bottom calc(var(--px) * 3) left calc(var(--px) * 2),
     bottom calc(var(--px) * 6) left calc(var(--px) * 5),
@@ -1281,75 +1349,162 @@ button.danger:hover { background: var(--bad); color: var(--paper); }
 @property --sn12 { syntax: "<length>"; inherits: false; initial-value: 0px; }
 @property --sn13 { syntax: "<length>"; inherits: false; initial-value: 0px; }
 @property --sn14 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --sn15 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --sn16 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --sn17 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --sn18 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --sn19 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --sn20 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --sn21 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --sn22 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --sn23 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --sn24 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --sn25 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --sn26 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --sn27 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --sn28 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --sn29 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --sn30 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --sn31 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --sn32 { syntax: "<length>"; inherits: false; initial-value: 0px; }
 @property --gust-a { syntax: "<length>"; inherits: false; initial-value: 0px; }
 @property --gust-b { syntax: "<length>"; inherits: false; initial-value: 0px; }
 @property --gust-c { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --gust-d { syntax: "<length>"; inherits: false; initial-value: 0px; }
 
 /* Every column falls exactly one tile — its own period — in `steps(period)`, so
    each flake lands a whole pixel lower each step and the loop is invisible. The
    near columns fall faster than the far ones, which is the whole parallax; the
-   durations are deliberately off each other's multiples, so the fourteen clocks
-   only line up again long after anyone is still watching.
+   durations are deliberately off each other's multiples, so the thirty-two
+   clocks only line up again long after anyone is still watching.
 
-   The three gusts run slower than any fall and on their own lengths, each one
-   leaning its share of the columns a pixel or two sideways and letting them
-   back — the field never leans as a single sheet. */
+   The four gusts run slower than any fall and on their own lengths, each one
+   leaning its share of the columns up to three pixels sideways and letting them
+   back — the field never leans as a single sheet. Near columns take twice the
+   lean of far ones, so a gust shears the field instead of sliding it. */
 .woods {
   animation:
-    fall-1   3.4s steps(17, end) infinite,
-    fall-2   6.1s steps(23, end) infinite,
-    fall-3   2.6s steps(13, end) infinite,
-    fall-4   5.2s steps(19, end) infinite,
-    fall-5   2.2s steps(11, end) infinite,
-    fall-6   7.0s steps(29, end) infinite,
-    fall-7   3.0s steps(15, end) infinite,
-    fall-8   2.9s steps(14, end) infinite,
-    fall-9   5.6s steps(21, end) infinite,
-    fall-10  3.3s steps(16, end) infinite,
-    fall-11  6.5s steps(26, end) infinite,
-    fall-12  2.4s steps(12, end) infinite,
-    fall-13  7.4s steps(31, end) infinite,
-    fall-14  3.7s steps(18, end) infinite,
+    fall-1    9.3s steps(51, end) infinite,
+    fall-2   13.8s steps(46, end) infinite,
+    fall-3    9.9s steps(34, end) infinite,
+    fall-4    5.8s steps(33, end) infinite,
+    fall-5    5.8s steps(31, end) infinite,
+    fall-6   11.1s steps(37, end) infinite,
+    fall-7    4.4s steps(26, end) infinite,
+    fall-8    3.5s steps(21, end) infinite,
+    fall-9    9.2s steps(44, end) infinite,
+    fall-10   8.4s steps(28, end) infinite,
+    fall-11   6.8s steps(27, end) infinite,
+    fall-12   3.7s steps(18, end) infinite,
+    fall-13   5.7s steps(32, end) infinite,
+    fall-14   3.7s steps(22, end) infinite,
+    fall-15  13.2s steps(52, end) infinite,
+    fall-16  14.9s steps(48, end) infinite,
+    fall-17   3.5s steps(17, end) infinite,
+    fall-18  10.6s steps(38, end) infinite,
+    fall-19  10.8s steps(39, end) infinite,
+    fall-20  10.8s steps(42, end) infinite,
+    fall-21   7.6s steps(41, end) infinite,
+    fall-22   3.1s steps(19, end) infinite,
+    fall-23   4.2s steps(24, end) infinite,
+    fall-24     6s steps(36, end) infinite,
+    fall-25  16.3s steps(53, end) infinite,
+    fall-26  17.5s steps(56, end) infinite,
+    fall-27   8.8s steps(54, end) infinite,
+    fall-28   4.8s steps(29, end) infinite,
+    fall-29   7.3s steps(43, end) infinite,
+    fall-30   6.9s steps(23, end) infinite,
+    fall-31     8s steps(49, end) infinite,
+    fall-32   8.4s steps(47, end) infinite,
     gust-a  11.0s steps(1, end)  infinite,
     gust-b  17.0s steps(1, end)  infinite,
-    gust-c  13.0s steps(1, end)  infinite;
+    gust-c  13.0s steps(1, end)  infinite,
+    gust-d  19.0s steps(1, end)  infinite;
 }
-@keyframes fall-1  { to { --sn1:  calc(var(--px) * 17); } }
-@keyframes fall-2  { to { --sn2:  calc(var(--px) * 23); } }
-@keyframes fall-3  { to { --sn3:  calc(var(--px) * 13); } }
-@keyframes fall-4  { to { --sn4:  calc(var(--px) * 19); } }
-@keyframes fall-5  { to { --sn5:  calc(var(--px) * 11); } }
-@keyframes fall-6  { to { --sn6:  calc(var(--px) * 29); } }
-@keyframes fall-7  { to { --sn7:  calc(var(--px) * 15); } }
-@keyframes fall-8  { to { --sn8:  calc(var(--px) * 14); } }
-@keyframes fall-9  { to { --sn9:  calc(var(--px) * 21); } }
-@keyframes fall-10 { to { --sn10: calc(var(--px) * 16); } }
-@keyframes fall-11 { to { --sn11: calc(var(--px) * 26); } }
-@keyframes fall-12 { to { --sn12: calc(var(--px) * 12); } }
-@keyframes fall-13 { to { --sn13: calc(var(--px) * 31); } }
-@keyframes fall-14 { to { --sn14: calc(var(--px) * 18); } }
+@keyframes fall-1  { to { --sn1: calc(var(--px) * 51); } }
+@keyframes fall-2  { to { --sn2: calc(var(--px) * 46); } }
+@keyframes fall-3  { to { --sn3: calc(var(--px) * 34); } }
+@keyframes fall-4  { to { --sn4: calc(var(--px) * 33); } }
+@keyframes fall-5  { to { --sn5: calc(var(--px) * 31); } }
+@keyframes fall-6  { to { --sn6: calc(var(--px) * 37); } }
+@keyframes fall-7  { to { --sn7: calc(var(--px) * 26); } }
+@keyframes fall-8  { to { --sn8: calc(var(--px) * 21); } }
+@keyframes fall-9  { to { --sn9: calc(var(--px) * 44); } }
+@keyframes fall-10 { to { --sn10: calc(var(--px) * 28); } }
+@keyframes fall-11 { to { --sn11: calc(var(--px) * 27); } }
+@keyframes fall-12 { to { --sn12: calc(var(--px) * 18); } }
+@keyframes fall-13 { to { --sn13: calc(var(--px) * 32); } }
+@keyframes fall-14 { to { --sn14: calc(var(--px) * 22); } }
+@keyframes fall-15 { to { --sn15: calc(var(--px) * 52); } }
+@keyframes fall-16 { to { --sn16: calc(var(--px) * 48); } }
+@keyframes fall-17 { to { --sn17: calc(var(--px) * 17); } }
+@keyframes fall-18 { to { --sn18: calc(var(--px) * 38); } }
+@keyframes fall-19 { to { --sn19: calc(var(--px) * 39); } }
+@keyframes fall-20 { to { --sn20: calc(var(--px) * 42); } }
+@keyframes fall-21 { to { --sn21: calc(var(--px) * 41); } }
+@keyframes fall-22 { to { --sn22: calc(var(--px) * 19); } }
+@keyframes fall-23 { to { --sn23: calc(var(--px) * 24); } }
+@keyframes fall-24 { to { --sn24: calc(var(--px) * 36); } }
+@keyframes fall-25 { to { --sn25: calc(var(--px) * 53); } }
+@keyframes fall-26 { to { --sn26: calc(var(--px) * 56); } }
+@keyframes fall-27 { to { --sn27: calc(var(--px) * 54); } }
+@keyframes fall-28 { to { --sn28: calc(var(--px) * 29); } }
+@keyframes fall-29 { to { --sn29: calc(var(--px) * 43); } }
+@keyframes fall-30 { to { --sn30: calc(var(--px) * 23); } }
+@keyframes fall-31 { to { --sn31: calc(var(--px) * 49); } }
+@keyframes fall-32 { to { --sn32: calc(var(--px) * 47); } }
 
+/* A gust walks a pixel at a time, out to three and back, and on across zero
+   into a lean the other way — never a jump, so the field swirls instead of
+   snapping sideways. Each gust is a different walk on its own clock. */
 @keyframes gust-a {
   0%, 100% { --gust-a: 0px; }
-  22%      { --gust-a: var(--px); }
-  46%      { --gust-a: calc(var(--px) * 2); }
-  68%      { --gust-a: var(--px); }
-  85%      { --gust-a: 0px; }
+  9%   { --gust-a: var(--px); }
+  19%  { --gust-a: calc(var(--px) * 2); }
+  28%  { --gust-a: calc(var(--px) * 3); }
+  39%  { --gust-a: calc(var(--px) * 2); }
+  48%  { --gust-a: var(--px); }
+  57%  { --gust-a: 0px; }
+  66%  { --gust-a: calc(var(--px) * -1); }
+  76%  { --gust-a: calc(var(--px) * -2); }
+  86%  { --gust-a: calc(var(--px) * -1); }
+  94%  { --gust-a: 0px; }
 }
 @keyframes gust-b {
   0%, 100% { --gust-b: 0px; }
-  17%      { --gust-b: var(--px); }
-  38%      { --gust-b: 0px; }
-  59%      { --gust-b: var(--px); }
-  74%      { --gust-b: calc(var(--px) * 2); }
-  91%      { --gust-b: var(--px); }
+  8%   { --gust-b: calc(var(--px) * -1); }
+  16%  { --gust-b: calc(var(--px) * -2); }
+  27%  { --gust-b: calc(var(--px) * -1); }
+  35%  { --gust-b: 0px; }
+  44%  { --gust-b: var(--px); }
+  53%  { --gust-b: calc(var(--px) * 2); }
+  63%  { --gust-b: calc(var(--px) * 3); }
+  72%  { --gust-b: calc(var(--px) * 2); }
+  81%  { --gust-b: var(--px); }
+  92%  { --gust-b: 0px; }
 }
 @keyframes gust-c {
   0%, 100% { --gust-c: 0px; }
-  29%      { --gust-c: calc(var(--px) * -1); }
-  51%      { --gust-c: 0px; }
-  73%      { --gust-c: var(--px); }
-  88%      { --gust-c: 0px; }
+  11%  { --gust-c: var(--px); }
+  21%  { --gust-c: 0px; }
+  31%  { --gust-c: calc(var(--px) * -1); }
+  42%  { --gust-c: calc(var(--px) * -2); }
+  54%  { --gust-c: calc(var(--px) * -1); }
+  64%  { --gust-c: 0px; }
+  74%  { --gust-c: var(--px); }
+  83%  { --gust-c: calc(var(--px) * 2); }
+  93%  { --gust-c: var(--px); }
+}
+@keyframes gust-d {
+  0%, 100% { --gust-d: 0px; }
+  10%  { --gust-d: var(--px); }
+  22%  { --gust-d: calc(var(--px) * 2); }
+  33%  { --gust-d: var(--px); }
+  45%  { --gust-d: 0px; }
+  56%  { --gust-d: var(--px); }
+  67%  { --gust-d: calc(var(--px) * 2); }
+  78%  { --gust-d: calc(var(--px) * 3); }
+  89%  { --gust-d: var(--px); }
 }
 
 /* The fir shrugs off a pixel of snow every so often. */
