@@ -137,15 +137,21 @@ prompt instead of an answer, and the harness runs it as if you had typed it.
 
 ## The queue
 
-Type while a request is running and it is held rather than refused: `RUN` reads
-`QUEUE`, and a strip above the prompt lists what is waiting. Each queued line
-runs in order as the one ahead of it finishes, one at a time — the agent has a
+Type while a request is running and it is kept rather than refused: `RUN` reads
+`QUEUE`, and an `ON DECK` strip above the prompt lists what is waiting. Each
+line runs in order as the one ahead of it finishes, one at a time — the agent has a
 single conversation, so there is never a second turn in flight.
 
 ```
-QUEUED 2   1. now write the tests            ×
-           2. /compact                       ×      CLEAR
+ON DECK 2   1. now write the tests           ×
+            2. /compact                      ×      CLEAR
 ```
+
+Press `↑` on an empty prompt and the last queued line comes back into the box
+for editing. The strip reads `HELD` while it is out, and nothing behind it
+starts — the request in flight finishes, but the queue waits. `ENTER` puts the
+edited line back at the end and the queue runs on; `CLEAR` or `STOP` ends the
+hold too, along with everything waiting.
 
 `×` drops one line, `CLEAR` and `/queue clear` drop all of them, and `STOP`
 drops the queue along with the request it interrupts. Slash commands queue like

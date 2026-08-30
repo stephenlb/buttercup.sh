@@ -396,11 +396,17 @@ window.UI = (function () {
     /**
      * Paint the waiting-requests strip. `drop(i)` removes one, `clear()` drops
      * them all; both are handed in fresh on every paint so this stays stateless.
+     * `paused` means one request is out in the composer being edited.
      */
-    queue(items, { drop, clear } = {}) {
+    queue(items, { drop, clear, paused } = {}) {
       const box = $("queue");
-      box.hidden = !items.length;
-      $("queue-head").textContent = items.length > 1 ? `queued ${items.length}` : "queued";
+      box.hidden = !items.length && !paused;
+      box.dataset.paused = paused ? "1" : "";
+      // "on deck" and "held" rather than "queued" and "paused": this is a
+      // counter with an order rail, not a job scheduler.
+      $("queue-head").textContent = paused
+        ? "held"
+        : items.length > 1 ? `on deck ${items.length}` : "on deck";
       $("queue-clear").onclick = clear || null;
       const list = $("queue-list");
       list.replaceChildren();

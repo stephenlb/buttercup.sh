@@ -137,16 +137,21 @@ body {
 .entry.error { border-left: 3px solid var(--bad); padding-left: .7rem; color: var(--bad); }
 .entry.system { color: var(--ink-dim); font-size: .82rem; }
 
-/* streaming caret — on the last block, so it trails the last word rather than
-   sitting alone under the reply; on the body itself before the first block. */
-.entry.model.live .body > :last-child::after,
-.entry.model.live .body:empty::after {
+/* streaming caret — it trails the last word of the reply, which for a list
+   means the deepest last item: hung on the list box itself it would sit alone
+   on a line under the bullets. Two levels of nesting is as far as this goes;
+   deeper than that a reply simply streams without a caret. */
+.entry.model.live .body:empty::after,
+.entry.model.live .body > :last-child:not(:is(ul, ol))::after,
+.entry.model.live .body > :is(ul, ol):last-child > li:last-child:not(:has(:is(ul, ol)))::after,
+.entry.model.live .body > :is(ul, ol):last-child > li:last-child > :is(ul, ol):last-child > li:last-child::after {
   content: "█"; color: var(--ink-hot); margin-left: 1px;
+  animation: blink 1s steps(2) infinite;
 }
-@media (prefers-reduced-motion: no-preference) {
-  .entry.model.live .body > :last-child::after,
-  .entry.model.live .body:empty::after { animation: blink 1s steps(2) infinite; }
-  @keyframes blink { 50% { opacity: 0; } }
+@keyframes blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .entry.model.live .body::after,
+  .entry.model.live .body *::after { animation: none; }
 }
 
 /* ── markdown the renderer emits ──────────────────────────────────────────────
@@ -225,7 +230,7 @@ details.think > pre { font-style: italic; }
 /* ── queue ────────────────────────────────────────────────────────────────────
    Sits between the transcript and the prompt, so what is waiting reads as part
    of the input rather than part of the record. `hidden` when empty, which is
-   most of the time. */
+   most of the time — unless it is held, when it stays to say so even at zero. */
 .queue {
   display: grid; grid-template-columns: auto minmax(0,1fr) auto; gap: .55rem;
   align-items: start; border-top: 2px solid var(--rule); background: var(--paper-3);
@@ -242,6 +247,11 @@ details.think > pre { font-style: italic; }
 .queue .qtext { color: var(--user); overflow: hidden; text-overflow: ellipsis;
   white-space: nowrap; }
 .queue li button { padding: 0 .35rem; font-size: .7rem; line-height: 1.4; }
+/* held: one request is out in the composer, so nothing here is going to run
+   until it comes back. Said with the warm rule rather than a second widget. */
+.queue[data-paused="1"] { border-top-color: var(--ink-hot); }
+.queue[data-paused="1"] .qhead { color: var(--ink-hot); }
+.queue[data-paused="1"] .qtext { color: var(--ink-dim); }
 
 /* ── prompt ───────────────────────────────────────────────────────────────── */
 .prompt {

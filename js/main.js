@@ -203,6 +203,12 @@
       e.preventDefault();
       $("prompt-form").requestSubmit();
     }
+    // Up on an empty composer takes the last queued request back for editing —
+    // also terminal muscle memory, and the only way to fix a typo in something
+    // already waiting. With text in the box, Up is still cursor movement.
+    if (e.key === "ArrowUp" && !e.shiftKey && !e.altKey && !input.value && editQueued()) {
+      e.preventDefault();
+    }
   });
 
   /**
@@ -277,21 +283,41 @@
 
   const queue = [];
   let draining = false;
+  /* One queued request is in the composer being edited: nothing behind it may
+     start, or the edit would land after work that assumed it. ENTER puts it
+     back and the queue picks up where it left off. */
+  let paused = false;
 
   function paintQueue() {
     UI.queue(queue, {
+      paused,
       drop: (i) => { queue.splice(i, 1); paintQueue(); },
       clear: () => dropQueue((n) => UI.system(`queue cleared — ${n} request(s) dropped`)),
     });
   }
 
+  /**
+   * Pull the last queued request into the composer and hold the queue there.
+   * Refused when the composer already holds a draft, which would be lost.
+   */
+  function editQueued() {
+    if (!queue.length || input.value) return false;
+    paused = true;
+    input.value = queue.pop();
+    grow();
+    input.setSelectionRange(input.value.length, input.value.length);
+    paintQueue();
+    UI.system("queue held — edit the request and press ENTER to put it back");
+    return true;
+  }
+
   /** Empty the queue, reporting through `say` only if there was anything in it. */
   function dropQueue(say) {
     const n = queue.length;
-    if (!n) return 0;
     queue.length = 0;
+    paused = false;
     paintQueue();
-    if (say) say(n);
+    if (n && say) say(n);
     return n;
   }
 
@@ -299,7 +325,7 @@
     if (draining) return;
     draining = true;
     try {
-      while (queue.length) {
+      while (queue.length && !paused) {
         const text = queue.shift();
         paintQueue();
         let ok = true;
@@ -330,7 +356,10 @@
     // Mid-turn `/help` and `/queue` skip the queue: they only read state.
     if (draining && Commands.isInstant(text)) return runInstant(text);
 
+    // Whatever this was — a new request or the edited one coming back — the
+    // hold is over, so the queue runs again from the front.
     queue.push(text);
+    paused = false;
     paintQueue();
     drain();
   });
