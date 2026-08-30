@@ -22,6 +22,8 @@ window.Commands = (function () {
   const hooks = {
     mode: () => Agent.defaultMode,
     setMode: () => {},
+    queue: () => [],
+    clearQueue: () => 0,
   };
 
   const INIT_PROMPT = `Write the project rules file for this workspace.
@@ -39,13 +41,38 @@ The harness loads this file into your system prompt on every turn from now on, s
       name: "help",
       usage: "/help",
       help: "list these commands",
+      instant: true,
       run() {
         const rows = DEFS.map((d) => `  ${d.usage.padEnd(30)} ${d.help}`);
         return [
           "commands (handled in this tab; never sent to the model):",
           ...rows,
           "",
-          "anything else you type is a request for the agent.",
+          "anything else you type is a request for the agent. Type while one is",
+          "running and it queues behind it — see /queue.",
+        ].join("\n");
+      },
+    },
+    {
+      name: "queue",
+      usage: "/queue [clear]",
+      help: "show what is waiting behind the current request, or drop all of it",
+      instant: true,
+      run(rest) {
+        if (rest === "clear") {
+          const n = hooks.clearQueue();
+          return n ? `queue cleared — ${n} request(s) dropped` : "queue was already empty";
+        }
+        if (rest) throw new Error("usage: /queue [clear]");
+        const items = hooks.queue();
+        if (!items.length) {
+          return "queue empty — type while a request is running and it waits here instead of being refused.";
+        }
+        return [
+          `${items.length} request(s) waiting, in order:`,
+          ...items.map((t, i) => `  ${i + 1}. ${t.split("\n")[0].slice(0, 72)}`),
+          "",
+          "The × beside each one drops it; STOP drops the whole queue with the running request.",
         ].join("\n");
       },
     },
@@ -179,6 +206,16 @@ The harness loads this file into your system prompt on every turn from now on, s
 
     /** True when a prompt line is a command rather than a request. */
     is: (text) => /^\/\S/.test(text.trim()),
+
+    /**
+     * True for a command that only reads state, so it is safe to answer while a
+     * request is already running instead of queueing it behind that request.
+     */
+    isInstant(text) {
+      const m = text.trim().match(/^\/(\S*)/);
+      const def = m && byName[m[1].toLowerCase()];
+      return !!(def && def.instant);
+    },
 
     /**
      * Execute one command line. Throws on failure. Resolves to

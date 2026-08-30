@@ -117,6 +117,7 @@ otherwise.
 | Command | What it does |
 | --- | --- |
 | `/help` | Lists the commands. |
+| `/queue` | Shows what is waiting behind the running request; `/queue clear` drops it. |
 | `/mode` | Shows the current mode. |
 | `/mode agent-builder` | Default. The system prompt that builds AI agents, blocks.ai first. |
 | `/mode general` | The same tools and sandbox, pointed at anything static. |
@@ -131,6 +132,27 @@ otherwise.
 `/init` is the one command that does reach the model: a command may hand back a
 prompt instead of an answer, and the harness runs it as if you had typed it.
 `/compact` spends one completion of its own; everything else is free.
+
+---
+
+## The queue
+
+Type while a request is running and it is held rather than refused: `RUN` reads
+`QUEUE`, and a strip above the prompt lists what is waiting. Each queued line
+runs in order as the one ahead of it finishes, one at a time — the agent has a
+single conversation, so there is never a second turn in flight.
+
+```
+QUEUED 2   1. now write the tests            ×
+           2. /compact                       ×      CLEAR
+```
+
+`×` drops one line, `CLEAR` and `/queue clear` drop all of them, and `STOP`
+drops the queue along with the request it interrupts. Slash commands queue like
+anything else, so `/compact` behind a build runs once the build is done —
+except `/help` and `/queue`, which only read state and answer immediately. If a
+queued request cannot start at all (no key, a key the vendor rejects) the rest
+of the queue is dropped rather than failing the same way one line at a time.
 
 ---
 

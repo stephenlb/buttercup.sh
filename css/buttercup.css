@@ -182,6 +182,25 @@ details.think > pre { font-style: italic; }
 .approve p { margin: 0 0 .45rem; color: var(--warn); }
 .approve .btns { display: flex; gap: .4rem; flex-wrap: wrap; }
 
+/* ── queue ────────────────────────────────────────────────────────────────────
+   Sits between the transcript and the prompt, so what is waiting reads as part
+   of the input rather than part of the record. `hidden` when empty, which is
+   most of the time. */
+.queue {
+  display: grid; grid-template-columns: auto minmax(0,1fr) auto; gap: .55rem;
+  align-items: start; border-top: 2px solid var(--rule); background: var(--paper-3);
+  padding: .45rem .6rem; font-size: .8rem;
+}
+.queue .qhead { font-size: .7rem; letter-spacing: .2em; text-transform: uppercase;
+  color: var(--ink-faint); padding-top: .15rem; }
+.queue ol { list-style: none; margin: 0; padding: 0; display: grid; gap: .2rem; }
+.queue li { display: grid; grid-template-columns: auto minmax(0,1fr) auto;
+  gap: .4rem; align-items: baseline; }
+.queue .qn { color: var(--ink-faint); }
+.queue .qtext { color: var(--user); overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; }
+.queue li button { padding: 0 .35rem; font-size: .7rem; line-height: 1.4; }
+
 /* ── prompt ───────────────────────────────────────────────────────────────── */
 .prompt {
   display: grid; grid-template-columns: auto minmax(0,1fr) auto auto;

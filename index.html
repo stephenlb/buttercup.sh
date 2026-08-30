@@ -49,6 +49,14 @@
         </article>
       </div>
 
+      <!-- ══ the queue: anything typed while a turn is running waits here and
+              runs in order as each turn finishes. Hidden while empty. ══════ -->
+      <div class="queue" id="queue" hidden>
+        <span class="qhead" id="queue-head">queued</span>
+        <ol id="queue-list"></ol>
+        <button type="button" class="mini danger" id="queue-clear">CLEAR</button>
+      </div>
+
       <form class="prompt" id="prompt-form" autocomplete="off">
         <label class="sigil" for="prompt-input" aria-hidden="true">&gt;</label>
         <textarea id="prompt-input" name="prompt" rows="1" spellcheck="false"

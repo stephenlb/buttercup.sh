@@ -201,6 +201,7 @@ scroll horizontally with a visible, styled scrollbar.
 │  │ ▸ write  handler.js     ● OK │    │                             │
 │  └──────────────────────────────┘    │                             │
 │                                      │                             │
+│ QUEUED 2  1. now write the tests  ×  │                             │  queue
 │ >  ask for what you want…   RUN STOP │                             │  prompt
 │ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~  │                             │  scene
 ├──────────────────────────────────────┼─────────────────────────────┤
@@ -268,7 +269,17 @@ block cursor in `--pb-hot` that blinks at 1.1s — removed under
 `--grad-raised`, 2px `--rim` top border, `>` sigil in `--blueberry`.
 `RUN` is the only filled button in the product: `--pb` background, `--cocoa-4`
 text, 600 weight. `STOP` is ghost with a `--jam` border, disabled until a run
-starts.
+starts. `RUN` is never disabled: while a run is going it reads `QUEUE`, because
+what it does then is queue the line rather than refuse it.
+
+### Queue strip
+
+Directly above the prompt bar, `hidden` while the queue is empty — so the
+default state of the machine is unchanged and the strip only ever appears as a
+consequence of typing ahead. Same raised ground as the prompt, `QUEUED n` label
+in the faint ink used by `.who`, queued text in the user colour so it reads as
+something you said, one `mini` `×` per line and one `danger` `CLEAR` for all of
+them.
 
 ### Buttons
 

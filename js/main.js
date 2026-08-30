@@ -223,21 +223,39 @@
       setRunning(false);
     }
     paintStats();
-    if (out && out.prompt) await runPrompt(out.prompt);
+    if (out && out.prompt) return runPrompt(out.prompt);
+    return true;
   }
 
-  /** Send one request to the model, once we know the key is good for it. */
+  /**
+   * A read-only command (`/help`, `/queue`) typed mid-turn: answer it now
+   * instead of making it wait behind the work it is asking about.
+   */
+  async function runInstant(text) {
+    UI.user(text);
+    try {
+      const out = await Commands.run(text);
+      if (out.text) UI.system(out.text);
+    } catch (err) {
+      UI.error(String(err && err.message ? err.message : err));
+    }
+  }
+
+  /**
+   * Send one request to the model, once we know the key is good for it.
+   * Resolves false when the request never reached the model at all.
+   */
   async function runPrompt(text) {
     if (!settings.key) {
       $("tab-keys").checked = true;
       UI.error("no API key. Open the KEYS panel, pick a provider, paste a key, press SAVE.");
-      return;
+      return false;
     }
     // The lamp says READY only once the vendor has agreed; make that true
     // before spending a turn on a key that will be rejected anyway.
     if (!keyOk && !(await checkKey())) {
       $("tab-keys").checked = true;
-      return;
+      return false;
     }
 
     setRunning(true);
@@ -247,25 +265,84 @@
       setRunning(false);
       input.focus();
     }
+    return true;
   }
 
-  $("prompt-form").addEventListener("submit", async (e) => {
+  /* ── the queue ────────────────────────────────────────────────────────────
+     Typing while a turn runs used to be refused; now it lands here and runs in
+     order as each turn finishes. One driver loop owns the draining, so however
+     many requests arrive there is never a second turn in flight — which is the
+     whole constraint, since the agent's conversation is a single thread.
+     ─────────────────────────────────────────────────────────────────────────── */
+
+  const queue = [];
+  let draining = false;
+
+  function paintQueue() {
+    UI.queue(queue, {
+      drop: (i) => { queue.splice(i, 1); paintQueue(); },
+      clear: () => dropQueue((n) => UI.system(`queue cleared — ${n} request(s) dropped`)),
+    });
+  }
+
+  /** Empty the queue, reporting through `say` only if there was anything in it. */
+  function dropQueue(say) {
+    const n = queue.length;
+    if (!n) return 0;
+    queue.length = 0;
+    paintQueue();
+    if (say) say(n);
+    return n;
+  }
+
+  async function drain() {
+    if (draining) return;
+    draining = true;
+    try {
+      while (queue.length) {
+        const text = queue.shift();
+        paintQueue();
+        let ok = true;
+        try {
+          ok = Commands.is(text) ? await runCommand(text) : await runPrompt(text);
+        } catch (err) {
+          UI.error(String(err && err.message ? err.message : err));
+          ok = false;
+        }
+        // Whatever stopped that request — no key, a rejected key — would stop
+        // everything behind it too. Drop the rest rather than repeat the error.
+        if (!ok) dropQueue((n) => UI.error(`queue cleared — ${n} request(s) dropped after that failure`));
+      }
+    } finally {
+      draining = false;
+      input.focus();
+    }
+  }
+
+  $("prompt-form").addEventListener("submit", (e) => {
     e.preventDefault();
     const text = input.value.trim();
     if (!text) return;
-    if (Agent.busy) return UI.error("still working — press STOP first");
 
     input.value = "";
     grow();
 
-    if (Commands.is(text)) return runCommand(text);
-    await runPrompt(text);
+    // Mid-turn `/help` and `/queue` skip the queue: they only read state.
+    if (draining && Commands.isInstant(text)) return runInstant(text);
+
+    queue.push(text);
+    paintQueue();
+    drain();
   });
 
-  $("stop").addEventListener("click", () => Agent.stop());
+  $("stop").addEventListener("click", () => {
+    Agent.stop();
+    dropQueue((n) => UI.system(`stopped — ${n} queued request(s) dropped`));
+  });
 
   function setRunning(on) {
-    $("send").disabled = on;
+    // RUN stays live while a turn runs: pressing it queues rather than refuses.
+    $("send").textContent = on ? "QUEUE" : "RUN";
     $("stop").disabled = !on;
   }
 
@@ -299,6 +376,8 @@
       $("mode").value = mode;
       saveSettings();
     },
+    queue: () => queue.slice(),
+    clearQueue: () => dropQueue(),
   });
 
   Object.assign(Tools.hooks, {
@@ -319,6 +398,7 @@
   UI.renderTree();
   paintStats();
   paintReady();
+  paintQueue();
   setRunning(false);
 
   if (Agent.turns) {

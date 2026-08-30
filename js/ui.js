@@ -194,6 +194,30 @@ window.UI = (function () {
       $("stat-files").textContent = `${VFS.count()} files`;
     },
 
+    /**
+     * Paint the waiting-requests strip. `drop(i)` removes one, `clear()` drops
+     * them all; both are handed in fresh on every paint so this stays stateless.
+     */
+    queue(items, { drop, clear } = {}) {
+      const box = $("queue");
+      box.hidden = !items.length;
+      $("queue-head").textContent = items.length > 1 ? `queued ${items.length}` : "queued";
+      $("queue-clear").onclick = clear || null;
+      const list = $("queue-list");
+      list.replaceChildren();
+      items.forEach((text, i) => {
+        const li = el("li");
+        li.appendChild(el("span", "qn", `${i + 1}.`));
+        li.appendChild(el("span", "qtext", text.split("\n")[0]));
+        const x = el("button", "mini", "×");
+        x.type = "button";
+        x.title = "remove from the queue";
+        x.addEventListener("click", () => drop && drop(i));
+        li.appendChild(x);
+        list.appendChild(li);
+      });
+    },
+
     renderTools() {
       const list = $("tools");
       list.replaceChildren();
