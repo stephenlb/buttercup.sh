@@ -146,11 +146,50 @@ body {
   @keyframes blink { 50% { opacity: 0; } }
 }
 
-/* markdown-ish niceties the renderer emits */
+/* ── markdown the renderer emits ──────────────────────────────────────────────
+   While a reply streams, the raw text is shown as-is and needs its newlines
+   kept; the moment it finishes, `live` comes off and the same node is replaced
+   by real blocks, which lay themselves out. Hence pre-wrap on `live` only.
+   Every element below is a bare tag: js/ui.js sets no styles. */
+.entry.model.live .body { white-space: pre-wrap; }
+.body > :first-child { margin-top: 0; }
+.body > :last-child { margin-bottom: 0; }
+.entry.model .body p { color: var(--ink); margin: .5rem 0; }
 .body strong { color: var(--ink-hot); font-weight: 600; }
+.body em { font-style: italic; }
+.body del { color: var(--ink-faint); }
+.body a { color: var(--user); }
 .body .fence { display: block; border: 1px dashed var(--rule); background: var(--paper);
   padding: .5rem .6rem; margin: .5rem 0; overflow-x: auto; color: var(--ink); }
-.body .bullet { display: block; padding-left: 1.1rem; text-indent: -1.1rem; }
+
+/* headings: uppercase and letterspaced at the top two levels, so a reply's
+   sections read as section headers rather than as louder sentences */
+.entry.model .body .mdh { color: var(--ink-hot); font-weight: 600;
+  margin: .9rem 0 .35rem; }
+.body .h1, .body .h2 { text-transform: uppercase; letter-spacing: .14em;
+  font-size: .84rem; }
+
+.body ul.md, .body ol.md { margin: .45rem 0; padding-left: 1.35rem; }
+.body ol.md { padding-left: 1.7rem; }
+.body li { margin: .12rem 0; }
+.body li::marker { color: var(--ink-faint); }
+.body ul.md ul.md, .body ul.md ol.md,
+.body ol.md ul.md, .body ol.md ol.md { margin: .12rem 0; }
+.body .box { color: var(--ink-faint); margin-right: .3rem; }
+
+.body table.md { border-collapse: collapse; margin: .55rem 0; display: block;
+  max-width: 100%; overflow-x: auto; font-size: .84rem; }
+.body table.md th, .body table.md td {
+  border: 1px solid var(--rule); padding: .22rem .5rem; text-align: left;
+  vertical-align: top; }
+.body table.md th { color: var(--ink-hot); font-weight: 600; background: var(--paper-3); }
+.body table.md .c { text-align: center; }
+.body table.md .r { text-align: right; }
+
+.body blockquote { margin: .5rem 0; padding-left: .7rem;
+  border-left: 2px solid var(--rule); }
+.entry.model .body blockquote p { color: var(--ink-dim); }
+.body hr { border: 0; border-top: 1px dashed var(--rule); margin: .8rem 0; }
 
 /* thinking + tool calls: <details>, styled, zero JS */
 details.think, details.call {
@@ -191,6 +230,8 @@ details.think > pre { font-style: italic; }
   align-items: start; border-top: 2px solid var(--rule); background: var(--paper-3);
   padding: .45rem .6rem; font-size: .8rem;
 }
+/* `display` on the element itself outranks the UA rule for [hidden] */
+.queue[hidden] { display: none; }
 .queue .qhead { font-size: .7rem; letter-spacing: .2em; text-transform: uppercase;
   color: var(--ink-faint); padding-top: .15rem; }
 .queue ol { list-style: none; margin: 0; padding: 0; display: grid; gap: .2rem; }

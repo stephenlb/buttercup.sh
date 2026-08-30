@@ -1,6 +1,6 @@
 # ButterCup Web Agent Harness
 
-**buttercup.sh** — pure vintage charm; aggressively anti-dystopian.
+**buttercup.sh** vintage charm, aggressively anti-dystopian.
 
 Like Claude Code, Codex, Antigravity and Cursor, this is a code harness built
 specifically for building AI agents. Unlike them, it is a terminal window that

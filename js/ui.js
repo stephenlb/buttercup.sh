@@ -43,19 +43,207 @@ window.UI = (function () {
     return node;
   }
 
-  /* ── the light markdown the model actually emits ────────────────────────── */
+  /* ── the markdown the model actually emits ────────────────────────────────
+     A block renderer, not a line of regexes: the model writes tables, nested
+     lists and fences, and a per-line pass flattens all three into one wall of
+     prose. Scope is what a coding agent emits — headings, lists (task lists
+     included), tables, fences, quotes, rules, and the usual inline spans. No
+     reference links, no HTML passthrough, no setext headings.
+
+     Every element comes out as a bare tag under `.body`; the stylesheet dresses
+     it. Nothing here sets a style, same rule as the rest of this file.
+     ─────────────────────────────────────────────────────────────────────────── */
 
   const escape = (s) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
 
+  /* Sentinel for a lifted-out code span. A NUL cannot appear in model text. */
+  const MARK = "\u0000";
+
+  const FENCE = /^ {0,3}(?:```|~~~)/;
+  const RULE = /^ {0,3}(?:-{3,}|\*{3,}|_{3,})\s*$/;
+  const HEAD = /^ {0,3}(#{1,6})\s+(.*)$/;
+  const QUOTE = /^ {0,3}>\s?(.*)$/;
+  const ITEM = /^(\s*)([-*+]|\d{1,9}[.)])\s+(.*)$/;
+  const indentOf = (line) => line.match(/^\s*/)[0].length;
+
+  /**
+   * Inline spans. Code is lifted out first and put back last, so nothing
+   * formats inside a code span — the one place `*` and `_` are literal.
+   */
+  function inline(text) {
+    const code = [];
+    let s = escape(text).replace(/`([^`]+)`/g, (_, c) => MARK + (code.push(c) - 1) + MARK);
+    s = s
+      .replace(/!?\[([^\]\n]*)\]\((https?:\/\/[^)\s]+)\)/g,
+        (_, label, href) => `<a href="${href}" target="_blank" rel="noopener noreferrer">${label || href}</a>`)
+      .replace(/\*\*([^\n]+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/~~([^\n]+?)~~/g, "<del>$1</del>")
+      .replace(/(^|[\s(])\*([^*\n]+?)\*(?=[\s.,;:!?)]|$)/g, "$1<em>$2</em>")
+      .replace(/(^|[\s(])_([^_\n]+?)_(?=[\s.,;:!?)]|$)/g, "$1<em>$2</em>");
+    return s.replace(/\u0000(\d+)\u0000/g, (_, i) => `<code>${code[i]}</code>`);
+  }
+
+  /** One list item's own text: a `- [ ]` box becomes a glyph, not a literal. */
+  function itemBody(text) {
+    const box = text.match(/^\[([ xX])\]\s*(.*)$/);
+    if (!box) return inline(text);
+    return `<span class="box">${box[1] === " " ? "☐" : "☑"}</span>${inline(box[2])}`;
+  }
+
+  const cells = (line) => line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
+  const isDelim = (line) => !!line && line.includes("|") && cells(line).every((c) => /^:?-+:?$/.test(c));
+
+  /** A table is a row of cells with a `|---|:--:|` rule under it, and nothing else. */
+  const isTable = (lines, i) => !!lines[i] && lines[i].includes("|") && isDelim(lines[i + 1]);
+
+  function table(lines, start) {
+    const head = cells(lines[start]);
+    const align = cells(lines[start + 1]).map((c) => (/^:-+:$/.test(c) ? "c" : /-+:$/.test(c) ? "r" : ""));
+    const rows = [];
+    let i = start + 2;
+    while (i < lines.length && lines[i].includes("|")) rows.push(cells(lines[i++]));
+    const cell = (tag, text, j) =>
+      `<${tag}${align[j] ? ` class="${align[j]}"` : ""}>${inline(text || "")}</${tag}>`;
+    const body = rows.length
+      ? `<tbody>${rows.map((r) => `<tr>${head.map((_, j) => cell("td", r[j], j)).join("")}</tr>`).join("")}</tbody>`
+      : "";
+    return {
+      html: `<table class="md"><thead><tr>${head.map((c, j) => cell("th", c, j)).join("")}</tr></thead>${body}</table>`,
+      next: i,
+    };
+  }
+
+  /**
+   * One list, however deep. Items open a nested list when their indent grows
+   * and close back when it shrinks; a list of the other kind at the same level
+   * ends this one, so `format` starts a fresh list beside it. A continuation
+   * line — indented, no marker — folds into the item above rather than becoming
+   * a block, which is the deliberate limit here.
+   */
+  function list(lines, start) {
+    const frames = [];
+    let i = start;
+
+    const render = (f) =>
+      `<${f.tag} class="md"${f.tag === "ol" && f.first !== 1 ? ` start="${f.first}"` : ""}>` +
+      f.items.map((h) => `<li>${h}</li>`).join("") + `</${f.tag}>`;
+
+    /** Close the innermost list into its parent item, or return it when done. */
+    const fold = () => {
+      const done = render(frames.pop());
+      if (!frames.length) return done;
+      const up = frames[frames.length - 1];
+      up.items[up.items.length - 1] += done;
+      return null;
+    };
+
+    while (i < lines.length) {
+      const line = lines[i];
+
+      // A gap keeps a loose list together, but only for more of the same list.
+      if (!line.trim()) {
+        const next = lines[i + 1] || "";
+        const nm = next.match(ITEM);
+        if (!nm) break;
+        const base = frames[0];
+        if (indentOf(next) <= base.indent + 1 && (/^\d/.test(nm[2]) ? "ol" : "ul") !== base.tag) break;
+        i++;
+        continue;
+      }
+
+      const m = line.match(ITEM);
+      const indent = indentOf(line);
+      if (!m) {
+        if (indent < 2) break;   // back to prose
+        const top = frames[frames.length - 1];
+        top.items[top.items.length - 1] += "<br>" + inline(line.trim());
+        i++;
+        continue;
+      }
+
+      const tag = /^\d/.test(m[2]) ? "ol" : "ul";
+      while (frames.length > 1 && indent < frames[frames.length - 1].indent) fold();
+      const top = frames[frames.length - 1];
+      if (!top || indent > top.indent + 1) {
+        // `3.` opening a list means it starts at three, not at one.
+        frames.push({ indent, tag, first: Number((m[2].match(/\d+/) || [1])[0]), items: [] });
+      } else if (tag !== top.tag) {
+        break;
+      }
+      frames[frames.length - 1].items.push(itemBody(m[3]));
+      i++;
+    }
+
+    let html = "";
+    while (frames.length) {
+      const done = fold();
+      if (done != null) html = done;
+    }
+    return { html, next: i };
+  }
+
+  /** True for a line that opens a block, i.e. one a paragraph cannot swallow. */
+  const opensBlock = (line) =>
+    FENCE.test(line) || RULE.test(line) || HEAD.test(line) || QUOTE.test(line) || ITEM.test(line);
+
   function format(text) {
-    return text.split(/```/).map((chunk, i) => {
-      if (i % 2) return `<span class="fence">${escape(chunk.replace(/^[\w.-]*\n/, ""))}</span>`;
-      return escape(chunk)
-        .replace(/`([^`\n]+)`/g, "<code>$1</code>")
-        .replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>")
-        .replace(/^#{1,6}\s+(.+)$/gm, "<strong>$1</strong>")
-        .replace(/^\s*[-*]\s+(.+)$/gm, '<span class="bullet">• $1</span>');
-    }).join("");
+    const lines = String(text).replace(/\r\n?/g, "\n").split("\n");
+    const out = [];
+    let i = 0;
+
+    while (i < lines.length) {
+      const line = lines[i];
+      if (!line.trim()) { i++; continue; }
+
+      if (FENCE.test(line)) {
+        const body = [];
+        i++;
+        while (i < lines.length && !FENCE.test(lines[i])) body.push(lines[i++]);
+        i++;   // the closing fence, or the end of a reply that never closed it
+        out.push(`<pre class="fence">${escape(body.join("\n"))}</pre>`);
+        continue;
+      }
+
+      if (RULE.test(line)) { out.push("<hr>"); i++; continue; }
+
+      const head = line.match(HEAD);
+      if (head) {
+        out.push(`<p class="mdh h${head[1].length}">${inline(head[2])}</p>`);
+        i++;
+        continue;
+      }
+
+      if (QUOTE.test(line)) {
+        const body = [];
+        while (i < lines.length && QUOTE.test(lines[i])) body.push(lines[i++].match(QUOTE)[1]);
+        out.push(`<blockquote>${format(body.join("\n"))}</blockquote>`);
+        continue;
+      }
+
+      if (isTable(lines, i)) {
+        const t = table(lines, i);
+        out.push(t.html);
+        i = t.next;
+        continue;
+      }
+
+      if (ITEM.test(line)) {
+        const l = list(lines, i);
+        out.push(l.html);
+        i = l.next > i ? l.next : i + 1;   // never stall on a line we cannot use
+        continue;
+      }
+
+      // A paragraph runs to the next blank line or block opener. Its own line
+      // breaks are kept: in a terminal transcript they are usually meant.
+      const para = [];
+      while (i < lines.length && lines[i].trim() && !opensBlock(lines[i]) && !isTable(lines, i)) {
+        para.push(inline(lines[i++].trim()));
+      }
+      out.push(`<p>${para.join("<br>")}</p>`);
+    }
+
+    return out.join("");
   }
 
   /* ── transcript writers ─────────────────────────────────────────────────── */
