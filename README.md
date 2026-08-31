@@ -28,7 +28,7 @@ no bundler, no dependencies, nothing to compile.
 | File | Lines | What it is |
 | --- | --- | --- |
 | `index.html` | 329 | The entire UI. Structure only — no styles, no logic. |
-| `css/buttercup.css` | 2952 | Butter-phosphor CRT skin (day and night), layout, tab deck, and the seven scenes. |
+| `css/buttercup.css` | 2960 | Butter-phosphor CRT skin (day and night), layout, tab deck, and the seven scenes. |
 | `js/vfs.js` | 147 | Virtual filesystem: path → text, persisted in `localStorage`. |
 | `js/checkpoints.js` | 64 | The undo stack: conversation + workspace, frozen together. |
 | `js/sandbox.js` | 243 | Sandboxed execution + a hand-written ES-module linker. |
