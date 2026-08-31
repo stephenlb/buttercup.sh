@@ -101,12 +101,21 @@ body {
    stylesheet shows whichever one is live, so the button never needs its glyph
    written from script. Each face is pixel-grid SVG — sun for day, crescent for
    night, both together for auto — with the word kept for screen readers. */
-.lamp-theme { margin-left: .4rem; padding: .2rem .45rem; line-height: 0;
+/* The status chip and the switch are the pair that ends the title bar, so they
+   share one box: the same height, centred against the baseline-aligned row
+   rather than sitting on it, since the switch carries a glyph and no text to
+   put a baseline under. */
+.lamp-status, .lamp-theme { align-self: center; box-sizing: border-box;
+  height: 1.5rem; display: inline-flex; align-items: center;
+  justify-content: center; }
+.lamp-theme { margin-left: .4rem; padding: 0 .4rem; line-height: 0;
   font-size: .72rem; background: var(--paper); color: var(--ink-dim); }
 .lamp-theme:hover { color: var(--ink-hot); }
 .lamp-theme > span { display: none; gap: .2rem; align-items: center; }
 /* 18px over the 9-wide grid is exactly two device-independent pixels a cell,
-   so the squares land on whole pixels instead of smearing across them. */
+   so the squares land on whole pixels instead of smearing across them. The sun
+   fills the grid, but the crescent only reaches six cells across, so its
+   viewBox starts at -1.5 to sit its narrower body on the button's centre. */
 .lamp-theme svg { width: 18px; height: 18px; display: block;
   fill: currentColor; shape-rendering: crispEdges; }
 .lamp-theme .t-word { position: absolute; width: 1px; height: 1px;
