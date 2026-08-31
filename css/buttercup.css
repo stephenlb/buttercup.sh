@@ -4,34 +4,43 @@
    behaviour are CSS-only (:checked siblings + <details>). JS never sets style.
    ═══════════════════════════════════════════════════════════════════════════ */
 
+/* One palette, two tubes. Every colour is a `light-dark()` pair — day value
+   first, night value second — resolved against the root's `color-scheme`, so
+   the theme switch is one property (below) rather than a second palette to keep
+   in step. Nothing else in this file mentions a theme. */
 :root {
-  --ink:        #f6c66a;   /* amber phosphor            */
-  --ink-hot:    #ffe6b0;   /* highlight / cursor        */
-  --ink-dim:    #a8873f;   /* labels, chrome            */
-  --ink-faint:  #6b552a;
-  --paper:      #14100b;   /* tube glass                */
-  --paper-2:    #1d170f;
-  --paper-3:    #251d13;
-  --rule:       #4a3a1e;
-  --good:       #8ecf6f;
-  --warn:       #f0a24a;
-  --bad:        #e5705c;
-  --user:       #9fd0e8;
+  color-scheme: light dark;                          /* AUTO: follow the OS   */
+
+  --ink:        light-dark(#4a3610, #ffd873);  /* butter phosphor, run hot  */
+  --ink-hot:    light-dark(#1c1203, #fff6d4);  /* highlight / cursor        */
+  --ink-dim:    light-dark(#7d6528, #d3a955);  /* labels, chrome            */
+  --ink-faint:  light-dark(#9c8449, #907338);   /* notes and idle chrome     */
+  --paper:      light-dark(#fdf3d5, #191204);  /* tube glass                */
+  --paper-2:    light-dark(#f8e9c1, #241a09);
+  --paper-3:    light-dark(#f2ddaa, #30230e);
+  --rule:       light-dark(#d3ba82, #6a5122);
+  --good:       light-dark(#2f6b26, #a6e078);
+  --warn:       light-dark(#a35a10, #ffb454);
+  --bad:        light-dark(#9c2f1f, #ff8468);
+  --user:       light-dark(#1d5d7d, #b6e2f7);
+
+  /* the bloom off the top of the tube, and the glass at its corners */
+  --bloom:      light-dark(#fffbea, #3a2b0e);
+  --edge:       light-dark(#eddfb4, #0d0903);
+  /* the scanlines and the vignette, which are darker on a dark tube */
+  --veil-line:  light-dark(rgba(0,0,0,.05), rgba(0,0,0,.20));
+  --veil-edge:  light-dark(rgba(0,0,0,.10), rgba(0,0,0,.50));
+  --sheen:      light-dark(rgba(255,236,180,.30), rgba(255,232,175,.07));
+
   --mono: "Berkeley Mono", "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas,
           "DejaVu Sans Mono", monospace;
   --pad: 0.75rem;
-  color-scheme: dark;
 }
 
-/* A daylight tube for anyone who prefers paper. */
-@media (prefers-color-scheme: light) {
-  :root {
-    --ink: #3b2c10; --ink-hot: #171003; --ink-dim: #6f5a2c; --ink-faint: #a38d5f;
-    --paper: #f2e7cf; --paper-2: #eadcbd; --paper-3: #e2d1ab;
-    --rule: #c3ab7b; --user: #1d5d7d; --good: #2f6b26; --bad: #9c2f1f;
-  }
-  .crt { opacity: .25; }
-}
+/* The switch: js/theme.js cycles `data-theme` between absent (AUTO), `light`
+   and `dark`, and pinning `color-scheme` is the whole of what that does. */
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"]  { color-scheme: dark; }
 
 * { box-sizing: border-box; }
 
@@ -40,27 +49,28 @@ html, body { height: 100%; margin: 0; }
 body {
   background: var(--paper);
   background-image:
-    radial-gradient(120% 90% at 50% 0%, #2a2013 0%, var(--paper) 60%, #0b0906 100%);
+    radial-gradient(120% 90% at 50% 0%, var(--bloom) 0%, var(--paper) 55%, var(--edge) 100%);
   color: var(--ink);
   font: 14px/1.5 var(--mono);
   overflow: hidden;
 }
 
 /* ── CRT dressing ─────────────────────────────────────────────────────────── */
+/* Scanlines and a vignette, both cut from `--veil-*` so the veil thins out on
+   the daylight tube instead of greying the paper. */
 .crt {
   position: fixed; inset: 0; z-index: 9; pointer-events: none;
-  opacity: .55;
   background:
     repeating-linear-gradient(to bottom,
-      rgba(0,0,0,.22) 0 1px, rgba(0,0,0,0) 1px 3px),
+      var(--veil-line) 0 1px, rgba(0,0,0,0) 1px 3px),
     radial-gradient(130% 100% at 50% 50%,
-      rgba(0,0,0,0) 55%, rgba(0,0,0,.55) 100%);
+      rgba(0,0,0,0) 60%, var(--veil-edge) 100%);
   mix-blend-mode: multiply;
 }
 @media (prefers-reduced-motion: no-preference) {
   .crt::after {
     content: ""; position: absolute; inset: -20% 0;
-    background: linear-gradient(to bottom, transparent, rgba(255,225,170,.05), transparent);
+    background: linear-gradient(to bottom, transparent, var(--sheen), transparent);
     height: 22%; animation: sweep 9s linear infinite;
   }
   @keyframes sweep { from { transform: translateY(-120%); } to { transform: translateY(560%); } }
@@ -81,7 +91,21 @@ body {
   padding: .5rem .75rem;
 }
 .titlebar h1 { font-size: 1rem; letter-spacing: .18em; text-transform: uppercase;
-  margin: 0; color: var(--ink-hot); text-shadow: 0 0 12px rgba(246,198,106,.35); }
+  margin: 0; color: var(--ink-hot);
+  /* the phosphor halo, mixed off the ink so it warms with the theme */
+  text-shadow: 0 0 14px color-mix(in srgb, var(--ink) 55%, transparent); }
+
+/* ── the theme switch ─────────────────────────────────────────────────────────
+   Three states, cycled by js/theme.js on `data-theme`: absent is AUTO, and the
+   two pinned ones are DAY and NIGHT. All three labels ship in the markup and
+   the stylesheet shows whichever one is live, so the button never needs its
+   text written from script. */
+.lamp-theme { margin-left: .4rem; letter-spacing: .18em; padding: .15rem .55rem;
+  font-size: .72rem; background: var(--paper); }
+.lamp-theme > span { display: none; }
+:root:not([data-theme]) .lamp-theme > .t-auto,
+:root[data-theme="light"] .lamp-theme > .t-light,
+:root[data-theme="dark"]  .lamp-theme > .t-dark { display: inline; }
 .titlebar .rev { color: var(--ink-faint); letter-spacing: .1em; }
 .tagline { margin: 0; color: var(--ink-dim); font-size: .78rem; letter-spacing: .06em; }
 .lamps { display: inline-flex; gap: .4rem; }

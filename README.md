@@ -28,7 +28,7 @@ no bundler, no dependencies, nothing to compile.
 | File | Lines | What it is |
 | --- | --- | --- |
 | `index.html` | 329 | The entire UI. Structure only — no styles, no logic. |
-| `css/buttercup.css` | 2636 | Amber-phosphor CRT skin, layout, tab deck, and the seven scenes. |
+| `css/buttercup.css` | 2952 | Butter-phosphor CRT skin (day and night), layout, tab deck, and the seven scenes. |
 | `js/vfs.js` | 147 | Virtual filesystem: path → text, persisted in `localStorage`. |
 | `js/checkpoints.js` | 64 | The undo stack: conversation + workspace, frozen together. |
 | `js/sandbox.js` | 243 | Sandboxed execution + a hand-written ES-module linker. |
@@ -38,6 +38,7 @@ no bundler, no dependencies, nothing to compile.
 | `js/agent.js` | 488 | The agent loop, the system prompts, rules, and compaction. |
 | `js/commands.js` | 199 | Slash commands, answered in-tab without a round trip. |
 | `js/scenes.js` | 23 | Rolls the die for which scene is out the window this load. |
+| `js/theme.js` | 47 | Cycles the tube: follow the system, or pin day or night. |
 | `js/ui.js` | 251 | Transcript rendering and the approval gate. |
 | `js/zip.js` | 103 | A store-only ZIP writer, so you can export the workspace. |
 | `js/main.js` | 349 | Settings, key validation, and wiring. |
@@ -53,6 +54,20 @@ The UI mechanics are CSS, not JavaScript. The right-hand panel deck is four
 
 No `style` attribute is ever written from script. JavaScript exists for the
 tool definitions, the agent loop, and the wire protocols — that's it.
+
+The two tubes work the same way. Every colour in the palette is one
+`light-dark()` pair — day value, night value — resolved against the root's
+`color-scheme`, so there is no second palette to keep in step and the scenes
+follow along for free:
+
+```css
+:root { color-scheme: light dark; --ink: light-dark(#4a3610, #ffd873); }
+:root[data-theme="light"] { color-scheme: light; }
+```
+
+The **AUTO / DAY / NIGHT** button in the title bar cycles `data-theme` and
+remembers the choice; absent means follow the system. `?theme=light` pins one
+for a single load, the way `?scene=city` pins a scene.
 
 ### Completion backends
 
