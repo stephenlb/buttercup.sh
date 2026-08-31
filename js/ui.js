@@ -26,7 +26,7 @@ window.UI = (function () {
      props, arms, caption. Rolled once per run rather than per step, so a
      six-step task is one continuous scene instead of a slideshow.
      `?busy=phone` pins one, which is what screenshots and CSS work want. */
-  const BUSY_KITS = ["phone", "keys", "bowl", "board"];
+  const BUSY_KITS = ["phone", "keys", "bowl", "board", "oven", "brew", "books"];
   const pinnedKit = new URLSearchParams(location.search).get("busy");
 
   function rollBusyKit() {

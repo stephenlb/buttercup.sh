@@ -2807,8 +2807,9 @@ body[data-agent="notready"] .mascot { color: var(--bad); }
 body[data-agent="notready"] .mascot-say::before { content: "needs an api key"; }
 
 /* ── busy kits ────────────────────────────────────────────────────────────────
-   Four things the buttercup can be caught doing while a task runs: a land line
-   next to a side desk, a keyboard and monitor, a bowl and whisk, a flip chart.
+   Seven things the buttercup can be caught doing while a task runs: a land line
+   next to a side desk, a keyboard and monitor, a bowl and whisk, a flip chart,
+   a tray out of the oven, a kettle and mug, a stack of books by candlelight.
    JS rolls one word into body[data-busy] when work starts; everything else is
    here. Each kit is two DOM groups — furniture on the floor (outside `.rig`, so
    it stands still) and the arms plus whatever they hold (inside it, so they bob
@@ -2824,18 +2825,26 @@ body[data-agent="notready"] .mascot-say::before { content: "needs an api key"; }
 body[data-agent="busy"][data-busy="phone"] .mascot .kit > g.phone,
 body[data-agent="busy"][data-busy="keys"]  .mascot .kit > g.keys,
 body[data-agent="busy"][data-busy="bowl"]  .mascot .kit > g.bowl,
-body[data-agent="busy"][data-busy="board"] .mascot .kit > g.board { display: block; }
+body[data-agent="busy"][data-busy="board"] .mascot .kit > g.board,
+body[data-agent="busy"][data-busy="oven"]  .mascot .kit > g.oven,
+body[data-agent="busy"][data-busy="brew"]  .mascot .kit > g.brew,
+body[data-agent="busy"][data-busy="books"] .mascot .kit > g.books { display: block; }
 
 /* a kit draws its own arms, so the waving pair steps aside */
 body[data-agent="busy"][data-busy="phone"] .mascot .arms,
 body[data-agent="busy"][data-busy="keys"]  .mascot .arms,
 body[data-agent="busy"][data-busy="bowl"]  .mascot .arms,
-body[data-agent="busy"][data-busy="board"] .mascot .arms { display: none; }
+body[data-agent="busy"][data-busy="board"] .mascot .arms,
+body[data-agent="busy"][data-busy="oven"]  .mascot .arms,
+body[data-agent="busy"][data-busy="brew"]  .mascot .arms,
+body[data-agent="busy"][data-busy="books"] .mascot .arms { display: none; }
 
 /* the two twinkles on the cup's right sit exactly where a kit puts the working
    arm, so they step aside rather than speckle it */
 body[data-busy] .mascot .spark g:nth-child(3),
 body[data-busy] .mascot .spark g:nth-child(5) { display: none; }
+/* the kettle holds a mug where the low left twinkle sits, so that one goes too */
+body[data-busy="brew"] .mascot .spark g:nth-child(4) { display: none; }
 
 body[data-agent="busy"] .mascot .kit .f1 { animation: cup-wave-a .6s steps(1, end) infinite; }
 body[data-agent="busy"] .mascot .kit .f2 { animation: cup-wave-b .6s steps(1, end) infinite; }
@@ -2843,6 +2852,9 @@ body[data-agent="busy"] .mascot .kit .f2 { animation: cup-wave-b .6s steps(1, en
 body[data-busy="keys"]  .mascot .kit .f1, body[data-busy="keys"]  .mascot .kit .f2 { animation-duration: .3s; }
 body[data-busy="bowl"]  .mascot .kit .f1, body[data-busy="bowl"]  .mascot .kit .f2 { animation-duration: .22s; }
 body[data-busy="board"] .mascot .kit .f1, body[data-busy="board"] .mascot .kit .f2 { animation-duration: 1.1s; }
+body[data-busy="oven"]  .mascot .kit .f1, body[data-busy="oven"]  .mascot .kit .f2 { animation-duration: .9s; }
+body[data-busy="brew"]  .mascot .kit .f1, body[data-busy="brew"]  .mascot .kit .f2 { animation-duration: .8s; }
+body[data-busy="books"] .mascot .kit .f1, body[data-busy="books"] .mascot .kit .f2 { animation-duration: 1.4s; }
 body[data-agent="busy"] .mascot .kit .blink {
   animation: cup-wave-a 1s steps(1, end) infinite;   /* the screen's caret */
 }
@@ -2851,6 +2863,9 @@ body[data-agent="busy"][data-busy="phone"] .mascot-say::before { content: "on it
 body[data-agent="busy"][data-busy="keys"]  .mascot-say::before { content: "on it — typing it up"; }
 body[data-agent="busy"][data-busy="bowl"]  .mascot-say::before { content: "on it — whisking"; }
 body[data-agent="busy"][data-busy="board"] .mascot-say::before { content: "on it — at the board"; }
+body[data-agent="busy"][data-busy="oven"]  .mascot-say::before { content: "on it — out of the oven"; }
+body[data-agent="busy"][data-busy="brew"]  .mascot-say::before { content: "on it — kettle's on"; }
+body[data-agent="busy"][data-busy="books"] .mascot-say::before { content: "on it — in the books"; }
 
 /* The whole rig animates regardless of prefers-reduced-motion: it is a 6rem
    sprite hopping one cell in place, no travel and no parallax, and the
