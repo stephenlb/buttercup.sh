@@ -119,8 +119,8 @@ otherwise.
 | `/help` | Lists the commands. |
 | `/queue` | Shows what is waiting behind the running request; `/queue clear` drops it. |
 | `/mode` | Shows the current mode. |
-| `/mode agent-builder` | Default. The system prompt that builds AI agents, blocks.ai first. |
-| `/mode general` | The same tools and sandbox, pointed at anything static. |
+| `/mode general` | Default. The same tools and sandbox, pointed at anything static. |
+| `/mode agent-builder` | The system prompt that builds AI agents, blocks.ai first. |
 | `/init` | Hands the agent one request: read the workspace, write `AGENTS.md`. |
 | `/rules` | Shows which rules files are in the system prompt right now. |
 | `/undo` | Rewinds the conversation *and* the files to before the last request. |

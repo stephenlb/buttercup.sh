@@ -52,7 +52,7 @@ ${VOICE}`;
     "agent-builder": { system: AGENT_BUILDER, blurb: "builds AI agents (blocks.ai by default)" },
     general: { system: GENERAL, blurb: "builds anything static in a browser" },
   };
-  const DEFAULT_MODE = "agent-builder";
+  const DEFAULT_MODE = "general";
 
   /* ── project rules ────────────────────────────────────────────────────────
      `AGENTS.md` in the workspace is read fresh on every request and appended to
