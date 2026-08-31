@@ -194,6 +194,83 @@
     input.rows = Math.min(6, input.value.split("\n").length);
   }
 
+  /* ── attachments ──────────────────────────────────────────────────────────
+     Images waiting to go out with the next request: pasted, dropped, or picked
+     with IMG. They belong to the composer rather than to the session, so they
+     travel with the line they were attached to — through the queue, and through
+     recall — and are gone the moment that line is sent.
+     ─────────────────────────────────────────────────────────────────────────── */
+
+  let shots = [];
+
+  function paintShots() {
+    UI.attachments(shots, {
+      drop: (id) => {
+        shots = shots.filter((s) => s.id !== id);
+        paintShots();
+      },
+    });
+  }
+
+  /** Decode a batch of files into the strip, reporting whatever would not go. */
+  async function attach(files) {
+    if (!files.length) return;
+    const room = Images.max - shots.length;
+    if (room <= 0) {
+      return UI.error(`already holding ${Images.max} images — send them, or remove one first`);
+    }
+    if (files.length > room) {
+      UI.system(`taking ${room} of those ${files.length} images — ${Images.max} is the limit per request`);
+    }
+    const { shots: added, errors } = await Images.load(files.slice(0, room));
+    shots = shots.concat(added);
+    paintShots();
+    for (const err of errors) UI.error(err);
+    if (added.length) {
+      UI.system(`attached ${added.map((s) => `${s.name} (${Images.label(s)})`).join(", ")} ` +
+                `— goes out with the next request, as part of the prompt.`);
+      input.focus();
+    }
+  }
+
+  /* Paste anywhere in the tab, as long as the caret is not in another field:
+     copying a screenshot and hitting ⌘V is the whole interaction, and demanding
+     that the composer be focused first would be one step too many. */
+  document.addEventListener("paste", (e) => {
+    const target = e.target;
+    if (target !== input && target && target.closest && target.closest("input, textarea, [contenteditable]")) return;
+    const files = Images.filesIn(e.clipboardData);
+    if (!files.length) return;   // ordinary text paste: leave it to the browser
+    e.preventDefault();
+    attach(files);
+  });
+
+  /* Drag and drop. `dragover` has to be cancelled or the browser navigates to
+     the file instead, and the flag on the body is how the composer says so. */
+  const dragging = (e) => [...(e.dataTransfer?.types || [])].includes("Files");
+  document.addEventListener("dragover", (e) => {
+    if (!dragging(e)) return;
+    e.preventDefault();
+    document.body.dataset.drag = "1";
+  });
+  document.addEventListener("dragleave", (e) => {
+    if (!e.relatedTarget) document.body.dataset.drag = "";
+  });
+  document.addEventListener("drop", (e) => {
+    if (!dragging(e)) return;
+    e.preventDefault();
+    document.body.dataset.drag = "";
+    const files = Images.filesIn(e.dataTransfer);
+    if (files.length) attach(files);
+    else UI.error(`dropped file is not an image the models read (${Images.formats})`);
+  });
+
+  $("attach-btn").addEventListener("click", () => $("attach-input").click());
+  $("attach-input").addEventListener("change", (e) => {
+    attach([...e.target.files]);
+    e.target.value = "";   // so picking the same file twice still fires
+  });
+
   input.addEventListener("input", grow);
   input.addEventListener("keydown", (e) => {
     // Enter sends; Shift+Enter is a newline. Terminal muscle memory.
@@ -239,9 +316,10 @@
 
   /**
    * Send one request to the model, once we know the key is good for it.
+   * `pics` are the images that were attached to this line, if any.
    * Resolves false when the request never reached the model at all.
    */
-  async function runPrompt(text) {
+  async function runPrompt(text, pics = []) {
     if (!settings.key) {
       $("tab-keys").checked = true;
       UI.error("no API key. Open the KEYS panel, pick a provider, paste a key, press SAVE.");
@@ -256,7 +334,7 @@
 
     setRunning(true);
     try {
-      await Agent.send(text);
+      await Agent.send(text, pics);
     } finally {
       setRunning(false);
       input.focus();
@@ -283,9 +361,14 @@
      edit meant for the third request would land after the second had gone.
      ───────────────────────────────────────────────────────────────────────── */
 
+  /* A line, anywhere in this machinery, is `{ text, shots }`: the words and the
+     pictures attached to them travel together, because on deck and in recall
+     they are one request. */
+  const line = (text, pics = []) => ({ text, shots: pics });
+
   const history = [];   // requests already sent, oldest first
   let browse = 0;
-  let draft = "";       // the composer's own text, kept while the cursor is out
+  let draft = line(""); // the composer's own line, kept while the cursor is out
   let paused = false;
 
   const recallEnd = () => queue.length + history.length;
@@ -296,13 +379,14 @@
       ? { kind: "queue", i: queue.length - k }
       : { kind: "history", i: history.length - (k - queue.length) };
 
-  const recallText = (at) => (at.kind === "queue" ? queue[at.i] : history[at.i]) || "";
+  const recallLine = (at) => (at.kind === "queue" ? queue[at.i] : history[at.i]) || line("");
 
   /**
-   * Move the cursor by `step` and load what it lands on. Edits to a line on
-   * deck are kept as the cursor passes over it, so walking the strip to check
-   * something does not undo a fix made on the way. False when there is nowhere
-   * to go, which leaves the arrow key to the caret.
+   * Move the cursor by `step` and load what it lands on — the words back into
+   * the composer, the images back into the strip. Edits to a line on deck are
+   * kept as the cursor passes over it, so walking the strip to check something
+   * does not undo a fix made on the way. False when there is nowhere to go,
+   * which leaves the arrow key to the caret.
    */
   function recall(step) {
     const next = browse + step;
@@ -310,15 +394,20 @@
 
     // Leaving a line on deck: what is in the box is now that line. Emptying it
     // is not a delete — `×` is — so an empty box leaves the line alone.
-    if (!browse) draft = input.value;
+    if (!browse) draft = line(input.value, shots);
     else {
       const at = recallAt(browse);
-      if (at.kind === "queue" && input.value.trim()) queue[at.i] = input.value;
+      if (at.kind === "queue" && (input.value.trim() || shots.length)) {
+        queue[at.i] = line(input.value, shots);
+      }
     }
 
     browse = next;
-    paused = browse > 0;
-    input.value = browse ? recallText(recallAt(browse)) : draft;
+    const landed = browse ? recallLine(recallAt(browse)) : draft;
+    input.value = landed.text;
+    // A recalled request is sent again as it was, pictures included.
+    shots = landed.shots.slice();
+    paintShots();
     grow();
     input.setSelectionRange(input.value.length, input.value.length);
     paintQueue();
@@ -327,8 +416,9 @@
   }
 
   /** Remember a request the way a shell does: no run of identical lines. */
-  function remember(text) {
-    if (history[history.length - 1] !== text) history.push(text);
+  function remember(entry) {
+    const last = history[history.length - 1];
+    if (!last || last.text !== entry.text || last.shots.length !== entry.shots.length) history.push(entry);
     if (history.length > 200) history.shift();
   }
 
@@ -369,12 +459,14 @@
     draining = true;
     try {
       while (queue.length && !paused) {
-        const text = queue.shift();
-        remember(text);
+        const entry = queue.shift();
+        remember(entry);
         paintQueue();
         let ok = true;
         try {
-          ok = Commands.is(text) ? await runCommand(text) : await runPrompt(text);
+          ok = Commands.is(entry.text)
+            ? await runCommand(entry.text)
+            : await runPrompt(entry.text, entry.shots);
         } catch (err) {
           UI.fail(err);
           ok = false;
@@ -393,34 +485,44 @@
     e.preventDefault();
     const text = input.value.trim();
     const at = browse ? recallAt(browse) : null;
+    // A slash command is answered by this tab, not by the model, so it has no
+    // use for a picture: the attachments stay in the strip for the next request
+    // rather than being silently thrown away.
+    const command = Commands.is(text);
+    const pics = command ? [] : shots;
 
     // Whatever this was, the composer is clear and the cursor is home again,
     // so the hold is over and the queue runs from the front.
     input.value = "";
-    draft = "";
+    draft = line("");
     browse = 0;
     paused = false;
+    if (!command) {
+      shots = [];
+      paintShots();
+    }
     grow();
 
     // A line from the strip goes back where it was rather than to the end:
     // its place in the order is part of what the user asked for. Sent empty,
     // it leaves the strip — that is the one way ENTER drops a line.
     if (at && at.kind === "queue") {
-      if (text) queue[at.i] = text;
+      if (text || pics.length) queue[at.i] = line(text, pics);
       else queue.splice(at.i, 1);
       paintQueue();
       return void drain();
     }
 
-    if (!text) return void drain();
+    // A picture on its own is a request; an empty box with nothing attached is not.
+    if (!text && !pics.length) return void drain();
 
     // Mid-turn `/help` and `/queue` skip the queue: they only read state.
     if (draining && Commands.isInstant(text)) {
-      remember(text);
+      remember(line(text));
       return runCommand(text, { instant: true });
     }
 
-    queue.push(text);
+    queue.push(line(text, pics));
     paintQueue();
     drain();
   });
@@ -439,7 +541,7 @@
   /* ── hook-ups ───────────────────────────────────────────────────────────── */
 
   Object.assign(Agent.hooks, {
-    onUser: (text) => UI.user(text),
+    onUser: (text, pics) => UI.user(text, pics),
     onAssistantStart: () => UI.assistant(),
     onText: (view, d) => UI.text(view, d),
     onThinking: (view, d) => UI.thinking(view, d),
@@ -489,6 +591,7 @@
   paintStats();
   paintReady();
   paintQueue();
+  paintShots();
   setRunning(false);
 
   if (Agent.turns) {

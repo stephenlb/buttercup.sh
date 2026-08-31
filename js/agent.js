@@ -191,14 +191,41 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
     return Number.isFinite(n) && n > 0 ? n : 0;
   }
 
+  /**
+   * The session with its pictures replaced by a note. Base64 images are by far
+   * the largest thing a conversation can carry, so this is the first thing to
+   * give up when the quota says no — and only in the saved copy: the model
+   * keeps seeing the real images for the rest of this page load.
+   */
+  const textOnly = (messages) => messages.map((m) => ({
+    role: m.role,
+    parts: m.parts.map((p) => (p.type === "image"
+      ? { type: "text", text: "[an image was here; it was dropped when this session was saved]" }
+      : p)),
+  }));
+
+  let saidQuota = false;
+
   function persist() {
     try {
       localStorage.setItem(SESSION_KEY, JSON.stringify(state.messages));
       localStorage.setItem(CTX_KEY, String(state.context));
     } catch (_) {
-      // Session too large for the quota: keep the tail, which is what matters.
-      state.messages = state.messages.slice(-20);
-      try { localStorage.setItem(SESSION_KEY, JSON.stringify(state.messages)); } catch (__) {}
+      if (!saidQuota) {
+        saidQuota = true;
+        hooks.onNote(
+          "this session is larger than localStorage will hold, so the images in it are not being saved. " +
+          "They stay in the conversation for this page load; after a reload the model sees a note where each one was."
+        );
+      }
+      try {
+        localStorage.setItem(SESSION_KEY, JSON.stringify(textOnly(state.messages)));
+        localStorage.setItem(CTX_KEY, String(state.context));
+      } catch (__) {
+        // Still too large: keep the tail, which is what matters.
+        state.messages = state.messages.slice(-20);
+        try { localStorage.setItem(SESSION_KEY, JSON.stringify(textOnly(state.messages))); } catch (___) {}
+      }
     }
   }
 
@@ -309,9 +336,12 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
     // A request in flight survives verbatim: compaction can land mid-turn, and
     // paraphrasing what the user just asked for is the one thing a summary of
     // the session must not do.
+    // Images do not survive this: the note is text, and a picture cannot be
+    // quoted into it. What the user said about the picture does.
     const last = state.messages[state.messages.length - 1];
-    const pending = last && last.role === "user" && last.parts.length && last.parts.every((p) => p.type === "text")
-      ? last.parts.map((p) => p.text).join("\n")
+    const pending = last && last.role === "user" && last.parts.length
+      && last.parts.every((p) => p.type === "text" || p.type === "image")
+      ? last.parts.filter((p) => p.type === "text").map((p) => p.text).join("\n")
       : "";
 
     mark(`before compact (${before.turns} messages)`);
@@ -340,9 +370,14 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
     return info;
   }
 
-  /** Run one user request to completion. Resolves when the loop stops. */
-  async function send(text) {
+  /**
+   * Run one user request to completion. Resolves when the loop stops.
+   * `shots` are attached images (see js/images.js); either half may be empty,
+   * but not both — a picture on its own is a complete request.
+   */
+  async function send(text, shots = []) {
     if (state.busy) throw new Error("already running");
+    if (!text && !shots.length) throw new Error("nothing to send");
     const settings = state.settings;
     state.busy = true;
     state.controller = new AbortController();
@@ -351,10 +386,14 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
 
     // Where `/undo` comes back to: the state before this request touched
     // anything, conversation and workspace together.
-    mark(text);
+    mark(text || `${shots.length} image(s)`);
 
-    state.messages.push({ role: "user", parts: [{ type: "text", text }] });
-    hooks.onUser(text);
+    // Images lead the turn: every vendor reads a caption after the picture it
+    // is about, and a bare prompt with the picture last reads as a non-sequitur.
+    const parts = shots.map((s) => ({ type: "image", mediaType: s.mediaType, data: s.data }));
+    if (text) parts.push({ type: "text", text });
+    state.messages.push({ role: "user", parts });
+    hooks.onUser(text, shots);
     persist();
     hooks.onStatus("busy");
 

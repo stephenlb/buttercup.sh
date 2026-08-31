@@ -48,11 +48,22 @@
           <p>Open <label for="tab-keys" class="linky">KEYS</label> to paste an API key,
              then ask for an agent. Try:
              <em>&ldquo;scaffold a blocks.ai research agent, then run it&rdquo;</em>.</p>
+          <p>Paste a screenshot (or drop one, or press <code>IMG</code>) and it goes
+             out with your next request — the model reads the picture and the
+             prompt together.</p>
           <p>Type <code>/help</code> for the commands this tab handles itself
              — <code>/init</code> writes the project rules, <code>/undo</code>
              rewinds the files and the context together, <code>/compact</code>
              folds a long session into a handover note.</p>
         </article>
+      </div>
+
+      <!-- ══ attachments: images pasted (⌘V), dropped, or picked with IMG wait
+              here until the request they belong to is sent. Hidden while
+              empty, same as the queue below. ══════════════════════════════ -->
+      <div class="attach" id="attach" hidden>
+        <span class="ahead" id="attach-head">image</span>
+        <ul id="attach-list"></ul>
       </div>
 
       <!-- ══ the queue: anything typed while a turn is running waits here and
@@ -66,7 +77,10 @@
       <form class="prompt" id="prompt-form" autocomplete="off">
         <label class="sigil" for="prompt-input" aria-hidden="true">&gt;</label>
         <textarea id="prompt-input" name="prompt" rows="1" spellcheck="false"
-          placeholder="describe the agent you want built…   /help"></textarea>
+          placeholder="describe the agent you want built…   paste an image   /help"></textarea>
+        <input type="file" id="attach-input" accept="image/png,image/jpeg,image/gif,image/webp"
+          multiple hidden>
+        <button type="button" id="attach-btn" title="attach an image (or just paste one)">IMG</button>
         <button type="submit" id="send">RUN</button>
         <button type="button" id="stop" disabled>STOP</button>
       </form>
@@ -691,6 +705,7 @@
 <script src="js/vfs.js"></script>
 <script src="js/checkpoints.js"></script>
 <script src="js/zip.js"></script>
+<script src="js/images.js"></script>
 <script src="js/frameworks.js"></script>
 <script src="js/sandbox.js"></script>
 <script src="js/tools.js"></script>

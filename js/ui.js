@@ -248,9 +248,27 @@ window.UI = (function () {
 
   /* ── transcript writers ─────────────────────────────────────────────────── */
 
+  /** Thumbnails of the pictures on a turn, as one row under the text. */
+  function shotRow(shots, cls) {
+    const row = el("div", cls);
+    for (const s of shots) {
+      const img = document.createElement("img");
+      img.src = Images.url(s);
+      img.alt = s.name;
+      img.title = `${s.name} — ${Images.label(s)}`;
+      // Intrinsic size, so the row does not reflow as the thumbnails decode.
+      img.width = s.width;
+      img.height = s.height;
+      row.appendChild(img);
+    }
+    return row;
+  }
+
   const api = {
-    user(text) {
-      entry("user", "you").appendChild(el("pre", null, text));
+    user(text, shots = []) {
+      const node = entry("user", "you");
+      if (text) node.appendChild(el("pre", null, text));
+      if (shots.length) node.appendChild(shotRow(shots, "shots"));
     },
 
     system(text) {
@@ -397,7 +415,37 @@ window.UI = (function () {
     },
 
     /**
-     * Paint the waiting-requests strip. `drop(i)` removes one, `clear()` drops
+     * Paint the strip of images the composer is holding. `drop(id)` removes one.
+     * Hidden when there are none, same rule as the queue below it.
+     */
+    attachments(shots, { drop } = {}) {
+      const box = $("attach");
+      box.hidden = !shots.length;
+      $("attach-head").textContent = shots.length > 1 ? `${shots.length} images` : "image";
+      const list = $("attach-list");
+      list.replaceChildren();
+      for (const s of shots) {
+        const li = el("li");
+        const img = document.createElement("img");
+        img.src = Images.url(s);
+        img.alt = s.name;
+        img.width = s.width;
+        img.height = s.height;
+        li.appendChild(img);
+        li.appendChild(el("span", "aname", s.name));
+        li.appendChild(el("span", "asize", Images.label(s)));
+        const x = el("button", "mini", "×");
+        x.type = "button";
+        x.title = "remove this image";
+        x.addEventListener("click", () => drop && drop(s.id));
+        li.appendChild(x);
+        list.appendChild(li);
+      }
+    },
+
+    /**
+     * Paint the waiting-requests strip. Each item is `{ text, shots }`.
+     * `drop(i)` removes one, `clear()` drops
      * them all; both are handed in fresh on every paint so this stays stateless.
      * `paused` means the recall cursor is out of the composer and nothing here
      * is going to start; `editing` is the index it is standing on, or -1.
@@ -414,13 +462,16 @@ window.UI = (function () {
       $("queue-clear").onclick = clear || null;
       const list = $("queue-list");
       list.replaceChildren();
-      items.forEach((text, i) => {
+      items.forEach((item, i) => {
         const li = el("li");
         // The line in the composer is marked where it sits, so the strip and
         // the box read as one thing rather than two copies of the request.
         if (i === editing) li.dataset.editing = "1";
         li.appendChild(el("span", "qn", i === editing ? "›" : `${i + 1}.`));
-        li.appendChild(el("span", "qtext", text.split("\n")[0]));
+        const shots = item.shots || [];
+        li.appendChild(el("span", "qtext",
+          (shots.length ? `[${shots.length} image${shots.length > 1 ? "s" : ""}] ` : "") +
+          (item.text || "").split("\n")[0]));
         const x = el("button", "mini", "×");
         x.type = "button";
         x.title = "remove from the queue";

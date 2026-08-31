@@ -50,6 +50,9 @@ The harness loads this file into your system prompt on every turn from now on, s
           "",
           "anything else you type is a request for the agent. Type while one is",
           "running and it queues behind it — see /queue.",
+          "",
+          "paste or drop an image (or press IMG) and it goes out with the next",
+          "request, for whichever model the KEYS panel is pointed at.",
         ].join("\n");
       },
     },
@@ -70,7 +73,10 @@ The harness loads this file into your system prompt on every turn from now on, s
         }
         return [
           `${items.length} request(s) waiting, in order:`,
-          ...items.map((t, i) => `  ${i + 1}. ${t.split("\n")[0].slice(0, 72)}`),
+          ...items.map((it, i) => {
+            const pics = it.shots && it.shots.length ? `[${it.shots.length} image(s)] ` : "";
+            return `  ${i + 1}. ${pics}${(it.text || "").split("\n")[0].slice(0, 72)}`;
+          }),
           "",
           "The × beside each one drops it; STOP drops the whole queue with the running request.",
         ].join("\n");

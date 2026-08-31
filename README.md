@@ -22,26 +22,27 @@ requirement: the source runs as-is.
 
 ## Architecture
 
-100% static HTML, CSS and JavaScript. Twelve classic `<script>` tags, no modules,
+100% static HTML, CSS and JavaScript. Fourteen classic `<script>` tags, no modules,
 no bundler, no dependencies, nothing to compile.
 
 | File | Lines | What it is |
 | --- | --- | --- |
-| `index.html` | 329 | The entire UI. Structure only — no styles, no logic. |
-| `css/buttercup.css` | 2961 | Butter-phosphor CRT skin (day and night), layout, tab deck, and the seven scenes. |
-| `js/vfs.js` | 147 | Virtual filesystem: path → text, persisted in `localStorage`. |
+| `index.html` | 717 | The entire UI. Structure only — no styles, no logic. |
+| `css/buttercup.css` | 3011 | Butter-phosphor CRT skin (day and night), layout, tab deck, and the seven scenes. |
+| `js/vfs.js` | 150 | Virtual filesystem: path → text, persisted in `localStorage`. |
 | `js/checkpoints.js` | 64 | The undo stack: conversation + workspace, frozen together. |
-| `js/sandbox.js` | 243 | Sandboxed execution + a hand-written ES-module linker. |
-| `js/tools.js` | 528 | The 18 tool definitions handed to the model. |
-| `js/frameworks.js` | 698 | Bundled framework knowledge and code scaffolds. |
-| `js/llm.js` | 490 | Six providers over three wire formats, streaming, no SDKs. |
-| `js/agent.js` | 488 | The agent loop, the system prompts, rules, and compaction. |
-| `js/commands.js` | 199 | Slash commands, answered in-tab without a round trip. |
+| `js/images.js` | 147 | Pasted and dropped pictures, decoded and scaled for the wire. |
+| `js/sandbox.js` | 249 | Sandboxed execution + a hand-written ES-module linker. |
+| `js/tools.js` | 456 | The 18 tool definitions handed to the model. |
+| `js/frameworks.js` | 684 | Bundled framework knowledge and code scaffolds. |
+| `js/llm.js` | 518 | Six providers over three wire formats, streaming, images, no SDKs. |
+| `js/agent.js` | 536 | The agent loop, the system prompts, rules, and compaction. |
+| `js/commands.js` | 242 | Slash commands, answered in-tab without a round trip. |
 | `js/scenes.js` | 23 | Rolls the die for which scene is out the window this load. |
 | `js/theme.js` | 47 | Cycles the tube: follow the system, or pin day or night. |
-| `js/ui.js` | 251 | Transcript rendering and the approval gate. |
+| `js/ui.js` | 554 | Transcript rendering, the attachment strip, and the approval gate. |
 | `js/zip.js` | 103 | A store-only ZIP writer, so you can export the workspace. |
-| `js/main.js` | 349 | Settings, key validation, and wiring. |
+| `js/main.js` | 622 | Settings, key validation, and wiring. |
 | `build.mjs` | 211 | Optional: fold everything into `public/index.html`. |
 
 The UI mechanics are CSS, not JavaScript. The right-hand panel deck is four
@@ -179,6 +180,45 @@ anything else, so `/compact` behind a build runs once the build is done —
 except `/help` and `/queue`, which only read state and answer immediately. If a
 queued request cannot start at all (no key, a key the vendor rejects) the rest
 of the queue is dropped rather than failing the same way one line at a time.
+
+---
+
+## Images
+
+Paste a screenshot anywhere in the tab and it joins the next request. Dropping a
+file on the page does the same, and `IMG` beside `RUN` opens a picker for when
+the clipboard is not where the image is. What is attached sits in a strip above
+the composer until the request goes out:
+
+```
+IMAGE   [▤]  Screenshot 2026-08-31 at 14.02.png   1568×1045 · 612k   ×
+```
+
+Every picture is decoded, scaled to a 1568px long edge and re-encoded before it
+is held: that is the size above which the vendors scale images down themselves,
+so anything larger is bytes spent on nothing. PNG is kept for a screenshot —
+JPEG smears exactly the text and UI chrome that made the screenshot worth
+sending — and only becomes JPEG if PNG is still over the per-image budget. Six
+images per request, `×` drops one.
+
+The turn goes out with the pictures first and the words after, which is the
+order every vendor reads best, and each wire format gets its own envelope for
+the same bytes: an `image` block with a base64 `source` for Anthropic,
+`image_url` with a `data:` URL for the OpenAI-compatible providers, `inlineData`
+for Gemini. Whether the model can actually see it is the model's business — a
+text-only model answers with the vendor's own error, verbatim.
+
+Pictures belong to the line they were attached to, so they travel with it: on
+deck through the queue, back into the strip when `↑` recalls that request, and
+gone from the composer once it is sent. Slash commands are answered by this tab
+rather than by a model, so they leave attachments alone for the next request.
+
+A base64 screenshot is far larger than anything else a session carries, and
+`localStorage` is not generous. When a session no longer fits, the images are
+dropped from the *saved* copy only — the conversation keeps them for the rest of
+the page load, a reload shows the model a note where each one was, and the tab
+says so once when it happens. `/compact` is text, so a handover note keeps what
+you said about a picture and not the picture.
 
 ---
 
@@ -322,6 +362,7 @@ Each scaffold is a real, runnable multi-file agent: `agent.js` (the loop),
 1. Open `index.html`. It starts on the **KEYS** panel until a key validates.
 2. **KEYS** → pick a vendor, paste a key, **SAVE**. Wait for the green **READY**.
 3. Ask for what you want: *"scaffold a blocks.ai research agent, then run it"*.
+   Paste a screenshot into the tab first if the request is about one.
 4. Watch **FILES** fill up, **PREVIEW** mount, and the transcript stream.
 5. **EXPORT .ZIP** when you want it on disk.
 

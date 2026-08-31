@@ -7,6 +7,7 @@
      { role: "user" | "assistant", parts: Part[] }
 
      Part = { type: "text",        text }
+          | { type: "image",       mediaType, data }        // base64, user turns
           | { type: "thinking",    text, signature? }
           | { type: "tool_use",    id, name, input }
           | { type: "tool_result", id, name, output, error? }
@@ -188,6 +189,9 @@ window.LLM = (function () {
         role: m.role,
         content: m.parts.map((p) => {
           if (p.type === "text") return { type: "text", text: p.text };
+          if (p.type === "image") {
+            return { type: "image", source: { type: "base64", media_type: p.mediaType, data: p.data } };
+          }
           if (p.type === "thinking") return { type: "thinking", thinking: p.text, signature: p.signature };
           if (p.type === "tool_use") return { type: "tool_use", id: p.id, name: p.name, input: p.input };
           return {
@@ -292,10 +296,21 @@ window.LLM = (function () {
         // Tool results are their own role in this format, so split the turn.
         const results = m.parts.filter((p) => p.type === "tool_result");
         const text = m.parts.filter((p) => p.type === "text").map((p) => p.text).join("\n");
+        const shots = m.parts.filter((p) => p.type === "image");
         for (const r of results) {
           wire.push({ role: "tool", tool_call_id: r.id, content: r.error ? `error: ${r.output}` : r.output });
         }
-        if (text) wire.push({ role: "user", content: text });
+        // A turn with pictures in it takes the array form of `content`; a plain
+        // one stays a string, which is what every gateway has always accepted.
+        if (shots.length) {
+          const content = shots.map((p) => ({
+            type: "image_url", image_url: { url: `data:${p.mediaType};base64,${p.data}` },
+          }));
+          if (text) content.push({ type: "text", text });
+          wire.push({ role: "user", content });
+        } else if (text) {
+          wire.push({ role: "user", content: text });
+        }
       } else {
         const text = m.parts.filter((p) => p.type === "text").map((p) => p.text).join("");
         const calls = m.parts.filter((p) => p.type === "tool_use").map((p) => ({
@@ -370,6 +385,7 @@ window.LLM = (function () {
       role: m.role === "assistant" ? "model" : "user",
       parts: m.parts.map((p) => {
         if (p.type === "text") return { text: p.text };
+        if (p.type === "image") return { inlineData: { mimeType: p.mediaType, data: p.data } };
         if (p.type === "thinking") return { text: p.text };
         if (p.type === "tool_use") return { functionCall: { name: p.name, args: p.input ?? {} } };
         return {

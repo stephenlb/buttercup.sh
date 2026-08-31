@@ -268,6 +268,39 @@ details.think > pre { font-style: italic; }
 .approve p { margin: 0 0 .45rem; color: var(--warn); }
 .approve .btns { display: flex; gap: .4rem; flex-wrap: wrap; }
 
+/* ── attachments ──────────────────────────────────────────────────────────────
+   Images the composer is holding, above the queue and below the transcript, so
+   the whole pending request — pictures, waiting lines, the line being typed —
+   reads as one stack. Thumbnails are boxed to a fixed size and letterboxed with
+   `object-fit`, so a tall screenshot and a wide one make the same row. */
+.attach {
+  display: grid; grid-template-columns: auto minmax(0,1fr); gap: .55rem;
+  align-items: start; border-top: 2px solid var(--rule); background: var(--paper-3);
+  padding: .45rem .6rem; font-size: .8rem;
+}
+.attach[hidden] { display: none; }
+.attach .ahead { font-size: .7rem; letter-spacing: .2em; text-transform: uppercase;
+  color: var(--ink-faint); padding-top: .35rem; }
+.attach ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .25rem; }
+.attach li { display: grid; grid-template-columns: auto minmax(0,1fr) auto auto;
+  gap: .45rem; align-items: center; }
+.attach img { width: 3.4rem; height: 2.2rem; object-fit: contain;
+  border: 1px solid var(--rule); background: var(--paper); }
+.attach .aname { color: var(--user); overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; }
+.attach .asize { color: var(--ink-faint); font-size: .72rem; }
+.attach li button { padding: 0 .35rem; font-size: .7rem; line-height: 1.4; }
+
+/* the same pictures once the turn has been sent, in the transcript. Kept small:
+   the record of what was asked, not a viewer — the transcript is the text. */
+.entry .shots { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .5rem; }
+.entry .shots img { max-width: min(100%, 15rem); max-height: 9rem; width: auto;
+  height: auto; border: 1px solid var(--user); background: var(--paper); }
+
+/* the composer, and the transcript, while a file is being dragged over the tab */
+body[data-drag="1"] .prompt { border-top-color: var(--ink-hot); }
+body[data-drag="1"] .prompt textarea { border-color: var(--ink-hot); }
+
 /* ── queue ────────────────────────────────────────────────────────────────────
    Sits between the transcript and the prompt, so what is waiting reads as part
    of the input rather than part of the record. `hidden` when empty, which is
@@ -299,8 +332,8 @@ details.think > pre { font-style: italic; }
 
 /* ── prompt ───────────────────────────────────────────────────────────────── */
 .prompt {
-  display: grid; grid-template-columns: auto minmax(0,1fr) auto auto;
-  /* stretch: RUN/STOP match the textarea's height as it grows */
+  display: grid; grid-template-columns: auto minmax(0,1fr) auto auto auto;
+  /* stretch: IMG/RUN/STOP match the textarea's height as it grows */
   align-items: stretch; gap: .5rem;
   border-top: 2px solid var(--rule); background: var(--paper-3); padding: .6rem;
 }
