@@ -27,6 +27,16 @@ window.Tools = (function () {
   const numbered = (text, from = 1) =>
     text.split("\n").map((line, i) => `${String(from + i).padStart(5)}\t${line}`).join("\n");
 
+  /* JSON Schema shorthand. Every tool declares an object schema whose properties
+     are typed and described, so the `type:`/`required:` scaffolding is written
+     once here instead of eighteen times below. The output is ordinary JSON
+     Schema — these are handed to the vendors verbatim. */
+  const schema = (properties, required = []) => ({ type: "object", properties, required });
+  const str = (description, extra) => ({ type: "string", description, ...extra });
+  const int = (description) => ({ type: "integer", description });
+  const bool = (description) => ({ type: "boolean", description });
+  const arr = (description, items) => ({ type: "array", description, items });
+
   const DEFS = [
 
     /* ── workspace: read ──────────────────────────────────────────────────── */
@@ -36,15 +46,11 @@ window.Tools = (function () {
       description:
         "Read a workspace file. Returns line-numbered text. Use offset/limit for " +
         "large files; prefer reading a whole file when it is small.",
-      input_schema: {
-        type: "object",
-        properties: {
-          path: { type: "string", description: "Workspace-relative path, e.g. demo/agent.js" },
-          offset: { type: "integer", description: "First line to return (1-based)." },
-          limit: { type: "integer", description: "How many lines to return." },
-        },
-        required: ["path"],
-      },
+      input_schema: schema({
+        path: str("Workspace-relative path, e.g. demo/agent.js"),
+        offset: int("First line to return (1-based)."),
+        limit: int("How many lines to return."),
+      }, ["path"]),
       summary: (i) => i.path,
       run({ path, offset = 1, limit = 2000 }) {
         const lines = VFS.read(path).split("\n");
@@ -60,11 +66,7 @@ window.Tools = (function () {
       name: "list",
       kind: "read",
       description: "List every file in the workspace with its size. Cheap; call it before guessing at paths.",
-      input_schema: {
-        type: "object",
-        properties: { prefix: { type: "string", description: "Only paths starting with this, e.g. demo/" } },
-        required: [],
-      },
+      input_schema: schema({ prefix: str("Only paths starting with this, e.g. demo/") }),
       summary: (i) => i.prefix || "/",
       run({ prefix = "" } = {}) {
         const paths = VFS.paths().filter((p) => p.startsWith(prefix));
@@ -77,11 +79,7 @@ window.Tools = (function () {
       name: "glob",
       kind: "read",
       description: "Find workspace files by glob. Supports *, ?, ** and {a,b}. Example: **/*.js",
-      input_schema: {
-        type: "object",
-        properties: { pattern: { type: "string", description: "Glob pattern." } },
-        required: ["pattern"],
-      },
+      input_schema: schema({ pattern: str("Glob pattern.") }, ["pattern"]),
       summary: (i) => i.pattern,
       run({ pattern }) {
         const hits = VFS.glob(pattern);
@@ -94,15 +92,11 @@ window.Tools = (function () {
       description:
         "Search workspace file contents with a JavaScript regular expression. " +
         "Returns path:line:text. Narrow the scope with `glob` when the workspace is large.",
-      input_schema: {
-        type: "object",
-        properties: {
-          pattern: { type: "string", description: "JS regex source, e.g. export function \\w+" },
-          glob: { type: "string", description: "Restrict to files matching this glob." },
-          ignore_case: { type: "boolean", description: "Case-insensitive match." },
-        },
-        required: ["pattern"],
-      },
+      input_schema: schema({
+        pattern: str("JS regex source, e.g. export function \\w+"),
+        glob: str("Restrict to files matching this glob."),
+        ignore_case: bool("Case-insensitive match."),
+      }, ["pattern"]),
       summary: (i) => i.pattern + (i.glob ? `  in ${i.glob}` : ""),
       run({ pattern, glob, ignore_case }) {
         const hits = VFS.grep(pattern, { glob, flags: ignore_case ? "i" : "" });
@@ -120,14 +114,10 @@ window.Tools = (function () {
       description:
         "Create or overwrite a workspace file with exact content. Overwrites without " +
         "warning, so `read` first if the file might already hold work worth keeping.",
-      input_schema: {
-        type: "object",
-        properties: {
-          path: { type: "string", description: "Workspace-relative path." },
-          content: { type: "string", description: "Full file content." },
-        },
-        required: ["path", "content"],
-      },
+      input_schema: schema({
+        path: str("Workspace-relative path."),
+        content: str("Full file content."),
+      }, ["path", "content"]),
       summary: (i) => `${i.path}  (${(i.content || "").length}b)`,
       run({ path, content }) {
         const r = VFS.write(path, content);
@@ -140,16 +130,12 @@ window.Tools = (function () {
       description:
         "Replace an exact substring in a workspace file. `old_string` must appear " +
         "exactly once unless replace_all is set. Preferred over `write` for small changes.",
-      input_schema: {
-        type: "object",
-        properties: {
-          path: { type: "string", description: "Workspace-relative path." },
-          old_string: { type: "string", description: "Exact text to find, including indentation." },
-          new_string: { type: "string", description: "Replacement text." },
-          replace_all: { type: "boolean", description: "Replace every occurrence." },
-        },
-        required: ["path", "old_string", "new_string"],
-      },
+      input_schema: schema({
+        path: str("Workspace-relative path."),
+        old_string: str("Exact text to find, including indentation."),
+        new_string: str("Replacement text."),
+        replace_all: bool("Replace every occurrence."),
+      }, ["path", "old_string", "new_string"]),
       summary: (i) => i.path,
       run({ path, old_string, new_string, replace_all }) {
         const before = VFS.read(path);
@@ -169,11 +155,7 @@ window.Tools = (function () {
       name: "delete",
       kind: "write",
       description: "Remove a workspace file. There is no undo.",
-      input_schema: {
-        type: "object",
-        properties: { path: { type: "string", description: "Workspace-relative path." } },
-        required: ["path"],
-      },
+      input_schema: schema({ path: str("Workspace-relative path.") }, ["path"]),
       summary: (i) => i.path,
       run({ path }) { return `deleted ${VFS.remove(path)}`; },
     },
@@ -181,14 +163,10 @@ window.Tools = (function () {
       name: "move",
       kind: "write",
       description: "Rename or move a workspace file. Overwrites the destination if it exists.",
-      input_schema: {
-        type: "object",
-        properties: {
-          from: { type: "string", description: "Existing path." },
-          to: { type: "string", description: "New path." },
-        },
-        required: ["from", "to"],
-      },
+      input_schema: schema({
+        from: str("Existing path."),
+        to: str("New path."),
+      }, ["from", "to"]),
       summary: (i) => `${i.from} → ${i.to}`,
       run({ from, to }) {
         const r = VFS.move(from, to);
@@ -204,24 +182,12 @@ window.Tools = (function () {
         "Record the plan for a multi-step build and its current state. Rewrite the " +
         "whole list each time. Use it for work with 3+ steps so the user can see " +
         "where things stand; skip it for one-shot answers.",
-      input_schema: {
-        type: "object",
-        properties: {
-          items: {
-            type: "array",
-            description: "The full task list, in order.",
-            items: {
-              type: "object",
-              properties: {
-                text: { type: "string", description: "What the step accomplishes." },
-                status: { type: "string", enum: ["pending", "active", "done"], description: "Step state." },
-              },
-              required: ["text", "status"],
-            },
-          },
-        },
-        required: ["items"],
-      },
+      input_schema: schema({
+        items: arr("The full task list, in order.", schema({
+          text: str("What the step accomplishes."),
+          status: str("Step state.", { enum: ["pending", "active", "done"] }),
+        }, ["text", "status"])),
+      }, ["items"]),
       summary: (i) => {
         const items = i.items || [];
         return `${items.filter((t) => t.status === "done").length}/${items.length} done`;
@@ -241,14 +207,10 @@ window.Tools = (function () {
         "plus the returned value. Top-level `await` and dynamic `import('https://esm.sh/pkg')` " +
         "both work; static `import` statements do not (use dynamic import). Use this to " +
         "probe a package's real exports before writing code against it.",
-      input_schema: {
-        type: "object",
-        properties: {
-          code: { type: "string", description: "Statements to run. `return` a value to see it." },
-          timeout_ms: { type: "integer", description: "Give up after this long (default 15000)." },
-        },
-        required: ["code"],
-      },
+      input_schema: schema({
+        code: str("Statements to run. `return` a value to see it."),
+        timeout_ms: int("Give up after this long (default 15000)."),
+      }, ["code"]),
       summary: (i) => (i.code || "").trim().split("\n")[0].slice(0, 80),
       async run({ code, timeout_ms }) {
         const r = await Sandbox.runJs(code, { timeout: timeout_ms || 15000 });
@@ -263,14 +225,10 @@ window.Tools = (function () {
         "against the other workspace files. If it exports a default (or `main`) function, " +
         "that is called; otherwise its export names are reported. Circular imports fail. " +
         "This is how you verify an agent you built actually loads and runs.",
-      input_schema: {
-        type: "object",
-        properties: {
-          entry: { type: "string", description: "Workspace path of the module to run." },
-          timeout_ms: { type: "integer", description: "Give up after this long (default 20000)." },
-        },
-        required: ["entry"],
-      },
+      input_schema: schema({
+        entry: str("Workspace path of the module to run."),
+        timeout_ms: int("Give up after this long (default 20000)."),
+      }, ["entry"]),
       summary: (i) => i.entry,
       async run({ entry, timeout_ms }) {
         const r = await Sandbox.runModule(entry, {
@@ -287,11 +245,7 @@ window.Tools = (function () {
         "Mount a workspace HTML file in the harness PREVIEW pane so the user can see and " +
         "click it. Relative script/style/module references are wired to the workspace copies. " +
         "Finish a UI build with this.",
-      input_schema: {
-        type: "object",
-        properties: { path: { type: "string", description: "Workspace path to an .html file." } },
-        required: ["path"],
-      },
+      input_schema: schema({ path: str("Workspace path to an .html file.") }, ["path"]),
       summary: (i) => i.path,
       async run({ path }) {
         await hooks.preview(path);
@@ -307,14 +261,10 @@ window.Tools = (function () {
         "GET a URL from this browser tab and return the body as text. Subject to CORS: " +
         "API endpoints and CDNs usually work, ordinary web pages usually do not. " +
         "A CORS failure is reported as such, not as a missing page.",
-      input_schema: {
-        type: "object",
-        properties: {
-          url: { type: "string", description: "Absolute http(s) URL." },
-          max_chars: { type: "integer", description: "Truncate the body (default 20000)." },
-        },
-        required: ["url"],
-      },
+      input_schema: schema({
+        url: str("Absolute http(s) URL."),
+        max_chars: int("Truncate the body (default 20000)."),
+      }, ["url"]),
       summary: (i) => i.url,
       async run({ url, max_chars = 20000 }) {
         if (!/^https?:\/\//i.test(url)) throw new Error("url must be absolute http(s)");
@@ -338,14 +288,10 @@ window.Tools = (function () {
         "Look up a package on the public npm registry: latest version, description, " +
         "exports map, dependencies and README. Registry CORS is open, so this always " +
         "works when the tab is online. Use it before writing code against any package.",
-      input_schema: {
-        type: "object",
-        properties: {
-          name: { type: "string", description: "Package name, e.g. blocks.ai" },
-          version: { type: "string", description: "Specific version (default: latest)." },
-        },
-        required: ["name"],
-      },
+      input_schema: schema({
+        name: str("Package name, e.g. blocks.ai"),
+        version: str("Specific version (default: latest)."),
+      }, ["name"]),
       summary: (i) => i.name,
       async run({ name, version }) {
         const res = await fetch(`https://registry.npmjs.org/${encodeURIComponent(name)}`);
@@ -378,16 +324,12 @@ window.Tools = (function () {
         "Fetch one file out of a published npm package via jsDelivr — type declarations " +
         "(index.d.ts), source, anything. Omit `path` to list the package's file tree. " +
         "This is the reliable way to learn a package's real API without guessing.",
-      input_schema: {
-        type: "object",
-        properties: {
-          name: { type: "string", description: "Package name." },
-          path: { type: "string", description: "File inside the package, e.g. dist/index.d.ts" },
-          version: { type: "string", description: "Version or tag (default latest)." },
-          max_chars: { type: "integer", description: "Truncate (default 20000)." },
-        },
-        required: ["name"],
-      },
+      input_schema: schema({
+        name: str("Package name."),
+        path: str("File inside the package, e.g. dist/index.d.ts"),
+        version: str("Version or tag (default latest)."),
+        max_chars: int("Truncate (default 20000)."),
+      }, ["name"]),
       summary: (i) => `${i.name}${i.path ? "/" + i.path : " (tree)"}`,
       async run({ name, path, version = "latest", max_chars = 20000 }) {
         const spec = `${name}@${version}`;
@@ -413,13 +355,7 @@ window.Tools = (function () {
         "Read the harness's built-in notes on building browser agents: how this " +
         "sandbox works, and per-framework guidance. Call with no argument to list " +
         "frameworks. Read this before scaffolding anything.",
-      input_schema: {
-        type: "object",
-        properties: {
-          framework: { type: "string", description: "Framework id, or 'harness' for the sandbox notes." },
-        },
-        required: [],
-      },
+      input_schema: schema({ framework: str("Framework id, or 'harness' for the sandbox notes.") }),
       summary: (i) => i.framework || "index",
       run({ framework } = {}) {
         if (!framework) {
@@ -440,14 +376,10 @@ window.Tools = (function () {
         "Write a working starter agent into the workspace: index.html, an agent loop, " +
         "tool definitions and a provider adapter. Faster and less error-prone than " +
         "writing the skeleton by hand — scaffold, then edit toward what the user asked for.",
-      input_schema: {
-        type: "object",
-        properties: {
-          framework: { type: "string", description: "Framework id from framework_docs." },
-          directory: { type: "string", description: "Workspace directory to write into, e.g. demo" },
-        },
-        required: ["framework", "directory"],
-      },
+      input_schema: schema({
+        framework: str("Framework id from framework_docs."),
+        directory: str("Workspace directory to write into, e.g. demo"),
+      }, ["framework", "directory"]),
       summary: (i) => `${i.framework} → ${i.directory}/`,
       run({ framework, directory }) {
         const fw = Frameworks.get(framework);
@@ -467,11 +399,7 @@ window.Tools = (function () {
       description:
         "Package the whole workspace as a .zip and hand it to the user's browser as a " +
         "download. Offer this once a build works so the work can leave the tab.",
-      input_schema: {
-        type: "object",
-        properties: { filename: { type: "string", description: "Archive name (default agent-workspace.zip)." } },
-        required: [],
-      },
+      input_schema: schema({ filename: str("Archive name (default agent-workspace.zip).") }),
       summary: (i) => i.filename || "agent-workspace.zip",
       run({ filename = "agent-workspace.zip" } = {}) {
         if (!VFS.count()) throw new Error("workspace is empty; nothing to export");

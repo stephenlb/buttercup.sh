@@ -261,6 +261,9 @@ window.UI = (function () {
       entry("error", "harness").appendChild(el("pre", null, text));
     },
 
+    /** Report something that threw: its message, or the thing itself. */
+    fail(err) { api.error(String(err && err.message ? err.message : err)); },
+
     /** Drop every transcript entry, including the boot banner. */
     clearLog() { log.replaceChildren(); },
 

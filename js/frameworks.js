@@ -168,7 +168,11 @@ export async function runTool(name, input) {
 }
 `;
 
-  const INDEX_HTML = (title) => `<!DOCTYPE html>
+  /* The page chrome every scaffolded UI shares. Both generated pages — the agent
+     runner and the Blocks consumer — are the same terminal-flavoured document
+     and differ only in their title and in what they call the accent class, so
+     the head and stylesheet are written once here. */
+  const PAGE_HEAD = (title, accent) => `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -185,10 +189,12 @@ export async function runTool(name, input) {
   button { cursor: pointer; text-transform: uppercase; letter-spacing: .12em; }
   #out { max-width: 46rem; white-space: pre-wrap; border-left: 3px solid #4a3a1e;
     padding-left: .8rem; margin-top: 1.2rem; }
-  .tool { color: #a8873f; }
+  .${accent} { color: #a8873f; }
   .err { color: #e5705c; }
 </style>
-</head>
+</head>`;
+
+  const INDEX_HTML = (title) => `${PAGE_HEAD(title, "tool")}
 <body>
   <h1>${title}</h1>
   <form id="f">
@@ -443,27 +449,7 @@ ANTHROPIC_API_KEY=
 LOG_LEVEL=info
 `;
 
-        files[`${dir}/web/index.html`] = `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Blocks consumer</title>
-<style>
-  :root { color-scheme: dark; }
-  body { margin: 0; padding: 2rem; background: #14100b; color: #f6c66a;
-         font: 14px/1.55 ui-monospace, "SFMono-Regular", Menlo, monospace; }
-  h1 { font-size: 1rem; letter-spacing: .18em; text-transform: uppercase; }
-  form { display: grid; gap: .5rem; max-width: 46rem; }
-  input, textarea, button { font: inherit; color: inherit; background: #1d170f;
-    border: 1px solid #4a3a1e; padding: .45rem .5rem; }
-  button { cursor: pointer; text-transform: uppercase; letter-spacing: .12em; }
-  #out { max-width: 46rem; white-space: pre-wrap; border-left: 3px solid #4a3a1e;
-    padding-left: .8rem; margin-top: 1.2rem; }
-  .status { color: #a8873f; }
-  .err { color: #e5705c; }
-</style>
-</head>
+        files[`${dir}/web/index.html`] = `${PAGE_HEAD("Blocks consumer", "status")}
 <body>
   <h1>Blocks consumer</h1>
   <p class="status">Submits a task to an agent on the Blocks network and streams

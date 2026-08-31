@@ -43,6 +43,9 @@ window.VFS = (function () {
     return out.join("/");
   }
 
+  /** A glob character that has no special meaning, escaped for a RegExp. */
+  const lit = (s) => s.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+
   /** glob → RegExp. Supports `*`, `?`, `**`, and `{a,b}` alternation. */
   function globRe(pattern) {
     let re = "";
@@ -60,9 +63,9 @@ window.VFS = (function () {
         const close = pattern.indexOf("}", i);
         if (close < 0) { re += "\\{"; continue; }
         const alts = pattern.slice(i + 1, close).split(",");
-        re += "(?:" + alts.map((a) => a.replace(/[.+^${}()|[\]\\]/g, "\\$&")).join("|") + ")";
+        re += "(?:" + alts.map(lit).join("|") + ")";
         i = close;
-      } else re += c.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+      } else re += lit(c);
     }
     return new RegExp("^" + re + "$");
   }

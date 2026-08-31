@@ -147,6 +147,32 @@ window.LLM = (function () {
     return out;
   }
 
+  /**
+   * Provider spec, cleaned key and resolved base url — the same preflight both
+   * `complete` and `validate` need before they can address the vendor at all.
+   * Throws the reason when the settings cannot describe a reachable endpoint.
+   */
+  function resolve({ provider, apiKey, baseUrl }) {
+    const spec = MODELS[provider];
+    if (!spec) throw new Error(`unknown provider: ${provider}`);
+    const key = checkedKey(provider, apiKey);
+    const base = baseOf(provider, baseUrl);
+    if (spec.api === "chat" && !base) throw new Error(`${provider}: no base url — set one in the KEYS panel`);
+    return { spec, key, base };
+  }
+
+  /**
+   * The tail the two flat-stream adapters share: one text part if anything was
+   * said, then a `tool_use` per call, in the order the vendor emitted them.
+   */
+  function flatParts(text, calls) {
+    const parts = text ? [{ type: "text", text }] : [];
+    for (const c of calls) {
+      parts.push({ type: "tool_use", id: c.id || `call_${parts.length}`, name: c.name, input: c.input });
+    }
+    return parts;
+  }
+
   const ADAPTIVE = /^claude-(opus-(5|4-8|4-7|4-6)|sonnet-(5|4-6)|fable-5|mythos-5)/;
   const FALLBACK_CAPABLE = /^claude-(opus-5|fable-5|mythos-5)/;
 
@@ -258,7 +284,6 @@ window.LLM = (function () {
      ------------------------------------------------------------------------- */
 
   async function chat({ provider, baseUrl, model, apiKey, system, messages, tools, effort, signal, on }) {
-    const label = provider;
     const effortKnob = MODELS[provider]?.effortKnob;
     const wire = [];
     if (system) wire.push({ role: "system", content: system });
@@ -304,7 +329,7 @@ window.LLM = (function () {
       headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
       signal, body: JSON.stringify(body),
     });
-    if (!res.ok) await fail(res, label);
+    if (!res.ok) await fail(res, provider);
 
     let text = "";
     const calls = [];
@@ -334,12 +359,8 @@ window.LLM = (function () {
       if (choice.finish_reason) stopReason = choice.finish_reason;
     }
 
-    const parts = [];
-    if (text) parts.push({ type: "text", text });
-    for (const c of calls.filter(Boolean)) {
-      parts.push({ type: "tool_use", id: c.id || `call_${parts.length}`, name: c.name, input: safeJson(c.json) });
-    }
-    return { parts, stopReason, usage };
+    const ready = calls.filter(Boolean).map((c) => ({ id: c.id, name: c.name, input: safeJson(c.json) }));
+    return { parts: flatParts(text, ready), stopReason, usage };
   };
 
   /* ── Google ─────────────────────────────────────────────────────────────── */
@@ -405,12 +426,10 @@ window.LLM = (function () {
       }
     }
 
-    const parts = [];
-    if (text) parts.push({ type: "text", text });
-    calls.forEach((c, i) => {
-      parts.push({ type: "tool_use", id: `${c.name}_${Date.now()}_${i}`, name: c.name, input: c.args || {} });
-    });
-    return { parts, stopReason, usage };
+    const ready = calls.map((c, i) => ({
+      id: `${c.name}_${Date.now()}_${i}`, name: c.name, input: c.args || {},
+    }));
+    return { parts: flatParts(text, ready), stopReason, usage };
   }
 
   function safeJson(raw) {
@@ -443,12 +462,9 @@ window.LLM = (function () {
 
   /** Resolve `{ok:true}` when the vendor accepts the key, `{ok:false, error}` otherwise. */
   async function validate({ provider, apiKey, baseUrl, signal }) {
-    const spec = MODELS[provider];
-    if (!spec) return { ok: false, error: `unknown provider: ${provider}` };
-    let key;
-    try { key = checkedKey(provider, apiKey); } catch (err) { return { ok: false, error: err.message }; }
-    const base = baseOf(provider, baseUrl);
-    if (spec.api === "chat" && !base) return { ok: false, error: `${provider}: set a base url in the KEYS panel` };
+    let spec, key, base;
+    try { ({ spec, key, base } = resolve({ provider, apiKey, baseUrl })); }
+    catch (err) { return { ok: false, error: err.message }; }
     const [url, headers] = PROBES[spec.api](key, base, spec);
     try {
       const res = await fetch(url, { headers, signal });
@@ -476,11 +492,7 @@ window.LLM = (function () {
      * @returns {Promise<{parts: object[], stopReason: string|null, usage: {input:number,output:number}}>}
      */
     complete({ provider, model, apiKey, baseUrl, system, messages, tools = [], effort = "high", signal, on = {} }) {
-      const spec = MODELS[provider];
-      if (!spec) throw new Error(`unknown provider: ${provider}`);
-      const key = checkedKey(provider, apiKey);
-      const base = baseOf(provider, baseUrl);
-      if (spec.api === "chat" && !base) throw new Error(`${provider}: no base url — set one in the KEYS panel`);
+      const { spec, key, base } = resolve({ provider, apiKey, baseUrl });
       if (!model) throw new Error(`${provider}: no model name — type one in the KEYS panel`);
       return ADAPTERS[spec.api]({
         provider, baseUrl: base, model, apiKey: key, system, messages, tools, effort, signal, on,

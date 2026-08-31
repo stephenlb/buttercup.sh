@@ -131,6 +131,23 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
 
   const COMPACT_FLOOR = 8000;
 
+  /** What to report when something throws: its message, or the thing itself. */
+  const errText = (err) => String(err && err.message ? err.message : err);
+
+  /** Who to talk to — the credential half of every completion request. */
+  const creds = (settings) => ({
+    provider: settings.provider,
+    model: settings.model,
+    apiKey: settings.key,
+    baseUrl: settings.baseUrl,
+  });
+
+  /** Add one reply's token cost to the session total. */
+  const bill = (usage) => {
+    state.usage.input += usage.input;
+    state.usage.output += usage.output;
+  };
+
   const hooks = {
     onUser: () => {},
     onAssistantStart: () => {},
@@ -270,10 +287,7 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
     let reply;
     try {
       reply = await LLM.complete({
-        provider: settings.provider,
-        model: settings.model,
-        apiKey: settings.key,
-        baseUrl: settings.baseUrl,
+        ...creds(settings),
         effort: "low",
         system: COMPACT_SYSTEM,
         messages: forProvider([...source, { role: "user", parts: [{ type: "text", text: COMPACT_ASK }] }], settings.provider),
@@ -289,8 +303,7 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
     }
 
     const note = reply.parts.filter((p) => p.type === "text").map((p) => p.text).join("").trim();
-    state.usage.input += reply.usage.input;
-    state.usage.output += reply.usage.output;
+    bill(reply.usage);
     if (!note) throw new Error("the model returned an empty summary — context left exactly as it was");
 
     // A request in flight survives verbatim: compaction can land mid-turn, and
@@ -368,10 +381,7 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
         let reply;
         try {
           reply = await LLM.complete({
-            provider: settings.provider,
-            model: settings.model,
-            apiKey: settings.key,
-            baseUrl: settings.baseUrl,
+            ...creds(settings),
             effort: settings.effort,
             system: systemFor(settings),
             messages: forProvider(state.messages, settings.provider),
@@ -387,8 +397,7 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
           hooks.onAssistantEnd(view);
         }
 
-        state.usage.input += reply.usage.input;
-        state.usage.output += reply.usage.output;
+        bill(reply.usage);
         // What this request cost is the best measure of the context the next one
         // will carry — the tab cannot tokenize, and every vendor counts its own.
         state.context = reply.usage.input + reply.usage.output;
@@ -418,7 +427,7 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
             hooks.onToolEnd(handle, { ok: true, output });
             results.push({ type: "tool_result", id: call.id, name: call.name, output });
           } catch (err) {
-            const output = String(err && err.message ? err.message : err);
+            const output = errText(err);
             hooks.onToolEnd(handle, { ok: false, output });
             results.push({ type: "tool_result", id: call.id, name: call.name, output, error: true });
           }
@@ -433,7 +442,7 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
       hooks.onError(`stopped after ${maxSteps} steps (the max-steps setting). Ask it to continue if that was too soon.`);
     } catch (err) {
       if (err && err.name === "AbortError") hooks.onError("stopped by user");
-      else hooks.onError(String(err && err.message ? err.message : err));
+      else hooks.onError(errText(err));
     } finally {
       state.busy = false;
       state.controller = null;

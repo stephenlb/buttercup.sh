@@ -218,6 +218,18 @@ post({ type: "ready" });
     });
   }
 
+  /**
+   * The workspace as the sandbox will see it, with the entry point resolved.
+   * A missing entry is reported in the same shape a failed run uses, so the
+   * caller has one result type to handle rather than a throw and a result.
+   */
+  function withWorkspace(entry, job, opts) {
+    const files = VFS.snapshot();
+    const path = VFS.norm(entry);
+    if (!(path in files)) return Promise.resolve({ ok: false, error: `no such file: ${path}`, logs: [] });
+    return exec({ ...job, files, entry: path }, opts);
+  }
+
   return {
     /** Evaluate a snippet as a module body; `return` yields the reported value. */
     runJs(code, opts) {
@@ -226,18 +238,12 @@ post({ type: "ready" });
 
     /** Run a workspace module, linking its relative imports to sibling files. */
     runModule(entry, opts) {
-      const files = VFS.snapshot();
-      const path = VFS.norm(entry);
-      if (!(path in files)) return Promise.resolve({ ok: false, error: `no such file: ${path}`, logs: [] });
-      return exec({ kind: "module", files, entry: path, onLog: opts && opts.onLog }, opts);
+      return withWorkspace(entry, { kind: "module", onLog: opts && opts.onLog }, opts);
     },
 
     /** Mount a workspace HTML file into an existing (visible) iframe element. */
     preview(entry, frame) {
-      const files = VFS.snapshot();
-      const path = VFS.norm(entry);
-      if (!(path in files)) return Promise.resolve({ ok: false, error: `no such file: ${path}`, logs: [] });
-      return exec({ kind: "preview", files, entry: path }, { visible: frame, timeout: 10000 });
+      return withWorkspace(entry, { kind: "preview" }, { visible: frame, timeout: 10000 });
     },
   };
 })();

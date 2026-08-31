@@ -628,6 +628,7 @@ else out.push(seg);
 if (!out.length) throw new Error(`not a file path: ${path}`);
 return out.join("/");
 }
+const lit = (s) => s.replace(/[.+^${}()|[\]\\]/g, "\\$&");
 function globRe(pattern) {
 let re = "";
 for (let i = 0; i < pattern.length; i++) {
@@ -643,9 +644,9 @@ else if (c === "{") {
 const close = pattern.indexOf("}", i);
 if (close < 0) { re += "\\{"; continue; }
 const alts = pattern.slice(i + 1, close).split(",");
-re += "(?:" + alts.map((a) => a.replace(/[.+^${}()|[\]\\]/g, "\\$&")).join("|") + ")";
+re += "(?:" + alts.map(lit).join("|") + ")";
 i = close;
-} else re += c.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+} else re += lit(c);
 }
 return new RegExp("^" + re + "$");
 }
@@ -987,7 +988,7 @@ export async function runTool(name, input) {
   return await handler(input ?? {});
 }
 `;
-const INDEX_HTML = (title) => `<!DOCTYPE html>
+const PAGE_HEAD = (title, accent) => `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -1004,10 +1005,11 @@ const INDEX_HTML = (title) => `<!DOCTYPE html>
   button { cursor: pointer; text-transform: uppercase; letter-spacing: .12em; }
   #out { max-width: 46rem; white-space: pre-wrap; border-left: 3px solid #4a3a1e;
     padding-left: .8rem; margin-top: 1.2rem; }
-  .tool { color: #a8873f; }
+  .${accent} { color: #a8873f; }
   .err { color: #e5705c; }
 </style>
-</head>
+</head>`;
+const INDEX_HTML = (title) => `${PAGE_HEAD(title, "tool")}
 <body>
   <h1>${title}</h1>
   <form id="f">
@@ -1254,27 +1256,7 @@ BLOCKS_API_KEY=
 ANTHROPIC_API_KEY=
 LOG_LEVEL=info
 `;
-files[`${dir}/web/index.html`] = `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Blocks consumer</title>
-<style>
-  :root { color-scheme: dark; }
-  body { margin: 0; padding: 2rem; background: #14100b; color: #f6c66a;
-         font: 14px/1.55 ui-monospace, "SFMono-Regular", Menlo, monospace; }
-  h1 { font-size: 1rem; letter-spacing: .18em; text-transform: uppercase; }
-  form { display: grid; gap: .5rem; max-width: 46rem; }
-  input, textarea, button { font: inherit; color: inherit; background: #1d170f;
-    border: 1px solid #4a3a1e; padding: .45rem .5rem; }
-  button { cursor: pointer; text-transform: uppercase; letter-spacing: .12em; }
-  #out { max-width: 46rem; white-space: pre-wrap; border-left: 3px solid #4a3a1e;
-    padding-left: .8rem; margin-top: 1.2rem; }
-  .status { color: #a8873f; }
-  .err { color: #e5705c; }
-</style>
-</head>
+files[`${dir}/web/index.html`] = `${PAGE_HEAD("Blocks consumer", "status")}
 <body>
   <h1>Blocks consumer</h1>
   <p class="status">Submits a task to an agent on the Blocks network and streams
@@ -1697,21 +1679,21 @@ timeout
 );
 });
 }
+function withWorkspace(entry, job, opts) {
+const files = VFS.snapshot();
+const path = VFS.norm(entry);
+if (!(path in files)) return Promise.resolve({ ok: false, error: `no such file: ${path}`, logs: [] });
+return exec({ ...job, files, entry: path }, opts);
+}
 return {
 runJs(code, opts) {
 return exec({ kind: "js", code }, opts);
 },
 runModule(entry, opts) {
-const files = VFS.snapshot();
-const path = VFS.norm(entry);
-if (!(path in files)) return Promise.resolve({ ok: false, error: `no such file: ${path}`, logs: [] });
-return exec({ kind: "module", files, entry: path, onLog: opts && opts.onLog }, opts);
+return withWorkspace(entry, { kind: "module", onLog: opts && opts.onLog }, opts);
 },
 preview(entry, frame) {
-const files = VFS.snapshot();
-const path = VFS.norm(entry);
-if (!(path in files)) return Promise.resolve({ ok: false, error: `no such file: ${path}`, logs: [] });
-return exec({ kind: "preview", files, entry: path }, { visible: frame, timeout: 10000 });
+return withWorkspace(entry, { kind: "preview" }, { visible: frame, timeout: 10000 });
 },
 };
 })();
@@ -1728,6 +1710,11 @@ const clip = (text, max) =>
 text.length <= max ? text : text.slice(0, max) + `\n… truncated at ${max} chars (${text.length} total)`;
 const numbered = (text, from = 1) =>
 text.split("\n").map((line, i) => `${String(from + i).padStart(5)}\t${line}`).join("\n");
+const schema = (properties, required = []) => ({ type: "object", properties, required });
+const str = (description, extra) => ({ type: "string", description, ...extra });
+const int = (description) => ({ type: "integer", description });
+const bool = (description) => ({ type: "boolean", description });
+const arr = (description, items) => ({ type: "array", description, items });
 const DEFS = [
 {
 name: "read",
@@ -1735,15 +1722,11 @@ kind: "read",
 description:
 "Read a workspace file. Returns line-numbered text. Use offset/limit for " +
 "large files; prefer reading a whole file when it is small.",
-input_schema: {
-type: "object",
-properties: {
-path: { type: "string", description: "Workspace-relative path, e.g. demo/agent.js" },
-offset: { type: "integer", description: "First line to return (1-based)." },
-limit: { type: "integer", description: "How many lines to return." },
-},
-required: ["path"],
-},
+input_schema: schema({
+path: str("Workspace-relative path, e.g. demo/agent.js"),
+offset: int("First line to return (1-based)."),
+limit: int("How many lines to return."),
+}, ["path"]),
 summary: (i) => i.path,
 run({ path, offset = 1, limit = 2000 }) {
 const lines = VFS.read(path).split("\n");
@@ -1759,11 +1742,7 @@ return clip(numbered(slice.join("\n"), start), 40000) + tail;
 name: "list",
 kind: "read",
 description: "List every file in the workspace with its size. Cheap; call it before guessing at paths.",
-input_schema: {
-type: "object",
-properties: { prefix: { type: "string", description: "Only paths starting with this, e.g. demo/" } },
-required: [],
-},
+input_schema: schema({ prefix: str("Only paths starting with this, e.g. demo/") }),
 summary: (i) => i.prefix || "/",
 run({ prefix = "" } = {}) {
 const paths = VFS.paths().filter((p) => p.startsWith(prefix));
@@ -1776,11 +1755,7 @@ return `${paths.length} file(s), ${VFS.bytes()} bytes total\n${rows.join("\n")}`
 name: "glob",
 kind: "read",
 description: "Find workspace files by glob. Supports *, ?, ** and {a,b}. Example: **/*.js",
-input_schema: {
-type: "object",
-properties: { pattern: { type: "string", description: "Glob pattern." } },
-required: ["pattern"],
-},
+input_schema: schema({ pattern: str("Glob pattern.") }, ["pattern"]),
 summary: (i) => i.pattern,
 run({ pattern }) {
 const hits = VFS.glob(pattern);
@@ -1793,15 +1768,11 @@ kind: "read",
 description:
 "Search workspace file contents with a JavaScript regular expression. " +
 "Returns path:line:text. Narrow the scope with `glob` when the workspace is large.",
-input_schema: {
-type: "object",
-properties: {
-pattern: { type: "string", description: "JS regex source, e.g. export function \\w+" },
-glob: { type: "string", description: "Restrict to files matching this glob." },
-ignore_case: { type: "boolean", description: "Case-insensitive match." },
-},
-required: ["pattern"],
-},
+input_schema: schema({
+pattern: str("JS regex source, e.g. export function \\w+"),
+glob: str("Restrict to files matching this glob."),
+ignore_case: bool("Case-insensitive match."),
+}, ["pattern"]),
 summary: (i) => i.pattern + (i.glob ? `  in ${i.glob}` : ""),
 run({ pattern, glob, ignore_case }) {
 const hits = VFS.grep(pattern, { glob, flags: ignore_case ? "i" : "" });
@@ -1817,14 +1788,10 @@ kind: "write",
 description:
 "Create or overwrite a workspace file with exact content. Overwrites without " +
 "warning, so `read` first if the file might already hold work worth keeping.",
-input_schema: {
-type: "object",
-properties: {
-path: { type: "string", description: "Workspace-relative path." },
-content: { type: "string", description: "Full file content." },
-},
-required: ["path", "content"],
-},
+input_schema: schema({
+path: str("Workspace-relative path."),
+content: str("Full file content."),
+}, ["path", "content"]),
 summary: (i) => `${i.path}  (${(i.content || "").length}b)`,
 run({ path, content }) {
 const r = VFS.write(path, content);
@@ -1837,16 +1804,12 @@ kind: "write",
 description:
 "Replace an exact substring in a workspace file. `old_string` must appear " +
 "exactly once unless replace_all is set. Preferred over `write` for small changes.",
-input_schema: {
-type: "object",
-properties: {
-path: { type: "string", description: "Workspace-relative path." },
-old_string: { type: "string", description: "Exact text to find, including indentation." },
-new_string: { type: "string", description: "Replacement text." },
-replace_all: { type: "boolean", description: "Replace every occurrence." },
-},
-required: ["path", "old_string", "new_string"],
-},
+input_schema: schema({
+path: str("Workspace-relative path."),
+old_string: str("Exact text to find, including indentation."),
+new_string: str("Replacement text."),
+replace_all: bool("Replace every occurrence."),
+}, ["path", "old_string", "new_string"]),
 summary: (i) => i.path,
 run({ path, old_string, new_string, replace_all }) {
 const before = VFS.read(path);
@@ -1866,11 +1829,7 @@ return `edited ${path} — ${replace_all ? count : 1} replacement(s), now ${afte
 name: "delete",
 kind: "write",
 description: "Remove a workspace file. There is no undo.",
-input_schema: {
-type: "object",
-properties: { path: { type: "string", description: "Workspace-relative path." } },
-required: ["path"],
-},
+input_schema: schema({ path: str("Workspace-relative path.") }, ["path"]),
 summary: (i) => i.path,
 run({ path }) { return `deleted ${VFS.remove(path)}`; },
 },
@@ -1878,14 +1837,10 @@ run({ path }) { return `deleted ${VFS.remove(path)}`; },
 name: "move",
 kind: "write",
 description: "Rename or move a workspace file. Overwrites the destination if it exists.",
-input_schema: {
-type: "object",
-properties: {
-from: { type: "string", description: "Existing path." },
-to: { type: "string", description: "New path." },
-},
-required: ["from", "to"],
-},
+input_schema: schema({
+from: str("Existing path."),
+to: str("New path."),
+}, ["from", "to"]),
 summary: (i) => `${i.from} → ${i.to}`,
 run({ from, to }) {
 const r = VFS.move(from, to);
@@ -1899,24 +1854,12 @@ description:
 "Record the plan for a multi-step build and its current state. Rewrite the " +
 "whole list each time. Use it for work with 3+ steps so the user can see " +
 "where things stand; skip it for one-shot answers.",
-input_schema: {
-type: "object",
-properties: {
-items: {
-type: "array",
-description: "The full task list, in order.",
-items: {
-type: "object",
-properties: {
-text: { type: "string", description: "What the step accomplishes." },
-status: { type: "string", enum: ["pending", "active", "done"], description: "Step state." },
-},
-required: ["text", "status"],
-},
-},
-},
-required: ["items"],
-},
+input_schema: schema({
+items: arr("The full task list, in order.", schema({
+text: str("What the step accomplishes."),
+status: str("Step state.", { enum: ["pending", "active", "done"] }),
+}, ["text", "status"])),
+}, ["items"]),
 summary: (i) => {
 const items = i.items || [];
 return `${items.filter((t) => t.status === "done").length}/${items.length} done`;
@@ -1934,14 +1877,10 @@ description:
 "plus the returned value. Top-level `await` and dynamic `import('https://esm.sh/pkg')` " +
 "both work; static `import` statements do not (use dynamic import). Use this to " +
 "probe a package's real exports before writing code against it.",
-input_schema: {
-type: "object",
-properties: {
-code: { type: "string", description: "Statements to run. `return` a value to see it." },
-timeout_ms: { type: "integer", description: "Give up after this long (default 15000)." },
-},
-required: ["code"],
-},
+input_schema: schema({
+code: str("Statements to run. `return` a value to see it."),
+timeout_ms: int("Give up after this long (default 15000)."),
+}, ["code"]),
 summary: (i) => (i.code || "").trim().split("\n")[0].slice(0, 80),
 async run({ code, timeout_ms }) {
 const r = await Sandbox.runJs(code, { timeout: timeout_ms || 15000 });
@@ -1956,14 +1895,10 @@ description:
 "against the other workspace files. If it exports a default (or `main`) function, " +
 "that is called; otherwise its export names are reported. Circular imports fail. " +
 "This is how you verify an agent you built actually loads and runs.",
-input_schema: {
-type: "object",
-properties: {
-entry: { type: "string", description: "Workspace path of the module to run." },
-timeout_ms: { type: "integer", description: "Give up after this long (default 20000)." },
-},
-required: ["entry"],
-},
+input_schema: schema({
+entry: str("Workspace path of the module to run."),
+timeout_ms: int("Give up after this long (default 20000)."),
+}, ["entry"]),
 summary: (i) => i.entry,
 async run({ entry, timeout_ms }) {
 const r = await Sandbox.runModule(entry, {
@@ -1980,11 +1915,7 @@ description:
 "Mount a workspace HTML file in the harness PREVIEW pane so the user can see and " +
 "click it. Relative script/style/module references are wired to the workspace copies. " +
 "Finish a UI build with this.",
-input_schema: {
-type: "object",
-properties: { path: { type: "string", description: "Workspace path to an .html file." } },
-required: ["path"],
-},
+input_schema: schema({ path: str("Workspace path to an .html file.") }, ["path"]),
 summary: (i) => i.path,
 async run({ path }) {
 await hooks.preview(path);
@@ -1998,14 +1929,10 @@ description:
 "GET a URL from this browser tab and return the body as text. Subject to CORS: " +
 "API endpoints and CDNs usually work, ordinary web pages usually do not. " +
 "A CORS failure is reported as such, not as a missing page.",
-input_schema: {
-type: "object",
-properties: {
-url: { type: "string", description: "Absolute http(s) URL." },
-max_chars: { type: "integer", description: "Truncate the body (default 20000)." },
-},
-required: ["url"],
-},
+input_schema: schema({
+url: str("Absolute http(s) URL."),
+max_chars: int("Truncate the body (default 20000)."),
+}, ["url"]),
 summary: (i) => i.url,
 async run({ url, max_chars = 20000 }) {
 if (!/^https?:\/\//i.test(url)) throw new Error("url must be absolute http(s)");
@@ -2029,14 +1956,10 @@ description:
 "Look up a package on the public npm registry: latest version, description, " +
 "exports map, dependencies and README. Registry CORS is open, so this always " +
 "works when the tab is online. Use it before writing code against any package.",
-input_schema: {
-type: "object",
-properties: {
-name: { type: "string", description: "Package name, e.g. blocks.ai" },
-version: { type: "string", description: "Specific version (default: latest)." },
-},
-required: ["name"],
-},
+input_schema: schema({
+name: str("Package name, e.g. blocks.ai"),
+version: str("Specific version (default: latest)."),
+}, ["name"]),
 summary: (i) => i.name,
 async run({ name, version }) {
 const res = await fetch(`https://registry.npmjs.org/${encodeURIComponent(name)}`);
@@ -2069,16 +1992,12 @@ description:
 "Fetch one file out of a published npm package via jsDelivr — type declarations " +
 "(index.d.ts), source, anything. Omit `path` to list the package's file tree. " +
 "This is the reliable way to learn a package's real API without guessing.",
-input_schema: {
-type: "object",
-properties: {
-name: { type: "string", description: "Package name." },
-path: { type: "string", description: "File inside the package, e.g. dist/index.d.ts" },
-version: { type: "string", description: "Version or tag (default latest)." },
-max_chars: { type: "integer", description: "Truncate (default 20000)." },
-},
-required: ["name"],
-},
+input_schema: schema({
+name: str("Package name."),
+path: str("File inside the package, e.g. dist/index.d.ts"),
+version: str("Version or tag (default latest)."),
+max_chars: int("Truncate (default 20000)."),
+}, ["name"]),
 summary: (i) => `${i.name}${i.path ? "/" + i.path : " (tree)"}`,
 async run({ name, path, version = "latest", max_chars = 20000 }) {
 const spec = `${name}@${version}`;
@@ -2104,13 +2023,7 @@ const url = `https://cdn.jsdelivr.net/npm/${spec}/${path.replace(/^\//, "")}`;
         "Read the harness's built-in notes on building browser agents: how this " +
         "sandbox works, and per-framework guidance. Call with no argument to list " +
         "frameworks. Read this before scaffolding anything.",
-      input_schema: {
-        type: "object",
-        properties: {
-          framework: { type: "string", description: "Framework id, or 'harness' for the sandbox notes." },
-        },
-        required: [],
-      },
+      input_schema: schema({ framework: str("Framework id, or 'harness' for the sandbox notes.") }),
       summary: (i) => i.framework || "index",
       run({ framework } = {}) {
         if (!framework) {
@@ -2131,14 +2044,10 @@ const url = `https://cdn.jsdelivr.net/npm/${spec}/${path.replace(/^\//, "")}`;
         "Write a working starter agent into the workspace: index.html, an agent loop, " +
         "tool definitions and a provider adapter. Faster and less error-prone than " +
         "writing the skeleton by hand — scaffold, then edit toward what the user asked for.",
-      input_schema: {
-        type: "object",
-        properties: {
-          framework: { type: "string", description: "Framework id from framework_docs." },
-          directory: { type: "string", description: "Workspace directory to write into, e.g. demo" },
-        },
-        required: ["framework", "directory"],
-      },
+      input_schema: schema({
+        framework: str("Framework id from framework_docs."),
+        directory: str("Workspace directory to write into, e.g. demo"),
+      }, ["framework", "directory"]),
       summary: (i) => `${i.framework} → ${i.directory}/`,
       run({ framework, directory }) {
         const fw = Frameworks.get(framework);
@@ -2158,11 +2067,7 @@ kind: "read",
 description:
 "Package the whole workspace as a .zip and hand it to the user's browser as a " +
 "download. Offer this once a build works so the work can leave the tab.",
-input_schema: {
-type: "object",
-properties: { filename: { type: "string", description: "Archive name (default agent-workspace.zip)." } },
-required: [],
-},
+input_schema: schema({ filename: str("Archive name (default agent-workspace.zip).") }),
 summary: (i) => i.filename || "agent-workspace.zip",
 run({ filename = "agent-workspace.zip" } = {}) {
 if (!VFS.count()) throw new Error("workspace is empty; nothing to export");
@@ -2316,6 +2221,21 @@ else out[key] = schema[key];
 }
 return out;
 }
+function resolve({ provider, apiKey, baseUrl }) {
+const spec = MODELS[provider];
+if (!spec) throw new Error(`unknown provider: ${provider}`);
+const key = checkedKey(provider, apiKey);
+const base = baseOf(provider, baseUrl);
+if (spec.api === "chat" && !base) throw new Error(`${provider}: no base url — set one in the KEYS panel`);
+return { spec, key, base };
+}
+function flatParts(text, calls) {
+const parts = text ? [{ type: "text", text }] : [];
+for (const c of calls) {
+parts.push({ type: "tool_use", id: c.id || `call_${parts.length}`, name: c.name, input: c.input });
+}
+return parts;
+}
 const ADAPTIVE = /^claude-(opus-(5|4-8|4-7|4-6)|sonnet-(5|4-6)|fable-5|mythos-5)/;
 const FALLBACK_CAPABLE = /^claude-(opus-5|fable-5|mythos-5)/;
 async function anthropic({ model, apiKey, system, messages, tools, effort, signal, on }) {
@@ -2408,7 +2328,6 @@ throw new Error(
 return { parts, stopReason, usage };
 }
 async function chat({ provider, baseUrl, model, apiKey, system, messages, tools, effort, signal, on }) {
-const label = provider;
 const effortKnob = MODELS[provider]?.effortKnob;
 const wire = [];
 if (system) wire.push({ role: "system", content: system });
@@ -2450,7 +2369,7 @@ method: "POST",
 headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
 signal, body: JSON.stringify(body),
 });
-if (!res.ok) await fail(res, label);
+if (!res.ok) await fail(res, provider);
 let text = "";
 const calls = [];
 const usage = { input: 0, output: 0 };
@@ -2477,12 +2396,8 @@ if (tc.function?.arguments) calls[slot].json += tc.function.arguments;
 }
 if (choice.finish_reason) stopReason = choice.finish_reason;
 }
-const parts = [];
-if (text) parts.push({ type: "text", text });
-for (const c of calls.filter(Boolean)) {
-parts.push({ type: "tool_use", id: c.id || `call_${parts.length}`, name: c.name, input: safeJson(c.json) });
-}
-return { parts, stopReason, usage };
+const ready = calls.filter(Boolean).map((c) => ({ id: c.id, name: c.name, input: safeJson(c.json) }));
+return { parts: flatParts(text, ready), stopReason, usage };
 };
 async function google({ model, apiKey, system, messages, tools, effort, signal, on }) {
 const contents = messages.map((m) => ({
@@ -2539,12 +2454,10 @@ else { text += part.text; on.text?.(part.text); }
 }
 }
 }
-const parts = [];
-if (text) parts.push({ type: "text", text });
-calls.forEach((c, i) => {
-parts.push({ type: "tool_use", id: `${c.name}_${Date.now()}_${i}`, name: c.name, input: c.args || {} });
-});
-return { parts, stopReason, usage };
+const ready = calls.map((c, i) => ({
+id: `${c.name}_${Date.now()}_${i}`, name: c.name, input: c.args || {},
+}));
+return { parts: flatParts(text, ready), stopReason, usage };
 }
 function safeJson(raw) {
 if (!raw || !raw.trim()) return {};
@@ -2563,12 +2476,9 @@ google: (key) => [
 chat: (key, base, spec) => [`${base}/${spec.probe || "models"}`, { authorization: `Bearer ${key}` }],
 };
 async function validate({ provider, apiKey, baseUrl, signal }) {
-const spec = MODELS[provider];
-if (!spec) return { ok: false, error: `unknown provider: ${provider}` };
-let key;
-try { key = checkedKey(provider, apiKey); } catch (err) { return { ok: false, error: err.message }; }
-const base = baseOf(provider, baseUrl);
-if (spec.api === "chat" && !base) return { ok: false, error: `${provider}: set a base url in the KEYS panel` };
+let spec, key, base;
+try { ({ spec, key, base } = resolve({ provider, apiKey, baseUrl })); }
+catch (err) { return { ok: false, error: err.message }; }
 const [url, headers] = PROBES[spec.api](key, base, spec);
 try {
 const res = await fetch(url, { headers, signal });
@@ -2589,11 +2499,7 @@ defaultUrl: (provider) => MODELS[provider]?.url || "",
 cleanKey,
 validate,
 complete({ provider, model, apiKey, baseUrl, system, messages, tools = [], effort = "high", signal, on = {} }) {
-const spec = MODELS[provider];
-if (!spec) throw new Error(`unknown provider: ${provider}`);
-const key = checkedKey(provider, apiKey);
-const base = baseOf(provider, baseUrl);
-if (spec.api === "chat" && !base) throw new Error(`${provider}: no base url — set one in the KEYS panel`);
+const { spec, key, base } = resolve({ provider, apiKey, baseUrl });
 if (!model) throw new Error(`${provider}: no model name — type one in the KEYS panel`);
 return ADAPTERS[spec.api]({
 provider, baseUrl: base, model, apiKey: key, system, messages, tools, effort, signal, on,
@@ -2701,6 +2607,17 @@ The exact next step, and anything the next agent must not redo.
 
 Facts only. Keep every path, package name and API name verbatim. No preamble, no closing summary.`;
 const COMPACT_FLOOR = 8000;
+const errText = (err) => String(err && err.message ? err.message : err);
+const creds = (settings) => ({
+provider: settings.provider,
+model: settings.model,
+apiKey: settings.key,
+baseUrl: settings.baseUrl,
+});
+const bill = (usage) => {
+state.usage.input += usage.input;
+state.usage.output += usage.output;
+};
 const hooks = {
 onUser: () => {},
 onAssistantStart: () => {},
@@ -2803,10 +2720,7 @@ hooks.onStatus("busy", { step: state.steps, note: "compacting" });
 let reply;
 try {
 reply = await LLM.complete({
-provider: settings.provider,
-model: settings.model,
-apiKey: settings.key,
-baseUrl: settings.baseUrl,
+...creds(settings),
 effort: "low",
 system: COMPACT_SYSTEM,
 messages: forProvider([...source, { role: "user", parts: [{ type: "text", text: COMPACT_ASK }] }], settings.provider),
@@ -2821,8 +2735,7 @@ hooks.onStatus("idle");
 }
 }
 const note = reply.parts.filter((p) => p.type === "text").map((p) => p.text).join("").trim();
-state.usage.input += reply.usage.input;
-state.usage.output += reply.usage.output;
+bill(reply.usage);
 if (!note) throw new Error("the model returned an empty summary — context left exactly as it was");
 const last = state.messages[state.messages.length - 1];
 const pending = last && last.role === "user" && last.parts.length && last.parts.every((p) => p.type === "text")
@@ -2882,10 +2795,7 @@ const view = hooks.onAssistantStart();
 let reply;
 try {
 reply = await LLM.complete({
-provider: settings.provider,
-model: settings.model,
-apiKey: settings.key,
-baseUrl: settings.baseUrl,
+...creds(settings),
 effort: settings.effort,
 system: systemFor(settings),
 messages: forProvider(state.messages, settings.provider),
@@ -2900,8 +2810,7 @@ toolStart: () => {},
 } finally {
 hooks.onAssistantEnd(view);
 }
-state.usage.input += reply.usage.input;
-state.usage.output += reply.usage.output;
+bill(reply.usage);
 state.context = reply.usage.input + reply.usage.output;
 state.messages.push({ role: "assistant", parts: reply.parts });
 persist();
@@ -2925,7 +2834,7 @@ const output = await Tools.run(call.name, call.input);
 hooks.onToolEnd(handle, { ok: true, output });
 results.push({ type: "tool_result", id: call.id, name: call.name, output });
 } catch (err) {
-const output = String(err && err.message ? err.message : err);
+const output = errText(err);
 hooks.onToolEnd(handle, { ok: false, output });
 results.push({ type: "tool_result", id: call.id, name: call.name, output, error: true });
 }
@@ -2936,7 +2845,7 @@ persist();
 hooks.onError(`stopped after ${maxSteps} steps (the max-steps setting). Ask it to continue if that was too soon.`);
 } catch (err) {
 if (err && err.name === "AbortError") hooks.onError("stopped by user");
-else hooks.onError(String(err && err.message ? err.message : err));
+else hooks.onError(errText(err));
 } finally {
 state.busy = false;
 state.controller = null;
@@ -3382,6 +3291,7 @@ entry("system").appendChild(el("pre", null, text));
 error(text) {
 entry("error", "harness").appendChild(el("pre", null, text));
 },
+fail(err) { api.error(String(err && err.message ? err.message : err)); },
 clearLog() { log.replaceChildren(); },
 closeViewer() { $("viewer").hidden = true; },
 assistant() {
@@ -3578,19 +3488,20 @@ return api;
 (function () {
 const $ = (id) => document.getElementById(id);
 const SETTINGS_KEY = "buttercup.settings.v1";
-const DEFAULTS = {
-provider: "anthropic",
-model: LLM.defaultModel("anthropic"),
-baseUrl: LLM.defaultUrl("anthropic"),
-key: "",
-effort: "xhigh",
-mode: Agent.defaultMode,
-yolo: true,
-showThinking: true,
-maxSteps: 40,
-autoCompact: true,
-compactAt: 120000,
+const FIELDS = {
+provider: { def: "anthropic" },
+model: { def: LLM.defaultModel("anthropic"), read: (v, s) => v.trim() || LLM.defaultModel(s.provider) },
+baseUrl: { def: LLM.defaultUrl("anthropic"), read: (v, s) => v.trim() || LLM.defaultUrl(s.provider) },
+key: { def: "" },
+effort: { def: "xhigh" },
+mode: { def: Agent.defaultMode },
+yolo: { def: true, flag: true },
+showThinking: { def: true, flag: true },
+maxSteps: { def: 40, read: (v) => Number(v) || FIELDS.maxSteps.def },
+autoCompact: { def: true, flag: true },
+compactAt: { def: 120000, read: (v) => Number(v) || FIELDS.compactAt.def },
 };
+const DEFAULTS = Object.fromEntries(Object.entries(FIELDS).map(([id, f]) => [id, f.def]));
 let settings = loadSettings();
 let keyOk = false;
 let checkSeq = 0;
@@ -3653,17 +3564,10 @@ $("key").placeholder = `${spec.keyHint} — stays in this browser`;
 $("row-base").hidden = spec.api !== "chat";
 }
 function paintSettings() {
-$("provider").value = settings.provider;
-$("model").value = settings.model;
-$("baseUrl").value = settings.baseUrl;
-$("key").value = settings.key;
-$("effort").value = settings.effort;
-$("mode").value = settings.mode;
-$("yolo").checked = settings.yolo;
-$("showThinking").checked = settings.showThinking;
-$("maxSteps").value = settings.maxSteps;
-$("autoCompact").checked = settings.autoCompact;
-$("compactAt").value = settings.compactAt;
+for (const [id, f] of Object.entries(FIELDS)) {
+if (f.flag) $(id).checked = settings[id];
+else $(id).value = settings[id];
+}
 fillModelList();
 }
 function readSettings() {
@@ -3675,20 +3579,11 @@ UI.error(
 );
 }
 $("key").value = key;
-const provider = $("provider").value;
-settings = {
-provider,
-model: $("model").value.trim() || LLM.defaultModel(provider),
-baseUrl: $("baseUrl").value.trim() || LLM.defaultUrl(provider),
-key,
-effort: $("effort").value,
-mode: $("mode").value,
-yolo: $("yolo").checked,
-showThinking: $("showThinking").checked,
-maxSteps: Number($("maxSteps").value) || 40,
-autoCompact: $("autoCompact").checked,
-compactAt: Number($("compactAt").value) || DEFAULTS.compactAt,
-};
+const next = {};
+for (const [id, f] of Object.entries(FIELDS)) {
+next[id] = f.flag ? $(id).checked : f.read ? f.read($(id).value, next) : $(id).value;
+}
+settings = next;
 saveSettings();
 }
 $("provider").addEventListener("change", () => {
@@ -3739,30 +3634,22 @@ const caret = input.selectionStart === input.selectionEnd ? input.selectionStart
 if (e.key === "ArrowUp" && caret === 0 && recall(1)) e.preventDefault();
 if (e.key === "ArrowDown" && caret === input.value.length && recall(-1)) e.preventDefault();
 });
-async function runCommand(text) {
+async function runCommand(text, { instant = false } = {}) {
 UI.user(text);
 let out;
-setRunning(true);
+if (!instant) setRunning(true);
 try {
 out = await Commands.run(text);
 if (out.text) UI.system(out.text);
 } catch (err) {
-UI.error(String(err && err.message ? err.message : err));
+UI.fail(err);
 } finally {
-setRunning(false);
+if (!instant) setRunning(false);
 }
+if (instant) return true;
 paintStats();
 if (out && out.prompt) return runPrompt(out.prompt);
 return true;
-}
-async function runInstant(text) {
-UI.user(text);
-try {
-const out = await Commands.run(text);
-if (out.text) UI.system(out.text);
-} catch (err) {
-UI.error(String(err && err.message ? err.message : err));
-}
 }
 async function runPrompt(text) {
 if (!settings.key) {
@@ -3851,7 +3738,7 @@ let ok = true;
 try {
 ok = Commands.is(text) ? await runCommand(text) : await runPrompt(text);
 } catch (err) {
-UI.error(String(err && err.message ? err.message : err));
+UI.fail(err);
 ok = false;
 }
 if (!ok) dropQueue((n) => UI.error(`queue cleared — ${n} request(s) dropped after that failure`));
@@ -3879,7 +3766,7 @@ return void drain();
 if (!text) return void drain();
 if (draining && Commands.isInstant(text)) {
 remember(text);
-return runInstant(text);
+return runCommand(text, { instant: true });
 }
 queue.push(text);
 paintQueue();

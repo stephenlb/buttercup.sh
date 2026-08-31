@@ -6,19 +6,29 @@
   const $ = (id) => document.getElementById(id);
   const SETTINGS_KEY = "buttercup.settings.v1";
 
-  const DEFAULTS = {
-    provider: "anthropic",
-    model: LLM.defaultModel("anthropic"),
-    baseUrl: LLM.defaultUrl("anthropic"),
-    key: "",
-    effort: "xhigh",
-    mode: Agent.defaultMode,
-    yolo: true,
-    showThinking: true,
-    maxSteps: 40,
-    autoCompact: true,
-    compactAt: 120000,
+  /* One row per setting, and the only place any of them is listed. Each row is
+     the id of its control in the KEYS panel plus:
+       def    what it is before the user has said otherwise
+       flag   a checkbox rather than a value field
+       read   how to turn the typed text into the setting (default: verbatim),
+              given the settings being assembled so far
+     paintSettings and readSettings are both driven from here, so a new setting
+     is one row rather than three edits that have to agree. */
+  const FIELDS = {
+    provider:     { def: "anthropic" },
+    model:        { def: LLM.defaultModel("anthropic"), read: (v, s) => v.trim() || LLM.defaultModel(s.provider) },
+    baseUrl:      { def: LLM.defaultUrl("anthropic"), read: (v, s) => v.trim() || LLM.defaultUrl(s.provider) },
+    key:          { def: "" },
+    effort:       { def: "xhigh" },
+    mode:         { def: Agent.defaultMode },
+    yolo:         { def: true, flag: true },
+    showThinking: { def: true, flag: true },
+    maxSteps:     { def: 40, read: (v) => Number(v) || FIELDS.maxSteps.def },
+    autoCompact:  { def: true, flag: true },
+    compactAt:    { def: 120000, read: (v) => Number(v) || FIELDS.compactAt.def },
   };
+
+  const DEFAULTS = Object.fromEntries(Object.entries(FIELDS).map(([id, f]) => [id, f.def]));
 
   let settings = loadSettings();
   /* Whether the vendor has confirmed the current key. The header lamp reports
@@ -103,17 +113,10 @@
   }
 
   function paintSettings() {
-    $("provider").value = settings.provider;
-    $("model").value = settings.model;
-    $("baseUrl").value = settings.baseUrl;
-    $("key").value = settings.key;
-    $("effort").value = settings.effort;
-    $("mode").value = settings.mode;
-    $("yolo").checked = settings.yolo;
-    $("showThinking").checked = settings.showThinking;
-    $("maxSteps").value = settings.maxSteps;
-    $("autoCompact").checked = settings.autoCompact;
-    $("compactAt").value = settings.compactAt;
+    for (const [id, f] of Object.entries(FIELDS)) {
+      if (f.flag) $(id).checked = settings[id];
+      else $(id).value = settings[id];
+    }
     fillModelList();
   }
 
@@ -127,21 +130,16 @@
         `— it looks copied from formatted text. Re-copy it as plain text or retype it.`
       );
     }
+    // Put the cleaned key back in the box first, so it is read like any other
+    // field below rather than threaded through as a special case.
     $("key").value = key;
-    const provider = $("provider").value;
-    settings = {
-      provider,
-      model: $("model").value.trim() || LLM.defaultModel(provider),
-      baseUrl: $("baseUrl").value.trim() || LLM.defaultUrl(provider),
-      key,
-      effort: $("effort").value,
-      mode: $("mode").value,
-      yolo: $("yolo").checked,
-      showThinking: $("showThinking").checked,
-      maxSteps: Number($("maxSteps").value) || 40,
-      autoCompact: $("autoCompact").checked,
-      compactAt: Number($("compactAt").value) || DEFAULTS.compactAt,
-    };
+    // `provider` comes first in FIELDS, so the rows that fall back to a
+    // provider default (model, baseUrl) already see the new one.
+    const next = {};
+    for (const [id, f] of Object.entries(FIELDS)) {
+      next[id] = f.flag ? $(id).checked : f.read ? f.read($(id).value, next) : $(id).value;
+    }
+    settings = next;
     saveSettings();
   }
 
@@ -215,37 +213,28 @@
   /**
    * Run a slash command and report it in the transcript. A command that hands
    * back a prompt (`/init`) then runs as a normal request.
+   *
+   * `instant` is a read-only command (`/help`, `/queue`) answered mid-turn
+   * instead of waiting behind the work it is asking about: it must leave the
+   * run state and the stats of the turn already in flight alone.
    */
-  async function runCommand(text) {
+  async function runCommand(text, { instant = false } = {}) {
     UI.user(text);
     let out;
     // `/compact` spends a model call, so STOP has to work while it runs.
-    setRunning(true);
+    if (!instant) setRunning(true);
     try {
       out = await Commands.run(text);
       if (out.text) UI.system(out.text);
     } catch (err) {
-      UI.error(String(err && err.message ? err.message : err));
+      UI.fail(err);
     } finally {
-      setRunning(false);
+      if (!instant) setRunning(false);
     }
+    if (instant) return true;
     paintStats();
     if (out && out.prompt) return runPrompt(out.prompt);
     return true;
-  }
-
-  /**
-   * A read-only command (`/help`, `/queue`) typed mid-turn: answer it now
-   * instead of making it wait behind the work it is asking about.
-   */
-  async function runInstant(text) {
-    UI.user(text);
-    try {
-      const out = await Commands.run(text);
-      if (out.text) UI.system(out.text);
-    } catch (err) {
-      UI.error(String(err && err.message ? err.message : err));
-    }
   }
 
   /**
@@ -387,7 +376,7 @@
         try {
           ok = Commands.is(text) ? await runCommand(text) : await runPrompt(text);
         } catch (err) {
-          UI.error(String(err && err.message ? err.message : err));
+          UI.fail(err);
           ok = false;
         }
         // Whatever stopped that request — no key, a rejected key — would stop
@@ -428,7 +417,7 @@
     // Mid-turn `/help` and `/queue` skip the queue: they only read state.
     if (draining && Commands.isInstant(text)) {
       remember(text);
-      return runInstant(text);
+      return runCommand(text, { instant: true });
     }
 
     queue.push(text);
