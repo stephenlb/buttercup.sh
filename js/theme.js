@@ -9,8 +9,9 @@
      DAY   → pinned light
      NIGHT → pinned dark
 
-   No styles are set from script, and the button's label is not written either:
-   it ships with all three words and CSS shows the live one.
+   No styles are set from script, and the button's face is not written either:
+   it ships with all three glyphs — sun, crescent, both — and CSS shows the live
+   one.
 
    `?theme=light` pins one for the length of a load, which is what screenshots
    and CSS work want; it is deliberately not saved.

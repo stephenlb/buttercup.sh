@@ -97,15 +97,23 @@ body {
 
 /* ── the theme switch ─────────────────────────────────────────────────────────
    Three states, cycled by js/theme.js on `data-theme`: absent is AUTO, and the
-   two pinned ones are DAY and NIGHT. All three labels ship in the markup and
-   the stylesheet shows whichever one is live, so the button never needs its
-   text written from script. */
-.lamp-theme { margin-left: .4rem; letter-spacing: .18em; padding: .15rem .55rem;
-  font-size: .72rem; background: var(--paper); }
-.lamp-theme > span { display: none; }
+   two pinned ones are DAY and NIGHT. All three faces ship in the markup and the
+   stylesheet shows whichever one is live, so the button never needs its glyph
+   written from script. Each face is pixel-grid SVG — sun for day, crescent for
+   night, both together for auto — with the word kept for screen readers. */
+.lamp-theme { margin-left: .4rem; padding: .2rem .45rem; line-height: 0;
+  font-size: .72rem; background: var(--paper); color: var(--ink-dim); }
+.lamp-theme:hover { color: var(--ink-hot); }
+.lamp-theme > span { display: none; gap: .2rem; align-items: center; }
+/* 18px over the 9-wide grid is exactly two device-independent pixels a cell,
+   so the squares land on whole pixels instead of smearing across them. */
+.lamp-theme svg { width: 18px; height: 18px; display: block;
+  fill: currentColor; shape-rendering: crispEdges; }
+.lamp-theme .t-word { position: absolute; width: 1px; height: 1px;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 :root:not([data-theme]) .lamp-theme > .t-auto,
 :root[data-theme="light"] .lamp-theme > .t-light,
-:root[data-theme="dark"]  .lamp-theme > .t-dark { display: inline; }
+:root[data-theme="dark"]  .lamp-theme > .t-dark { display: inline-flex; }
 .titlebar .rev { color: var(--ink-faint); letter-spacing: .1em; }
 .tagline { margin: 0; color: var(--ink-dim); font-size: .78rem; letter-spacing: .06em; }
 .lamps { display: inline-flex; gap: .4rem; }
