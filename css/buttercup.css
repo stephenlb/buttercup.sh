@@ -2882,7 +2882,8 @@ body[data-busy="keys"]  .mascot .kit .f1, body[data-busy="keys"]  .mascot .kit .
 body[data-busy="bowl"]  .mascot .kit .f1, body[data-busy="bowl"]  .mascot .kit .f2 { animation-duration: .22s; }
 body[data-busy="board"] .mascot .kit .f1, body[data-busy="board"] .mascot .kit .f2 { animation-duration: 1.1s; }
 body[data-busy="oven"]  .mascot .kit .f1, body[data-busy="oven"]  .mascot .kit .f2 { animation-duration: .9s; }
-body[data-busy="brew"]  .mascot .kit .f1, body[data-busy="brew"]  .mascot .kit .f2 { animation-duration: .8s; }
+/* a lid on the boil rattles, so the kettle runs quick */
+body[data-busy="brew"]  .mascot .kit .f1, body[data-busy="brew"]  .mascot .kit .f2 { animation-duration: .5s; }
 body[data-busy="books"] .mascot .kit .f1, body[data-busy="books"] .mascot .kit .f2 { animation-duration: 1.4s; }
 /* one deliberate press, not a drum roll */
 body[data-busy="button"] .mascot .kit .f1, body[data-busy="button"] .mascot .kit .f2 { animation-duration: .7s; }
