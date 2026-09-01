@@ -184,9 +184,9 @@
             <label class="row"><span>effort</span>
               <select name="effort" id="effort">
                 <option value="low">low</option>
-                <option value="medium">medium</option>
+                <option value="medium" selected>medium</option>
                 <option value="high">high</option>
-                <option value="xhigh" selected>xhigh</option>
+                <option value="xhigh">xhigh</option>
                 <option value="max">max</option>
               </select></label>
           </fieldset>
@@ -2370,7 +2370,10 @@ window.LLM = (function () {
 const MODELS = {
 anthropic: {
 label: "Anthropic — Claude", api: "anthropic", keyHint: "sk-ant-…",
-models: ["claude-opus-5", "claude-sonnet-5", "claude-opus-4-8", "claude-haiku-4-5"],
+models: [
+"claude-opus-5", "claude-fable-5", "claude-sonnet-5",
+"claude-opus-4-8", "claude-haiku-4-5",
+],
 },
 openai: {
 label: "OpenAI — Codex / GPT", api: "chat", keyHint: "sk-…",
@@ -3856,7 +3859,7 @@ provider: { def: "anthropic" },
 model: { def: LLM.defaultModel("anthropic"), read: (v, s) => v.trim() || LLM.defaultModel(s.provider) },
 baseUrl: { def: LLM.defaultUrl("anthropic"), read: (v, s) => v.trim() || LLM.defaultUrl(s.provider) },
 key: { def: "" },
-effort: { def: "xhigh" },
+effort: { def: "medium" },
 mode: { def: Agent.defaultMode },
 yolo: { def: true, flag: true },
 showThinking: { def: true, flag: true },

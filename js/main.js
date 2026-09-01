@@ -19,7 +19,7 @@
     model:        { def: LLM.defaultModel("anthropic"), read: (v, s) => v.trim() || LLM.defaultModel(s.provider) },
     baseUrl:      { def: LLM.defaultUrl("anthropic"), read: (v, s) => v.trim() || LLM.defaultUrl(s.provider) },
     key:          { def: "" },
-    effort:       { def: "xhigh" },
+    effort:       { def: "medium" },
     mode:         { def: Agent.defaultMode },
     yolo:         { def: true, flag: true },
     showThinking: { def: true, flag: true },

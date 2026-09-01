@@ -25,7 +25,10 @@ window.LLM = (function () {
   const MODELS = {
     anthropic: {
       label: "Anthropic — Claude", api: "anthropic", keyHint: "sk-ant-…",
-      models: ["claude-opus-5", "claude-sonnet-5", "claude-opus-4-8", "claude-haiku-4-5"],
+      models: [
+        "claude-opus-5", "claude-fable-5", "claude-sonnet-5",
+        "claude-opus-4-8", "claude-haiku-4-5",
+      ],
     },
     openai: {
       label: "OpenAI — Codex / GPT", api: "chat", keyHint: "sk-…",
