@@ -91,9 +91,7 @@ body {
   padding: .5rem .75rem;
 }
 .titlebar h1 { font-size: 1rem; letter-spacing: .18em; text-transform: uppercase;
-  margin: 0; color: var(--ink-hot);
-  /* the phosphor halo, mixed off the ink so it warms with the theme */
-  text-shadow: 0 0 14px color-mix(in srgb, var(--ink) 55%, transparent); }
+  margin: 0; color: var(--ink-hot); }
 
 /* ── the theme switch ─────────────────────────────────────────────────────────
    Three states, cycled by js/theme.js on `data-theme`: absent is AUTO, and the
@@ -125,6 +123,8 @@ body {
 :root[data-theme="dark"]  .lamp-theme > .t-dark { display: inline-flex; }
 .titlebar .rev { color: var(--ink-faint); letter-spacing: .1em; }
 .tagline { margin: 0; color: var(--ink-dim); font-size: .78rem; letter-spacing: .06em; }
+.tagline a { color: var(--ink); text-decoration: underline; text-underline-offset: 2px; }
+.tagline a:hover { color: var(--ink-hot); }
 .lamps { display: inline-flex; gap: .4rem; }
 .lamps i { width: .7rem; height: .7rem; border: 1px solid var(--rule); border-radius: 50%;
   background: var(--paper); display: block; }
