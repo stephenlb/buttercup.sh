@@ -186,6 +186,50 @@
 
   $("viewer-close").addEventListener("click", () => UI.closeViewer());
 
+  /* ── workspace import ─────────────────────────────────────────────────────
+     Files dragged into the tab — or picked with IMPORT — are written into the
+     workspace exactly as a tool write would be, so the agent can read them on
+     the next turn. A checkpoint goes down first: an import that landed on top
+     of work in progress has to be as undoable as anything the agent does.
+     ───────────────────────────────────────────────────────────────────────── */
+
+  const size = (n) => (n < 1024 ? `${n}b` : `${(n / 1024).toFixed(1)}k`);
+
+  /**
+   * Write a read batch from js/drop.js into the workspace and say what happened.
+   * `attached` is how many pictures the same drop sent to the composer, which is
+   * the difference between "nothing usable here" and "the pictures went, and
+   * there was nothing else".
+   */
+  function absorb(batch, attached = 0) {
+    const { files, skips, full } = batch;
+    for (const s of skips) UI.error(`${s.path} — ${s.why}`);
+    if (full) {
+      UI.system(`stopped at ${Drop.limits.files} files / ${Math.round(Drop.limits.total / 1024)}k — ` +
+                `the rest of that drop was left where it was`);
+    }
+    if (!files.length) {
+      if (!skips.length && !attached) UI.error("nothing in that drop the workspace can hold — it holds text files");
+      return;
+    }
+
+    Agent.mark(`before importing ${files.length} file(s)`);
+    const written = files.map((f) => VFS.write(f.path, f.text));
+    const shown = written.slice(0, 8).map((w) => `${w.path} (${size(w.bytes)})`).join(", ");
+    const more = written.length - 8;
+    const again = written.filter((w) => w.existed).length;
+    UI.system(`imported ${written.length} file(s): ${shown}${more > 0 ? `, and ${more} more` : ""}` +
+              `${again ? ` — ${again} replaced a file already there` : ""}. /undo puts the workspace back.`);
+  }
+
+  $("import-btn").addEventListener("click", () => $("import-input").click());
+  $("import-input").addEventListener("change", async (e) => {
+    const files = [...e.target.files];
+    e.target.value = "";   // so picking the same file twice still fires
+    if (!files.length) return;
+    absorb(await Drop.read({ files }));
+  });
+
   /* ── prompt ─────────────────────────────────────────────────────────────── */
 
   const input = $("prompt-input");
@@ -260,9 +304,14 @@
     if (!dragging(e)) return;
     e.preventDefault();
     document.body.dataset.drag = "";
-    const files = Images.filesIn(e.dataTransfer);
-    if (files.length) attach(files);
-    else UI.error(`dropped file is not an image the models read (${Images.formats})`);
+    /* Both readers have to claim the payload before this handler yields, so they
+       are called here and awaited afterwards. What a file is decides where it
+       goes: pictures are part of the prompt, everything else is the agent's
+       workspace, whatever corner of the tab it landed on. */
+    const pics = Images.filesIn(e.dataTransfer);
+    const reading = Drop.read(e.dataTransfer);
+    if (pics.length) attach(pics);
+    reading.then((batch) => absorb(batch, pics.length));
   });
 
   $("attach-btn").addEventListener("click", () => $("attach-input").click());

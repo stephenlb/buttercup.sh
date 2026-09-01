@@ -297,9 +297,13 @@ details.think > pre { font-style: italic; }
 .entry .shots img { max-width: min(100%, 15rem); max-height: 9rem; width: auto;
   height: auto; border: 1px solid var(--user); background: var(--paper); }
 
-/* the composer, and the transcript, while a file is being dragged over the tab */
+/* While a file is being dragged over the tab. Both halves of the drop light up,
+   because both are live: a picture goes to the composer and anything else goes
+   to the workspace, and where it lands on the page has nothing to do with it. */
 body[data-drag="1"] .prompt { border-top-color: var(--ink-hot); }
 body[data-drag="1"] .prompt textarea { border-color: var(--ink-hot); }
+body[data-drag="1"] #panel-files { outline: 1px dashed var(--ink-hot); outline-offset: .3rem; }
+body[data-drag="1"] #panel-files .tree { color: var(--ink-hot); }
 
 /* ── queue ────────────────────────────────────────────────────────────────────
    Sits between the transcript and the prompt, so what is waiting reads as part

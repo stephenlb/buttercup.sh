@@ -51,6 +51,9 @@
           <p>Paste a screenshot (or drop one, or press <code>IMG</code>) and it goes
              out with your next request — the model reads the picture and the
              prompt together.</p>
+          <p>Drop text files or a whole folder onto the page and they land in the
+             agent's <label for="tab-files" class="linky">workspace</label>, ready
+             to be read, edited and exported back out.</p>
           <p>Type <code>/help</code> for the commands this tab handles itself
              — <code>/init</code> writes the project rules, <code>/undo</code>
              rewinds the files and the context together, <code>/compact</code>
@@ -132,9 +135,14 @@
       <div class="panel" id="panel-files">
         <div class="panel-head">
           <h2>workspace <code>/</code></h2>
+          <button type="button" id="import-btn" class="mini"
+                  title="read text files into the workspace (or drag them onto the page)">IMPORT</button>
           <button type="button" id="download-zip" class="mini">EXPORT .ZIP</button>
           <button type="button" id="wipe" class="mini danger">WIPE</button>
+          <input type="file" id="import-input" multiple hidden>
         </div>
+        <p class="note">Drag files or a folder anywhere onto the page to put them
+          here — text only, and <code>/undo</code> takes an import back out.</p>
         <ul class="tree" id="tree"><li class="dim">empty workspace</li></ul>
         <div class="viewer" id="viewer" hidden>
           <div class="viewer-head"><code id="viewer-path"></code>
@@ -706,6 +714,7 @@
 <script src="js/checkpoints.js"></script>
 <script src="js/zip.js"></script>
 <script src="js/images.js"></script>
+<script src="js/drop.js"></script>
 <script src="js/frameworks.js"></script>
 <script src="js/sandbox.js"></script>
 <script src="js/tools.js"></script>

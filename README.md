@@ -22,27 +22,28 @@ requirement: the source runs as-is.
 
 ## Architecture
 
-100% static HTML, CSS and JavaScript. Fourteen classic `<script>` tags, no modules,
+100% static HTML, CSS and JavaScript. Fifteen classic `<script>` tags, no modules,
 no bundler, no dependencies, nothing to compile.
 
 | File | Lines | What it is |
 | --- | --- | --- |
-| `index.html` | 717 | The entire UI. Structure only — no styles, no logic. |
-| `css/buttercup.css` | 3011 | Butter-phosphor CRT skin (day and night), layout, tab deck, and the seven scenes. |
+| `index.html` | 729 | The entire UI. Structure only — no styles, no logic. |
+| `css/buttercup.css` | 3015 | Butter-phosphor CRT skin (day and night), layout, tab deck, and the seven scenes. |
 | `js/vfs.js` | 150 | Virtual filesystem: path → text, persisted in `localStorage`. |
 | `js/checkpoints.js` | 64 | The undo stack: conversation + workspace, frozen together. |
 | `js/images.js` | 147 | Pasted and dropped pictures, decoded and scaled for the wire. |
+| `js/drop.js` | 153 | Dropped files and folders, read as text for the workspace. |
 | `js/sandbox.js` | 249 | Sandboxed execution + a hand-written ES-module linker. |
 | `js/tools.js` | 456 | The 18 tool definitions handed to the model. |
 | `js/frameworks.js` | 684 | Bundled framework knowledge and code scaffolds. |
 | `js/llm.js` | 518 | Six providers over three wire formats, streaming, images, no SDKs. |
 | `js/agent.js` | 536 | The agent loop, the system prompts, rules, and compaction. |
-| `js/commands.js` | 242 | Slash commands, answered in-tab without a round trip. |
+| `js/commands.js` | 246 | Slash commands, answered in-tab without a round trip. |
 | `js/scenes.js` | 23 | Rolls the die for which scene is out the window this load. |
-| `js/theme.js` | 47 | Cycles the tube: follow the system, or pin day or night. |
+| `js/theme.js` | 48 | Cycles the tube: follow the system, or pin day or night. |
 | `js/ui.js` | 554 | Transcript rendering, the attachment strip, and the approval gate. |
 | `js/zip.js` | 103 | A store-only ZIP writer, so you can export the workspace. |
-| `js/main.js` | 622 | Settings, key validation, and wiring. |
+| `js/main.js` | 671 | Settings, key validation, and wiring. |
 | `build.mjs` | 211 | Optional: fold everything into `public/index.html`. |
 
 The UI mechanics are CSS, not JavaScript. The right-hand panel deck is four
@@ -186,7 +187,7 @@ of the queue is dropped rather than failing the same way one line at a time.
 ## Images
 
 Paste a screenshot anywhere in the tab and it joins the next request. Dropping a
-file on the page does the same, and `IMG` beside `RUN` opens a picker for when
+picture on the page does the same, and `IMG` beside `RUN` opens a picker for when
 the clipboard is not where the image is. What is attached sits in a strip above
 the composer until the request goes out:
 
@@ -219,6 +220,42 @@ dropped from the *saved* copy only — the conversation keeps them for the rest 
 the page load, a reload shows the model a note where each one was, and the tab
 says so once when it happens. `/compact` is text, so a handover note keeps what
 you said about a picture and not the picture.
+
+---
+
+## Dropping files into the workspace
+
+Drag files — or a whole folder — anywhere onto the page and they are written into
+the workspace, exactly as a tool write would be, so the agent can read them on
+its next turn. `IMPORT` on the `FILES` panel opens a picker for the same thing.
+The drop target is the entire page: what a file *is* decides where it goes, a
+picture to the prompt and everything else to the workspace, so there is no corner
+of the tab to aim for.
+
+A folder is walked in full and the tree is kept: `site/src/main.js` arrives at
+`site/src/main.js`. `.git`, `node_modules`, `__pycache__`, `.venv`, `.next`,
+`.cache` and the desktop's own litter are skipped by name — dragging a project in
+otherwise means dragging its dependency tree in with it.
+
+The workspace holds text (`js/vfs.js` is a path → text map), so anything else is
+refused with the reason on its own line, one per file, rather than failing the
+whole drop:
+
+```
+logo.ico — binary — the workspace holds text only
+huge.txt — 586k — over the 500k limit for one file
+site/src/logo.png — an image — those attach to the prompt, not the workspace
+```
+
+A NUL byte is the test for binary, with U+FFFD in quantity as the second opinion
+on a bad UTF-8 decode. 500k per file and 4M or 300 files per drop is what
+`localStorage` will hold next to a session; a drop that hits a limit says where
+it stopped and leaves the rest alone.
+
+An import lands a checkpoint first, so `/undo` takes it back out — files that
+arrive on top of work in progress have to be as undoable as anything the agent
+does. Overwrites are counted in the line that reports the import, and the file
+tree redraws itself, as it does for any other write.
 
 ---
 
@@ -362,7 +399,8 @@ Each scaffold is a real, runnable multi-file agent: `agent.js` (the loop),
 1. Open `index.html`. It starts on the **KEYS** panel until a key validates.
 2. **KEYS** → pick a vendor, paste a key, **SAVE**. Wait for the green **READY**.
 3. Ask for what you want: *"scaffold a blocks.ai research agent, then run it"*.
-   Paste a screenshot into the tab first if the request is about one.
+   Paste a screenshot into the tab first if the request is about one, or drag in
+   the files it should start from.
 4. Watch **FILES** fill up, **PREVIEW** mount, and the transcript stream.
 5. **EXPORT .ZIP** when you want it on disk.
 
@@ -407,7 +445,7 @@ Zero dependencies. It reads `index.html`, follows that file's own
 `<link>`/`<script src>` order, strips comments and indentation (never renames
 anything, so a stack trace still means something), inlines the result, and
 syntax-checks every minified script with `node:vm` before writing — a corrupted
-bundle fails the build instead of shipping. One file, ~208 kB, ~50 kB gzipped.
+bundle fails the build instead of shipping. One file, ~265 kB, ~62 kB gzipped.
 Point Pages at `public/` and that's the deploy.
 
 ---
@@ -435,3 +473,14 @@ Not "should work" — run and checked in a real browser over CDP:
   round trip in the tail, reporting its own before/after, and firing by itself
   when the context estimate crosses the threshold with the in-flight request
   carried across intact
+- images: a pasted, dropped and picked screenshot each reaching the strip, a
+  3000×2000 PNG scaled to 1568×1045, the six-image cap, the correct envelope on
+  the wire for all three formats with the pictures ahead of the words, recall
+  restoring the pictures with the line, and the `localStorage` fallback dropping
+  them from the saved copy only
+- dropped files: text files and a walked folder tree landing in the workspace,
+  `node_modules` and `.git` skipped, binary and oversize refused by name with the
+  reason, a mixed drop splitting a picture to the composer from code to the
+  workspace, `IMPORT` doing the same, overwrites reported, `/undo` and `/redo`
+  taking an import out and putting it back, and the whole import surviving a
+  reload

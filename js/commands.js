@@ -53,6 +53,10 @@ The harness loads this file into your system prompt on every turn from now on, s
           "",
           "paste or drop an image (or press IMG) and it goes out with the next",
           "request, for whichever model the KEYS panel is pointed at.",
+          "",
+          "drop text files or a folder and they land in the workspace instead, for",
+          "the agent to read — same as pressing IMPORT on the FILES panel. /undo",
+          "takes an import back out.",
         ].join("\n");
       },
     },
