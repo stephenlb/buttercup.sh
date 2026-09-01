@@ -186,6 +186,19 @@
 
   $("viewer-close").addEventListener("click", () => UI.closeViewer());
 
+  /* DELETE acts on whichever file the viewer is showing. A checkpoint goes down
+     first, so /undo puts the file back the way it does for an import or a wipe. */
+  $("viewer-delete").addEventListener("click", () => {
+    const path = UI.viewedPath();
+    if (!path) return;
+    if (!confirm(`Delete ${path}?\n\n/undo can restore it until this tab is closed.`)) return;
+    Agent.mark(`before deleting ${path}`);
+    VFS.remove(path);
+    UI.closeViewer();
+    UI.renderTree();
+    UI.system(`deleted ${path} — /undo restores it until this tab closes`);
+  });
+
   /* ── workspace import ─────────────────────────────────────────────────────
      Files dragged into the tab — or picked with IMPORT — are written into the
      workspace exactly as a tool write would be, so the agent can read them on

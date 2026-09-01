@@ -291,6 +291,9 @@ window.UI = (function () {
 
     closeViewer() { $("viewer").hidden = true; },
 
+    /** The workspace file the viewer is showing, or "" when it is closed. */
+    viewedPath() { return $("viewer").hidden ? "" : $("viewer-path").textContent; },
+
     /** Open a live assistant entry; returns a handle for streaming into. */
     assistant() {
       const node = entry("model live", "buttercup");

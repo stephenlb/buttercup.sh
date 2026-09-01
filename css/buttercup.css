@@ -2755,7 +2755,10 @@ button.danger:hover { background: var(--bad); color: var(--paper); }
 .tree li { display: flex; gap: .5rem; align-items: baseline; padding: .1rem 0; }
 .tree button { all: unset; cursor: pointer; color: var(--ink); flex: 1;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tree button:hover { color: var(--ink-hot); text-decoration: underline; }
+/* The generic button:hover paints a solid ink slab, which left dark ink on a dark
+   band here. The tree wants a light highlight instead, so the name stays legible. */
+.tree button:hover, .tree button:focus-visible {
+  background: var(--paper-3); color: var(--ink-hot); text-decoration: underline; }
 .tree .size { color: var(--ink-faint); font-size: .72rem; }
 .tree .glyph { color: var(--ink-faint); }
 
