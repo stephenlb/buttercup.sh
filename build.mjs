@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* ═══════════════════════════════════════════════════════════════════════════
-   build — fold the harness into one file: public/index.html.
+   build — fold the harness into one file: docs/index.html.
 
      node build.mjs
 
@@ -21,7 +21,7 @@ import { gzipSync } from "node:zlib";
 import vm from "node:vm";
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
-const OUT_DIR = join(ROOT, "public");
+const OUT_DIR = join(ROOT, "docs");
 const read = (rel) => readFileSync(join(ROOT, rel), "utf8");
 
 /* ── JavaScript: a string/regex/template-aware comment stripper ──────────────
@@ -206,6 +206,6 @@ writeFileSync(join(OUT_DIR, ".nojekyll"), "");   // Pages: serve the file as-is
 
 const sourceBytes = [...cssRefs, ...jsRefs].reduce((n, m) => n + read(m[1]).length, read("index.html").length);
 const kb = (n) => (n / 1024).toFixed(1) + " kB";
-console.log(`public/index.html  ${kb(html.length)}  (${kb(gzipSync(html).length)} gzipped)`);
+console.log(`docs/index.html  ${kb(html.length)}  (${kb(gzipSync(html).length)} gzipped)`);
 console.log(`sources            ${kb(sourceBytes)} across ${cssRefs.length + jsRefs.length + 1} files`);
 console.log(`inlined            ${jsRefs.map((m) => m[1]).join(", ")}`);
