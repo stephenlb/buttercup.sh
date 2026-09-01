@@ -27,7 +27,7 @@ no bundler, no dependencies, nothing to compile.
 
 | File | Lines | What it is |
 | --- | --- | --- |
-| `index.html` | 729 | The entire UI. Structure only — no styles, no logic. |
+| `index.html` | 738 | The entire UI. Structure only — no styles, no logic. |
 | `css/buttercup.css` | 3015 | Butter-phosphor CRT skin (day and night), layout, tab deck, and the seven scenes. |
 | `js/vfs.js` | 150 | Virtual filesystem: path → text, persisted in `localStorage`. |
 | `js/checkpoints.js` | 64 | The undo stack: conversation + workspace, frozen together. |
@@ -37,7 +37,7 @@ no bundler, no dependencies, nothing to compile.
 | `js/tools.js` | 456 | The 18 tool definitions handed to the model. |
 | `js/frameworks.js` | 684 | Bundled framework knowledge and code scaffolds. |
 | `js/llm.js` | 518 | Six providers over three wire formats, streaming, images, no SDKs. |
-| `js/agent.js` | 536 | The agent loop, the system prompts, rules, and compaction. |
+| `js/agent.js` | 602 | The agent loop, the system prompts, rules, and compaction. |
 | `js/commands.js` | 246 | Slash commands, answered in-tab without a round trip. |
 | `js/scenes.js` | 23 | Rolls the die for which scene is out the window this load. |
 | `js/theme.js` | 48 | Cycles the tube: follow the system, or pin day or night. |
@@ -138,6 +138,9 @@ otherwise.
 | `/mode` | Shows the current mode. |
 | `/mode general` | Default. The same tools and sandbox, pointed at anything static. |
 | `/mode agent-builder` | The system prompt that builds AI agents, blocks.ai first. |
+| `/mode slides` | Builds a presentation: one self-contained page, arrow keys, print-to-PDF. |
+| `/mode game-dev` | Builds a game: pixi.js for 2D, three.js for 3D, generated assets. |
+| `/mode data-viz` | Builds charts and dashboards from a file you dropped in. |
 | `/init` | Hands the agent one request: read the workspace, write `AGENTS.md`. |
 | `/rules` | Shows which rules files are in the system prompt right now. |
 | `/undo` | Rewinds the conversation *and* the files to before the last request. |
