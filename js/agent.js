@@ -363,7 +363,9 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
    */
   async function compact({ reason = "manual", signal } = {}) {
     const settings = state.settings;
-    if (!settings || !settings.key) throw new Error("no API key — compaction needs one model call");
+    if (!settings || (!settings.key && !LLM.providers[settings.provider]?.keyless)) {
+      throw new Error("no API key — compaction needs one model call");
+    }
     const source = resolved(state.messages);
     if (source.length < 2) throw new Error(`nothing worth compacting (${source.length} message(s) of context)`);
 

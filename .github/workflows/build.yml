@@ -1,0 +1,48 @@
+# Pages serves main:/docs, and docs/index.html is generated — so every push that
+# touches a source file rebuilds it and commits the result back to main.
+name: build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - index.html
+      - build.mjs
+      - css/**
+      - js/**
+      - .github/workflows/build.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# A queued run would rebuild the same tree twice; keep the last one only.
+concurrency:
+  group: build-main
+  cancel-in-progress: true
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # No dependencies to install; build.mjs syntax-checks what it emits and
+      # exits non-zero rather than shipping a corrupt bundle.
+      - run: node build.mjs
+
+      - name: commit docs/index.html when it changed
+        run: |
+          if git diff --quiet -- docs; then
+            echo "bundle already current"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs
+          git commit -m "build: refresh docs bundle for ${GITHUB_SHA:0:7}"
+          git push

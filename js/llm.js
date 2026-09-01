@@ -23,6 +23,19 @@ window.LLM = (function () {
      KEYS panel — that is what makes an unfamiliar OpenAI-compatible gateway work
      without a code change. */
   const MODELS = {
+    ollama: {
+      // Runs on the machine, so there is no key to paste and the model names are
+      // whatever `ollama pull` has fetched locally.
+      label: "Ollama — local", api: "chat", keyHint: "no key needed", keyless: true,
+      url: "http://localhost:11434/v1", effortKnob: false,
+      models: ["qwen3-coder:30b", "gpt-oss:20b", "llama3.1:8b", "deepseek-r1:14b"],
+    },
+    vllm: {
+      // `vllm serve <model>` on the default port; the served name is the model
+      // repo id, so leave the field to whatever the server was started with.
+      label: "vLLM — local server", api: "chat", keyHint: "no key needed", keyless: true,
+      url: "http://localhost:8000/v1", effortKnob: false, models: [],
+    },
     anthropic: {
       label: "Anthropic — Claude", api: "anthropic", keyHint: "sk-ant-…",
       models: [
@@ -159,7 +172,8 @@ window.LLM = (function () {
   function resolve({ provider, apiKey, baseUrl }) {
     const spec = MODELS[provider];
     if (!spec) throw new Error(`unknown provider: ${provider}`);
-    const key = checkedKey(provider, apiKey);
+    // A local server authenticates nobody, so an empty key is the normal case.
+    const key = spec.keyless ? cleanKey(apiKey).key : checkedKey(provider, apiKey);
     const base = baseOf(provider, baseUrl);
     if (spec.api === "chat" && !base) throw new Error(`${provider}: no base url — set one in the KEYS panel`);
     return { spec, key, base };
@@ -344,7 +358,11 @@ window.LLM = (function () {
 
     const res = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
-      headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
+      headers: {
+        "content-type": "application/json",
+        // A local server has no key; sending `Bearer ` empty upsets some of them.
+        ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {}),
+      },
       signal, body: JSON.stringify(body),
     });
     if (!res.ok) await fail(res, provider);
@@ -476,7 +494,10 @@ window.LLM = (function () {
     ],
     // A gateway's /models is often public, so ask about the key itself where the
     // vendor offers that; otherwise listing models still proves authorisation.
-    chat: (key, base, spec) => [`${base}/${spec.probe || "models"}`, { authorization: `Bearer ${key}` }],
+    chat: (key, base, spec) => [
+      `${base}/${spec.probe || "models"}`,
+      key ? { authorization: `Bearer ${key}` } : {},
+    ],
   };
 
   /** Resolve `{ok:true}` when the vendor accepts the key, `{ok:false, error}` otherwise. */
@@ -492,7 +513,15 @@ window.LLM = (function () {
     } catch (err) {
       if (err.name === "AbortError") throw err;
       if (err instanceof TypeError) {
-        return { ok: false, error: `${provider} unreachable from this tab (${err.message}) — offline, or the vendor refuses cross-origin browser calls` };
+        return {
+          ok: false,
+          error: spec.keyless
+            ? `${provider} unreachable at ${base} (${err.message}) — start the server and allow this origin, ` +
+              (provider === "ollama"
+                ? `e.g. OLLAMA_ORIGINS='${location.origin}' ollama serve`
+                : `e.g. vllm serve <model> --allowed-origins '["${location.origin}"]'`)
+            : `${provider} unreachable from this tab (${err.message}) — offline, or the vendor refuses cross-origin browser calls`,
+        };
       }
       return { ok: false, error: String(err.message || err) };
     }

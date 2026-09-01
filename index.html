@@ -182,6 +182,8 @@
             <legend>provider</legend>
             <label class="row"><span>vendor</span>
               <select name="provider" id="provider">
+                <option value="ollama">Ollama — local</option>
+                <option value="vllm">vLLM — local server</option>
                 <option value="anthropic">Anthropic — Claude</option>
                 <option value="openai">OpenAI — Codex / GPT</option>
                 <option value="xai">xAI — Grok</option>
@@ -195,7 +197,7 @@
             <label class="row" id="row-base"><span>base url</span>
               <input name="baseUrl" id="baseUrl" spellcheck="false"
                 placeholder="https://host/v1"></label>
-            <label class="row"><span>api key</span>
+            <label class="row" id="row-key"><span>api key</span>
               <input name="key" id="key" type="password" spellcheck="false" autocomplete="new-password"
                 placeholder="sk-… / stays in this browser"></label>
             <label class="row"><span>effort</span>

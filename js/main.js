@@ -78,20 +78,23 @@
    */
   async function checkKey({ quiet = false } = {}) {
     const seq = ++checkSeq;
-    if (!settings.key) {
+    const keyless = !!LLM.providers[settings.provider]?.keyless;
+    if (!settings.key && !keyless) {
       keyOk = false;
       paintReady();
       if (!quiet) UI.error("no API key — paste one in the KEYS panel, then press SAVE");
       return false;
     }
-    if (!Agent.busy) UI.status("check", "CHECKING KEY");
+    if (!Agent.busy) UI.status("check", keyless ? "CHECKING SERVER" : "CHECKING KEY");
     const verdict = await LLM.validate({
       provider: settings.provider, apiKey: settings.key, baseUrl: settings.baseUrl,
     });
     if (seq !== checkSeq) return keyOk;         // a newer check already answered
     keyOk = verdict.ok;
     paintReady();
-    if (verdict.ok) { if (!quiet) UI.system(`key accepted by ${settings.provider}`); }
+    if (verdict.ok) {
+      if (!quiet) UI.system(keyless ? `${settings.provider} answering at ${settings.baseUrl}` : `key accepted by ${settings.provider}`);
+    }
     else UI.error(verdict.error);
     return keyOk;
   }
@@ -108,8 +111,10 @@
       list.appendChild(opt);
     }
     $("key").placeholder = `${spec.keyHint} — stays in this browser`;
-    // Only the OpenAI-compatible vendors have a base URL worth changing.
+    // Only the OpenAI-compatible vendors have a base URL worth changing, and a
+    // local server has nothing to authenticate with.
     $("row-base").hidden = spec.api !== "chat";
+    $("row-key").hidden = !!spec.keyless;
   }
 
   function paintSettings() {
@@ -153,7 +158,11 @@
     paintSettings();
     saveSettings();
     paintReady();
-    UI.system(`provider → ${settings.provider}. Paste a ${settings.provider} key.`);
+    UI.system(
+      LLM.providers[settings.provider]?.keyless
+        ? `provider → ${settings.provider}. No key needed; serve it at ${settings.baseUrl} and press SAVE.`
+        : `provider → ${settings.provider}. Paste a ${settings.provider} key.`
+    );
   });
 
   $("settings-form").addEventListener("submit", (e) => {
@@ -419,7 +428,7 @@
    * Resolves false when the request never reached the model at all.
    */
   async function runPrompt(text, pics = []) {
-    if (!settings.key) {
+    if (!settings.key && !LLM.providers[settings.provider]?.keyless) {
       $("tab-keys").checked = true;
       UI.error("no API key. Open the KEYS panel, pick a provider, paste a key, press SAVE.");
       return false;
@@ -714,7 +723,7 @@
   }
 
   // No key is the one state where the panel matters more than the prompt.
-  if (settings.key) checkKey({ quiet: true });
+  if (settings.key || LLM.providers[settings.provider]?.keyless) checkKey({ quiet: true });
   else $("tab-keys").checked = true;
 
   input.focus();

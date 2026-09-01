@@ -27,7 +27,7 @@ no bundler, no dependencies, nothing to compile.
 
 | File | Lines | What it is |
 | --- | --- | --- |
-| `index.html` | 738 | The entire UI. Structure only — no styles, no logic. |
+| `index.html` | 741 | The entire UI. Structure only — no styles, no logic. |
 | `css/buttercup.css` | 3015 | Butter-phosphor CRT skin (day and night), layout, tab deck, and the seven scenes. |
 | `js/vfs.js` | 150 | Virtual filesystem: path → text, persisted in `localStorage`. |
 | `js/checkpoints.js` | 64 | The undo stack: conversation + workspace, frozen together. |
@@ -36,14 +36,14 @@ no bundler, no dependencies, nothing to compile.
 | `js/sandbox.js` | 249 | Sandboxed execution + a hand-written ES-module linker. |
 | `js/tools.js` | 456 | The 18 tool definitions handed to the model. |
 | `js/frameworks.js` | 684 | Bundled framework knowledge and code scaffolds. |
-| `js/llm.js` | 518 | Six providers over three wire formats, streaming, images, no SDKs. |
-| `js/agent.js` | 602 | The agent loop, the system prompts, rules, and compaction. |
+| `js/llm.js` | 550 | Eight providers over three wire formats, streaming, images, no SDKs. |
+| `js/agent.js` | 604 | The agent loop, the system prompts, rules, and compaction. |
 | `js/commands.js` | 246 | Slash commands, answered in-tab without a round trip. |
 | `js/scenes.js` | 23 | Rolls the die for which scene is out the window this load. |
 | `js/theme.js` | 48 | Cycles the tube: follow the system, or pin day or night. |
 | `js/ui.js` | 554 | Transcript rendering, the attachment strip, and the approval gate. |
 | `js/zip.js` | 103 | A store-only ZIP writer, so you can export the workspace. |
-| `js/main.js` | 671 | Settings, key validation, and wiring. |
+| `js/main.js` | 730 | Settings, key validation, and wiring. |
 | `build.mjs` | 211 | Optional: fold everything into `public/index.html`. |
 
 The UI mechanics are CSS, not JavaScript. The right-hand panel deck is four
@@ -78,6 +78,8 @@ Nothing is proxied, because there is nothing to proxy through.
 
 | Vendor | Default model | Notes |
 | --- | --- | --- |
+| Ollama | `qwen3-coder:30b` | Local, no key: `http://localhost:11434/v1`. Start it with `OLLAMA_ORIGINS='https://buttercup.sh' ollama serve` so the tab may call it. |
+| vLLM | *(you type one)* | Local, no key: `http://localhost:8000/v1`. `vllm serve <model> --allowed-origins '["https://buttercup.sh"]'`; the model name is whatever it serves. |
 | Anthropic | `claude-opus-5` | Adaptive thinking (`{type:"adaptive", display:"summarized"}`), `output_config.effort`, server-side fallbacks, and `anthropic-dangerous-direct-browser-access`. |
 | OpenAI | `gpt-5.6` | Chat Completions, `max_completion_tokens` + `reasoning_effort`. |
 | xAI | `grok-4.1` | Chat Completions at `api.x.ai/v1`. |
@@ -85,10 +87,13 @@ Nothing is proxied, because there is nothing to proxy through.
 | OpenRouter | `anthropic/claude-opus-4.5` | Chat Completions at `openrouter.ai/api/v1`; any model the account can reach. |
 | FreeBuff | *(you type one)* | An OpenAI-compatible gateway; edit `base url` to point at yours. |
 
-Three wire formats cover all six: Anthropic Messages, Google `generateContent`,
-and OpenAI-style `/chat/completions` — the last one shared by four vendors, which
+Three wire formats cover all eight: Anthropic Messages, Google `generateContent`,
+and OpenAI-style `/chat/completions` — the last one shared by six vendors, which
 is why the **base url** field appears whenever you pick one. Any gateway that
-speaks `/chat/completions` works without a code change.
+speaks `/chat/completions` works without a code change; the two local ones drop
+the **api key** row and the `Authorization` header entirely. Chrome and Firefox
+exempt `http://localhost` from mixed-content blocking on an https page; Safari
+does not, so run the harness from a local `http://` server there.
 
 **SAVE validates the key** against the vendor's model list (`/v1/models`,
 `/v1beta/models`, or OpenRouter's `/api/v1/key`) — no tokens spent. The lamp in
