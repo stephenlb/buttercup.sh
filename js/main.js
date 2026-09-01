@@ -29,6 +29,10 @@
   };
 
   const DEFAULTS = Object.fromEntries(Object.entries(FIELDS).map(([id, f]) => [id, f.def]));
+  /* `key` is whichever vendor's key is in the box right now; `keys` is the key
+     each vendor was last saved with, so switching vendors and back does not
+     mean pasting it again. Not a FIELDS row: it has no control of its own. */
+  DEFAULTS.keys = {};
 
   let settings = loadSettings();
   /* Whether the vendor has confirmed the current key. The header lamp reports
@@ -37,9 +41,14 @@
   let checkSeq = 0;
 
   function loadSettings() {
-    try {
-      return { ...DEFAULTS, ...(JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}) };
-    } catch (_) { return { ...DEFAULTS }; }
+    let saved;
+    try { saved = { ...DEFAULTS, ...(JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}) }; }
+    catch (_) { saved = { ...DEFAULTS }; }
+    if (!saved.keys || typeof saved.keys !== "object") saved.keys = {};
+    // Settings written before the per-vendor store existed carry one loose key;
+    // file it under the vendor it belongs to.
+    if (saved.key && !saved.keys[saved.provider]) saved.keys[saved.provider] = saved.key;
+    return saved;
   }
 
   function saveSettings() {
@@ -144,25 +153,38 @@
     for (const [id, f] of Object.entries(FIELDS)) {
       next[id] = f.flag ? $(id).checked : f.read ? f.read($(id).value, next) : $(id).value;
     }
+    next.keys = { ...settings.keys };
+    if (next.key) next.keys[next.provider] = next.key;
+    else delete next.keys[next.provider];
     settings = next;
     saveSettings();
   }
 
   $("provider").addEventListener("change", () => {
-    // Switching vendors invalidates the model name, the endpoint and the key.
+    // Switching vendors invalidates the model name and the endpoint. The key in
+    // the box belongs to the vendor being left, so bank it before swapping in
+    // whichever key this vendor was last saved with.
+    const typed = LLM.cleanKey($("key").value).key;
+    if (typed) settings.keys[settings.provider] = typed;
     settings.provider = $("provider").value;
     settings.model = LLM.defaultModel(settings.provider);
     settings.baseUrl = LLM.defaultUrl(settings.provider);
-    settings.key = "";
+    settings.key = settings.keys[settings.provider] || "";
     keyOk = false;
     paintSettings();
     saveSettings();
     paintReady();
+    const keyless = !!LLM.providers[settings.provider]?.keyless;
     UI.system(
-      LLM.providers[settings.provider]?.keyless
+      keyless
         ? `provider → ${settings.provider}. No key needed; serve it at ${settings.baseUrl} and press SAVE.`
-        : `provider → ${settings.provider}. Paste a ${settings.provider} key.`
+        : settings.key
+          ? `provider → ${settings.provider}. Saved ${settings.provider} key restored.`
+          : `provider → ${settings.provider}. Paste a ${settings.provider} key.`
     );
+    // A restored key is already saved, so confirm it the way a page load does
+    // rather than making the user press SAVE to light the lamp.
+    if (settings.key && !keyless) checkKey({ quiet: true });
   });
 
   $("settings-form").addEventListener("submit", (e) => {
@@ -173,12 +195,14 @@
   });
 
   $("forget").addEventListener("click", () => {
+    // FORGET is about the vendor on screen; the other vendors' keys stay.
     settings.key = "";
+    delete settings.keys[settings.provider];
     $("key").value = "";
     keyOk = false;
     saveSettings();
     paintReady();
-    UI.system("key cleared from this browser");
+    UI.system(`${settings.provider} key cleared from this browser`);
   });
 
   $("reset-session").addEventListener("click", () => runCommand("/clear"));

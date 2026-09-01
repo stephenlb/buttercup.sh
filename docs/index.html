@@ -19,7 +19,7 @@
   <header class="titlebar">
     <span class="lamps" aria-hidden="true"><i></i><i></i><i></i></span>
     <h1>buttercup.sh<span class="rev"> rev.2</span></h1>
-    <p class="tagline">pure vintage charm &middot; aggressively anti&#8209;dystopian &middot; emdashes welcome &middot; <a href="https://github.com/stephenlb/buttercup.sh">github</a></p>
+    <p class="tagline">pure vintage charm &middot; aggressively anti&#8209;dystopian &middot; emdashes welcome &middot; <a href="https://github.com/stephenlb/buttercup.sh">github</a> &middot; <a href="https://github.com/stephenlb/buttercup.sh/issues/new">feedback</a></p>
     <output class="lamp-status" id="status" data-state="notready" aria-live="polite">NOT READY</output>
     
     <button type="button" id="theme" class="lamp-theme" title="Tube: follow the system, or pin day or night">
@@ -2787,7 +2787,11 @@ models: ["grok-4.1", "grok-4.1-fast", "grok-4", "grok-4-fast-reasoning", "grok-c
 },
 google: {
 label: "Google — Gemini", api: "google", keyHint: "AIza…",
-models: ["gemini-3-pro", "gemini-2.5-pro", "gemini-2.5-flash"],
+models: [
+"gemini-3.1-pro-preview", "gemini-3.7-flash", "gemini-3.6-flash",
+"gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite",
+"gemini-3-pro", "gemini-2.5-pro", "gemini-2.5-flash",
+],
 },
 openrouter: {
 label: "OpenRouter — any model", api: "chat", keyHint: "sk-or-v1-…",
@@ -4348,13 +4352,17 @@ autoCompact: { def: true, flag: true },
 compactAt: { def: 120000, read: (v) => Number(v) || FIELDS.compactAt.def },
 };
 const DEFAULTS = Object.fromEntries(Object.entries(FIELDS).map(([id, f]) => [id, f.def]));
+DEFAULTS.keys = {};
 let settings = loadSettings();
 let keyOk = false;
 let checkSeq = 0;
 function loadSettings() {
-try {
-return { ...DEFAULTS, ...(JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}) };
-} catch (_) { return { ...DEFAULTS }; }
+let saved;
+try { saved = { ...DEFAULTS, ...(JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}) }; }
+catch (_) { saved = { ...DEFAULTS }; }
+if (!saved.keys || typeof saved.keys !== "object") saved.keys = {};
+if (saved.key && !saved.keys[saved.provider]) saved.keys[saved.provider] = saved.key;
+return saved;
 }
 function saveSettings() {
 localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
@@ -4433,23 +4441,32 @@ const next = {};
 for (const [id, f] of Object.entries(FIELDS)) {
 next[id] = f.flag ? $(id).checked : f.read ? f.read($(id).value, next) : $(id).value;
 }
+next.keys = { ...settings.keys };
+if (next.key) next.keys[next.provider] = next.key;
+else delete next.keys[next.provider];
 settings = next;
 saveSettings();
 }
 $("provider").addEventListener("change", () => {
+const typed = LLM.cleanKey($("key").value).key;
+if (typed) settings.keys[settings.provider] = typed;
 settings.provider = $("provider").value;
 settings.model = LLM.defaultModel(settings.provider);
 settings.baseUrl = LLM.defaultUrl(settings.provider);
-settings.key = "";
+settings.key = settings.keys[settings.provider] || "";
 keyOk = false;
 paintSettings();
 saveSettings();
 paintReady();
+const keyless = !!LLM.providers[settings.provider]?.keyless;
 UI.system(
-LLM.providers[settings.provider]?.keyless
+keyless
 ? `provider → ${settings.provider}. No key needed; serve it at ${settings.baseUrl} and press SAVE.`
+: settings.key
+? `provider → ${settings.provider}. Saved ${settings.provider} key restored.`
 : `provider → ${settings.provider}. Paste a ${settings.provider} key.`
 );
+if (settings.key && !keyless) checkKey({ quiet: true });
 });
 $("settings-form").addEventListener("submit", (e) => {
 e.preventDefault();
@@ -4459,11 +4476,12 @@ checkKey();
 });
 $("forget").addEventListener("click", () => {
 settings.key = "";
+delete settings.keys[settings.provider];
 $("key").value = "";
 keyOk = false;
 saveSettings();
 paintReady();
-UI.system("key cleared from this browser");
+UI.system(`${settings.provider} key cleared from this browser`);
 });
 $("reset-session").addEventListener("click", () => runCommand("/clear"));
 $("download-zip").addEventListener("click", () => {
