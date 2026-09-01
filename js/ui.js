@@ -264,6 +264,10 @@ window.UI = (function () {
     return row;
   }
 
+  /* Which workspace file the preview frame is showing — a screenshot of it is
+     worth more to the model with the path attached to it. */
+  let mounted = null;
+
   const api = {
     user(text, shots = []) {
       const node = entry("user", "you");
@@ -545,9 +549,16 @@ window.UI = (function () {
       $("preview-empty").hidden = true;
       $("tab-preview").checked = true;
       const result = await Sandbox.preview(path, frame);
+      // Only a mounted frame has anything to photograph, so SEND TO MODEL waits
+      // for one — and stays out of reach if the mount failed.
+      $("preview-shot").disabled = !result.ok;
       if (!result.ok) throw new Error(result.error);
+      mounted = path;
       return result;
     },
+
+    /** The workspace file currently in the preview frame, if any. */
+    mountedPreview() { return mounted; },
   };
 
   return api;

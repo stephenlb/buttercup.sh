@@ -161,10 +161,15 @@
 
       <div class="panel" id="panel-preview">
         <div class="panel-head"><h2>agent preview</h2>
-          <span class="dim">sandboxed iframe</span></div>
+          <span class="dim">sandboxed iframe</span>
+          <button type="button" id="preview-shot" class="mini" disabled
+                  title="screenshot this frame and attach it to the prompt (shift-click for a pixel-exact tab capture)">SEND TO MODEL</button></div>
         <p class="note" id="preview-empty">Nothing mounted. The
            <code>preview</code> tool points this frame at a file in the
-           workspace; <code>run_agent</code> executes one and reports back.</p>
+           workspace; <code>run_agent</code> executes one and reports back. Once
+           something is mounted, <code>SEND TO MODEL</code> has the frame draw
+           itself and attaches the picture to your next prompt — the page cannot
+           read inside the sandbox, so the screenshot comes back out of it.</p>
         <iframe id="preview" title="Agent preview" allow="fullscreen" allowfullscreen
           sandbox="allow-scripts allow-forms allow-modals allow-popups" hidden></iframe>
       </div>
@@ -716,6 +721,7 @@
 <script src="js/images.js"></script>
 <script src="js/drop.js"></script>
 <script src="js/frameworks.js"></script>
+<script src="js/capture.js"></script>
 <script src="js/sandbox.js"></script>
 <script src="js/tools.js"></script>
 <script src="js/llm.js"></script>

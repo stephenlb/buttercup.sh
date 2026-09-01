@@ -150,10 +150,15 @@
 
       <div class="panel" id="panel-preview">
         <div class="panel-head"><h2>agent preview</h2>
-          <span class="dim">sandboxed iframe</span></div>
+          <span class="dim">sandboxed iframe</span>
+          <button type="button" id="preview-shot" class="mini" disabled
+                  title="screenshot this frame and attach it to the prompt (shift-click for a pixel-exact tab capture)">SEND TO MODEL</button></div>
         <p class="note" id="preview-empty">Nothing mounted. The
            <code>preview</code> tool points this frame at a file in the
-           workspace; <code>run_agent</code> executes one and reports back.</p>
+           workspace; <code>run_agent</code> executes one and reports back. Once
+           something is mounted, <code>SEND TO MODEL</code> has the frame draw
+           itself and attaches the picture to your next prompt — the page cannot
+           read inside the sandbox, so the screenshot comes back out of it.</p>
         <iframe id="preview" title="Agent preview" allow="fullscreen" allowfullscreen
           sandbox="allow-scripts allow-forms allow-modals allow-popups" hidden></iframe>
       </div>
@@ -1734,6 +1739,376 @@ harnessNotes: HARNESS,
 })();
 
 ;
+/* js/capture.js */
+
+window.Capture = (function () {
+function PORTRAIT() {
+const post = (msg) => parent.postMessage(Object.assign({ bc: 1 }, msg), "*");
+const XHTML = "http://www.w3.org/1999/xhtml";
+const URL_REF = /url\(\s*(['"]?)([^'")]+)\1\s*\)/g;
+const BUDGET = 2500;
+const PER_FETCH = 1200;
+const BYTES = 4e6;
+const fetched = new Map();
+let deadline = 0;
+let spent = 0;
+let skipped = 0;
+const left = () => Math.min(PER_FETCH, deadline - Date.now());
+async function grab(url) {
+const ms = left();
+if (ms <= 0) throw new Error("out of time");
+const stop = new AbortController();
+const timer = setTimeout(() => stop.abort(), ms);
+try {
+const res = await fetch(url, { credentials: "omit", signal: stop.signal });
+if (!res.ok) throw new Error(String(res.status));
+return await res.blob();
+} finally { clearTimeout(timer); }
+}
+function dataUrl(url) {
+if (!url || url.startsWith("data:")) return Promise.resolve(url || null);
+if (fetched.has(url)) return fetched.get(url);
+const job = (async () => {
+const blob = await grab(url);
+if (spent + blob.size > BYTES) throw new Error("over budget");
+spent += blob.size;
+return await new Promise((resolve, reject) => {
+const reader = new FileReader();
+reader.onload = () => resolve(String(reader.result));
+reader.onerror = () => reject(new Error("unreadable"));
+reader.readAsDataURL(blob);
+});
+})().catch(() => { skipped++; return null; });
+fetched.set(url, job);
+return job;
+}
+async function grabText(url) {
+try { return await (await grab(url)).text(); }
+catch (_) { skipped++; return ""; }
+}
+async function inlineCss(text, base) {
+const refs = new Set();
+for (const m of text.matchAll(URL_REF)) {
+if (m[2] && !m[2].startsWith("data:") && !m[2].startsWith("#")) refs.add(m[2]);
+}
+const map = new Map();
+await Promise.all([...refs].map(async (ref) => {
+try {
+const data = await dataUrl(new URL(ref, base || location.href).href);
+if (data) map.set(ref, data);
+} catch (_) { }
+}));
+return text.replace(URL_REF, (match, quote, ref) =>
+map.has(ref) ? 'url("' + map.get(ref) + '")' : match);
+}
+async function textOf(sheet, seen) {
+if (!sheet || seen.has(sheet)) return "";
+seen.add(sheet);
+let rules = null;
+try { rules = [...sheet.cssRules]; } catch (_) { }
+if (rules) {
+const parts = [];
+for (const rule of rules) {
+if (rule.type !== 3 ) { parts.push(rule.cssText); continue; }
+parts.push(await textOf(rule.styleSheet, seen) ||
+(rule.href ? await grabText(rule.href) : ""));
+}
+return parts.join("\n");
+}
+return sheet.href ? await grabText(sheet.href) : "";
+}
+async function allCss() {
+const seen = new Set();
+const parts = [];
+for (const sheet of document.styleSheets) {
+const text = await textOf(sheet, seen);
+if (text) parts.push(await inlineCss(text, sheet.href));
+}
+return parts.join("\n");
+}
+async function inlineImages(root) {
+await Promise.all([...root.querySelectorAll("img")].map(async (img) => {
+const src = img.getAttribute("src");
+img.removeAttribute("srcset");
+if (!src || src.startsWith("data:")) return;
+try {
+const data = await dataUrl(new URL(src, location.href).href);
+if (data) img.setAttribute("src", data);
+} catch (_) { }
+}));
+}
+function settled(value) {
+const kind = /^matrix3d\(/.test(value) ? 16 : /^matrix\(/.test(value) ? 6 : 0;
+if (!kind) return value;
+const nums = (value.match(/-?\d*\.?\d+(?:e[-+]?\d+)?/gi) || []).map(Number);
+if (nums.length !== kind) return value;
+const identity = kind === 6
+? [1, 0, 0, 1, 0, 0]
+: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+return nums.every((n, i) => Math.abs(n - identity[i]) < 1e-6) ? "none" : value;
+}
+function freeze(root, index) {
+let running = [];
+try { running = document.getAnimations ? document.getAnimations() : []; }
+catch (_) { return; }
+for (const animation of running) {
+const effect = animation.effect;
+if (!effect || effect.pseudoElement) continue;
+const target = effect.target;
+const copy = target && index.get(target);
+if (!copy || !copy.setAttribute) continue;
+const props = new Set();
+try {
+for (const frame of effect.getKeyframes()) {
+for (const key of Object.keys(frame)) {
+if (!/^(offset|computedOffset|easing|composite)$/.test(key)) props.add(key);
+}
+}
+} catch (_) { }
+const now = getComputedStyle(target);
+let css = ";animation:none;transition:none";
+for (const key of props) {
+const prop = key.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase());
+const value = now.getPropertyValue(prop);
+if (value) css += ";" + prop + ":" + (prop === "transform" ? settled(value) : value);
+}
+copy.setAttribute("style", (copy.getAttribute("style") || "") + css);
+}
+}
+function copyState(root) {
+const pairs = (selector) => {
+const live = [...document.querySelectorAll(selector)];
+const copies = root.querySelectorAll(selector);
+return live.map((node, i) => [node, copies[i]]).filter((pair) => pair[1]);
+};
+for (const [live, copy] of pairs("input, textarea, select")) {
+const tag = live.tagName.toLowerCase();
+if (tag === "textarea") copy.textContent = live.value;
+else if (tag === "select") {
+[...copy.options].forEach((option, i) => {
+if (live.options[i] && live.options[i].selected) option.setAttribute("selected", "");
+else option.removeAttribute("selected");
+});
+} else {
+copy.setAttribute("value", live.value);
+if (live.type === "checkbox" || live.type === "radio") {
+if (live.checked) copy.setAttribute("checked", "");
+else copy.removeAttribute("checked");
+}
+}
+}
+const BOX = ["border-width", "border-style", "border-color", "border-radius",
+"box-shadow", "margin", "display", "vertical-align", "opacity",
+"filter", "transform", "outline"];
+for (const [live, copy] of pairs("canvas")) {
+let data = null;
+try { data = live.toDataURL("image/png"); } catch (_) { continue; }
+const img = document.createElementNS(XHTML, "img");
+for (const attr of copy.attributes) {
+if (!/^(width|height|style)$/i.test(attr.name)) img.setAttribute(attr.name, attr.value);
+}
+const style = getComputedStyle(live);
+img.setAttribute("src", data);
+img.setAttribute("style",
+BOX.map((prop) => prop + ":" + style.getPropertyValue(prop)).join(";") +
+";padding:0;box-sizing:border-box" +
+";width:" + live.offsetWidth + "px;height:" + live.offsetHeight + "px");
+copy.replaceWith(img);
+}
+}
+function backdrop() {
+for (const node of [document.body, document.documentElement]) {
+if (!node) continue;
+const colour = getComputedStyle(node).backgroundColor;
+if (colour && colour !== "transparent" && !/^rgba\(.*,\s*0\)$/.test(colour)) return colour;
+}
+return "#ffffff";
+}
+const loadImage = (url) => new Promise((resolve, reject) => {
+const img = new Image();
+img.onload = () => resolve(img);
+img.onerror = () => reject(new Error("the page could not be redrawn as an image"));
+img.src = url;
+});
+const asDataUrl = (blob) => new Promise((resolve, reject) => {
+const reader = new FileReader();
+reader.onload = () => resolve(String(reader.result));
+reader.onerror = () => reject(new Error("the redrawn page could not be encoded"));
+reader.readAsDataURL(blob);
+});
+async function portrait(scale) {
+deadline = Date.now() + BUDGET;
+spent = 0;
+skipped = 0;
+const view = document.documentElement;
+const w = Math.max(1, Math.round(view.clientWidth || innerWidth));
+const h = Math.max(1, Math.round(view.clientHeight || innerHeight));
+const root = view.cloneNode(true);
+const index = new Map();
+const copies = [root, ...root.querySelectorAll("*")];
+[view, ...view.querySelectorAll("*")].forEach((node, i) => {
+if (copies[i]) index.set(node, copies[i]);
+});
+freeze(root, index);
+copyState(root);
+for (const dead of root.querySelectorAll("script, noscript, style, link")) dead.remove();
+await inlineImages(root);
+const style = document.createElementNS(XHTML, "style");
+style.textContent = await allCss();
+(root.querySelector("head") || root).appendChild(style);
+if (scrollX || scrollY) {
+root.setAttribute("style", (root.getAttribute("style") || "") +
+";transform:translate(" + -scrollX + "px," + -scrollY + "px)");
+}
+root.setAttribute("xmlns", XHTML);
+const xml = new XMLSerializer().serializeToString(root);
+const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h +
+'" viewBox="0 0 ' + w + " " + h + '"><foreignObject x="0" y="0" width="' + w +
+'" height="' + h + '">' + xml + "</foreignObject></svg>";
+const img = await loadImage(await asDataUrl(new Blob([svg], { type: "image/svg+xml" })));
+const canvas = document.createElement("canvas");
+canvas.width = Math.max(1, Math.round(w * scale));
+canvas.height = Math.max(1, Math.round(h * scale));
+const ctx = canvas.getContext("2d");
+ctx.fillStyle = backdrop();
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+const png = canvas.toDataURL("image/png");
+return {
+mediaType: "image/png",
+data: png.slice(png.indexOf(",") + 1),
+width: canvas.width,
+height: canvas.height,
+skipped,
+};
+}
+addEventListener("message", async (event) => {
+const job = event.data;
+if (!job || job.bc !== 1 || job.kind !== "shot") return;
+try { post({ id: job.id, type: "shot", ok: true, shot: await portrait(job.scale || 1) }); }
+catch (err) { post({ id: job.id, type: "shot", ok: false, error: String((err && err.message) || err) }); }
+});
+}
+const SOURCE = "(" + PORTRAIT.toString() + ")();";
+let seq = 0;
+function fileOf(shot, name) {
+const bytes = atob(shot.data);
+const buffer = new Uint8Array(bytes.length);
+for (let i = 0; i < bytes.length; i++) buffer[i] = bytes.charCodeAt(i);
+return new File([buffer], name, { type: shot.mediaType });
+}
+const media = () => navigator.mediaDevices;
+function firstFrame(stream) {
+const video = document.createElement("video");
+video.muted = true;
+video.playsInline = true;
+video.srcObject = stream;
+return new Promise((resolve, reject) => {
+const fail = () => reject(new Error("the capture stream produced no frame"));
+video.onerror = fail;
+video.onloadeddata = async () => {
+try { await video.play(); } catch (_) { }
+const go = () => (video.videoWidth ? resolve(video) : fail());
+if (video.requestVideoFrameCallback) video.requestVideoFrameCallback(() => go());
+else requestAnimationFrame(() => requestAnimationFrame(go));
+};
+setTimeout(fail, 5000);
+});
+}
+function cut(video, rect, name) {
+const w = Math.max(1, Math.round(rect ? rect.w : video.videoWidth));
+const h = Math.max(1, Math.round(rect ? rect.h : video.videoHeight));
+const canvas = document.createElement("canvas");
+canvas.width = w;
+canvas.height = h;
+canvas.getContext("2d").drawImage(
+video, rect ? Math.round(rect.x) : 0, rect ? Math.round(rect.y) : 0, w, h, 0, 0, w, h);
+return new Promise((resolve, reject) => canvas.toBlob(
+(blob) => blob ? resolve(new File([blob], name, { type: "image/png" }))
+: reject(new Error("could not encode the screenshot")),
+"image/png"));
+}
+function boxIn(video, node) {
+const box = node.getBoundingClientRect();
+const sx = video.videoWidth / window.innerWidth;
+const sy = video.videoHeight / window.innerHeight;
+return { x: box.left * sx, y: box.top * sy, w: box.width * sx, h: box.height * sy };
+}
+return {
+source() { return SOURCE; },
+async frame(node, name = "preview.png", { timeout = 6000 } = {}) {
+const win = node && node.contentWindow;
+if (!win) throw new Error("there is no preview frame to photograph");
+const id = `shot_${++seq}`;
+const scale = Math.min(2, window.devicePixelRatio || 1);
+const shot = await new Promise((resolve, reject) => {
+const done = () => {
+clearTimeout(timer);
+removeEventListener("message", onMessage);
+};
+function onMessage(event) {
+const msg = event.data;
+if (!msg || msg.bc !== 1 || msg.type !== "shot" || msg.id !== id) return;
+if (event.source !== win) return;
+done();
+if (msg.ok) resolve(msg.shot);
+else reject(new Error(msg.error || "the preview could not draw itself"));
+}
+const timer = setTimeout(() => {
+done();
+reject(new Error("the preview did not answer in time"));
+}, timeout);
+addEventListener("message", onMessage);
+win.postMessage({ bc: 1, kind: "shot", id, scale }, "*");
+});
+return { file: fileOf(shot, name), skipped: shot.skipped || 0 };
+},
+tabCapture() { return !!(media() && media().getDisplayMedia && window.isSecureContext); },
+async element(node, name = "screenshot.png") {
+if (!this.tabCapture()) {
+throw new Error("this browser cannot capture the tab — screen capture needs https and a recent Chrome, Edge or Safari");
+}
+node.scrollIntoView({ block: "nearest", inline: "nearest" });
+await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+let stream;
+try {
+stream = await media().getDisplayMedia({
+audio: false,
+video: { displaySurface: "browser", frameRate: 5 },
+preferCurrentTab: true,
+selfBrowserSurface: "include",
+surfaceSwitching: "exclude",
+monitorTypeSurfaces: "exclude",
+});
+} catch (err) {
+const why = err && err.name === "NotAllowedError"
+? "screenshot cancelled — pick this tab in the share prompt to send the preview"
+: `could not capture the tab: ${(err && err.message) || err}`;
+throw new Error(why);
+}
+const track = stream.getVideoTracks()[0];
+try {
+let cropped = false;
+if (track && track.cropTo && window.CropTarget && CropTarget.fromElement) {
+try {
+await track.cropTo(await CropTarget.fromElement(node));
+cropped = true;
+} catch (_) { }
+}
+const video = await firstFrame(stream);
+const surface = track && track.getSettings ? track.getSettings().displaySurface : "browser";
+const rect = cropped || (surface && surface !== "browser") ? null : boxIn(video, node);
+const file = await cut(video, rect, name);
+video.srcObject = null;
+return file;
+} finally {
+for (const t of stream.getTracks()) t.stop();
+}
+},
+};
+})();
+
+;
 /* js/sandbox.js */
 
 window.Sandbox = (function () {
@@ -1814,7 +2189,7 @@ function link(files, entry, urls = new Map(), stack = []) {
 }
 
 /* ── HTML preview ─────────────────────────────────────────────────────────── */
-function mount(files, entry) {
+function mount(files, entry, capture) {
   const urls = new Map();   // one instance per workspace file, shared across refs
   const rel = (ref) => {
     try { return link(files, resolve(files, entry, ref.startsWith(".") ? ref : "./" + ref), urls); }
@@ -1841,6 +2216,15 @@ function mount(files, entry) {
   document.open();
   document.write(html);
   document.close();
+
+  // The written document is a new one, and the listeners of this module went
+  // with the old one, so the screenshot script is appended to the page itself.
+  // Added afterwards, and only ever a listener, so it cannot affect the mount.
+  if (capture) {
+    const script = document.createElement("script");
+    script.textContent = capture;
+    (document.body || document.documentElement).appendChild(script);
+  }
 }
 
 /* ── job intake ────────────────────────────────────────────────────────────── */
@@ -1849,7 +2233,7 @@ addEventListener("message", async (event) => {
   if (!job || job.bc !== 1) return;
 
   if (job.kind === "preview") {
-    try { mount(job.files, job.entry); post({ id: job.id, type: "done", ok: true }); }
+    try { mount(job.files, job.entry, job.capture); post({ id: job.id, type: "done", ok: true }); }
     catch (err) { post({ id: job.id, type: "done", ok: false, error: String(err.message || err) }); }
     return;
   }
@@ -1943,7 +2327,8 @@ runModule(entry, opts) {
 return withWorkspace(entry, { kind: "module", onLog: opts && opts.onLog }, opts);
 },
 preview(entry, frame) {
-return withWorkspace(entry, { kind: "preview" }, { visible: frame, timeout: 10000 });
+const capture = window.Capture ? Capture.source() : null;
+return withWorkspace(entry, { kind: "preview", capture }, { visible: frame, timeout: 10000 });
 },
 };
 })();
@@ -3618,6 +4003,7 @@ row.appendChild(img);
 }
 return row;
 }
+let mounted = null;
 const api = {
 user(text, shots = []) {
 const node = entry("user", "you");
@@ -3841,9 +4227,12 @@ frame.hidden = false;
 $("preview-empty").hidden = true;
 $("tab-preview").checked = true;
 const result = await Sandbox.preview(path, frame);
+$("preview-shot").disabled = !result.ok;
 if (!result.ok) throw new Error(result.error);
+mounted = path;
 return result;
 },
+mountedPreview() { return mounted; },
 };
 return api;
 })();
@@ -4069,6 +4458,35 @@ const pics = Images.filesIn(e.dataTransfer);
 const reading = Drop.read(e.dataTransfer);
 if (pics.length) attach(pics);
 reading.then((batch) => absorb(batch, pics.length));
+});
+const shotBtn = $("preview-shot");
+shotBtn.addEventListener("click", async (e) => {
+const frame = $("preview");
+if (frame.hidden) return UI.error("nothing mounted in the preview to photograph");
+const path = UI.mountedPreview();
+const name = `preview-${(path || "frame").replace(/[^\w.-]+/g, "-")}.png`;
+const label = shotBtn.textContent;
+shotBtn.disabled = true;
+shotBtn.textContent = "CAPTURING…";
+try {
+if (e.shiftKey) {
+UI.system("exact capture — the browser will ask to share this tab, and only the frame is kept.");
+await attach([await Capture.element(frame, name)]);
+} else {
+const { file, skipped } = await Capture.frame(frame, name);
+await attach([file]);
+if (skipped) {
+UI.system(`${skipped} font${skipped > 1 ? "s" : ""} or picture${skipped > 1 ? "s" : ""} ` +
+`did not load in time, so the shot may differ from the frame — ` +
+`shift\u2011click SEND TO MODEL for a pixel\u2011exact capture.`);
+}
+}
+} catch (err) {
+UI.error(String((err && err.message) || err));
+} finally {
+shotBtn.textContent = label;
+shotBtn.disabled = frame.hidden;
+}
 });
 $("attach-btn").addEventListener("click", () => $("attach-input").click());
 $("attach-input").addEventListener("change", (e) => {

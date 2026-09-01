@@ -314,6 +314,43 @@
     reading.then((batch) => absorb(batch, pics.length));
   });
 
+  /* SEND TO MODEL: the preview frame, photographed and dropped in the strip, so
+     the next turn can see what it built instead of being told about it. The
+     screenshot is a picture like any other from here on. */
+  const shotBtn = $("preview-shot");
+  shotBtn.addEventListener("click", async (e) => {
+    const frame = $("preview");
+    if (frame.hidden) return UI.error("nothing mounted in the preview to photograph");
+    const path = UI.mountedPreview();
+    const name = `preview-${(path || "frame").replace(/[^\w.-]+/g, "-")}.png`;
+    const label = shotBtn.textContent;
+    shotBtn.disabled = true;
+    shotBtn.textContent = "CAPTURING…";
+    try {
+      // Ordinarily the frame draws itself: no permission prompt, and nothing
+      // outside the preview is ever readable. Shift asks for the pixel-exact
+      // route instead, for the rare page that cannot redraw — a WebGL canvas, a
+      // nested frame — and that one has to borrow the tab, prompt and all.
+      if (e.shiftKey) {
+        UI.system("exact capture — the browser will ask to share this tab, and only the frame is kept.");
+        await attach([await Capture.element(frame, name)]);
+      } else {
+        const { file, skipped } = await Capture.frame(frame, name);
+        await attach([file]);
+        if (skipped) {
+          UI.system(`${skipped} font${skipped > 1 ? "s" : ""} or picture${skipped > 1 ? "s" : ""} ` +
+                    `did not load in time, so the shot may differ from the frame — ` +
+                    `shift\u2011click SEND TO MODEL for a pixel\u2011exact capture.`);
+        }
+      }
+    } catch (err) {
+      UI.error(String((err && err.message) || err));
+    } finally {
+      shotBtn.textContent = label;
+      shotBtn.disabled = frame.hidden;
+    }
+  });
+
   $("attach-btn").addEventListener("click", () => $("attach-input").click());
   $("attach-input").addEventListener("change", (e) => {
     attach([...e.target.files]);
