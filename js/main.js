@@ -811,13 +811,18 @@
     },
   });
 
+  /* One switch for all three ways in — `/mode`, the header select, and the
+     model's own `set_mode` tool — so the select, the status bar and the next
+     request's system prompt can never disagree about which mode is on. */
+  function setMode(mode) {
+    settings.mode = mode;
+    $("mode").value = mode;
+    saveSettings();
+  }
+
   Object.assign(Commands.hooks, {
     mode: () => settings.mode,
-    setMode: (mode) => {
-      settings.mode = mode;
-      $("mode").value = mode;
-      saveSettings();
-    },
+    setMode,
     queue: () => queue.slice(),
     clearQueue: () => dropQueue(),
     switchWorkspace: (id) => switchTo(id),
@@ -839,6 +844,8 @@
     screenshot: () => UI.shootPreview(),
     mounted: () => UI.mountedPreview(),
     log: (msg) => UI.sandboxLog(msg),
+    mode: () => settings.mode,
+    setMode,
   });
 
   VFS.onChange(() => {

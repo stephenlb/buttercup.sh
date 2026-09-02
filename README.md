@@ -98,7 +98,9 @@ Running from `file://` works, but a local origin is better — browsers give
 
 - **auto-approve tool calls** — on by default. Turn it off for an
   ALLOW / ALLOW ALL / DENY gate on every write and every execution.
-- **mode** — which system prompt the agent runs under (see `/mode` below).
+- **mode** — which system prompt the agent runs under (see `/mode` below). The
+  agent switches this itself, with `set_mode`, when your request is another
+  mode's job.
 - **max steps** — how many tool round trips one request may take.
 - **auto-compact** and **compact at** — summarize the session when the last
   reply's token count crosses the threshold (120 000 by default).
@@ -148,10 +150,18 @@ so an edit lands on the next turn with no reload.
 
 ## What's in the box
 
-20 tools handed to the model on every turn: `read`, `list`, `glob`, `grep`,
-`todo`, `export_zip`, `write`, `edit`, `delete`, `move`, `scaffold`, `run_js`,
-`run_agent`, `preview`, `screenshot`, `navigate`, `http_get`, `npm_info`,
-`npm_file`, `framework_docs`.
+21 tools handed to the model on every turn: `read`, `list`, `glob`, `grep`,
+`todo`, `set_mode`, `export_zip`, `write`, `edit`, `delete`, `move`, `scaffold`,
+`run_js`, `run_agent`, `preview`, `screenshot`, `navigate`, `http_get`,
+`npm_info`, `npm_file`, `framework_docs`.
+
+`set_mode` is `/mode` handed to the model. Ask general mode for an agent — an
+agent loop, tools for a model, MCP, anything on blocks.ai — and it switches
+itself to `agent-builder` before it starts; the same goes for a deck, a game or
+a chart. The system prompt is rebuilt on every step, so the switch lands on the
+*next step of the same turn*, with the conversation and the workspace intact.
+The header select and the status bar follow it, so what you see is what the next
+request carries.
 
 `screenshot` and `navigate` close the loop on anything visual: the model mounts a
 page, photographs it, clicks and types in it, and looks again. The preview is an

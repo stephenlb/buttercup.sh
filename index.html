@@ -39,7 +39,7 @@
 <pre>
  ┌────────────────────────────────────────────────┐
  │  B U T T E R C U P                             │
- │  a new agent lesson every week                 │
+ │  a new agent lesson weekly                     │
  └────────────────────────────────────────────────┘
 </pre>
           <form class="signup" id="signup"
@@ -53,7 +53,8 @@
                    tabindex="-1" aria-hidden="true" autocomplete="off">
             <input type="hidden" name="locale" value="en">
             <button type="submit" class="mini">SUBSCRIBE</button>
-            <p class="note">one AI Agent training lesson, every week</p>
+            <p class="note">one AI Agent training lesson, weekly</p>
+            <p class="note">starting mid-September 2026</p>
             <p class="thanks" role="status">subscribed — thank you!</p>
           </form>
           <iframe name="signup-sink" title="subscription result" hidden></iframe>
@@ -759,9 +760,11 @@
 <script src="js/capture.js"></script>
 <script src="js/drive.js"></script>
 <script src="js/sandbox.js"></script>
-<script src="js/tools.js"></script>
 <script src="js/llm.js"></script>
+<!-- agent.js owns the mode list, and tools.js declares `set_mode` against it
+     at load time, so the modes have to exist before the tools do. -->
 <script src="js/agent.js"></script>
+<script src="js/tools.js"></script>
 <script src="js/commands.js"></script>
 <script src="js/scenes.js"></script>
 <script src="js/theme.js"></script>

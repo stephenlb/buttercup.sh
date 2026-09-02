@@ -23,6 +23,11 @@ window.Tools = (function () {
     screenshot: async () => { throw new Error("preview pane unavailable"); },
     mounted: () => "",
     log: () => {},
+    // The mode lives in settings, which main.js owns — the same pair `/mode`
+    // goes through, so a switch by the model and a switch by the user are the
+    // same operation and the select in the header stays honest either way.
+    mode: () => Agent.defaultMode,
+    setMode: () => {},
   };
 
   const clip = (text, max) =>
@@ -199,6 +204,35 @@ window.Tools = (function () {
       run({ items }) {
         const mark = { pending: "[ ]", active: "[~]", done: "[x]" };
         return items.map((t) => `${mark[t.status] || "[ ]"} ${t.text}`).join("\n");
+      },
+    },
+
+    /* ── the harness itself ───────────────────────────────────────────────── */
+    {
+      name: "set_mode",
+      kind: "read",
+      description:
+        "Switch which specialist prompt you are running under, for work that belongs to " +
+        "another mode than the current one — most often an agent build (`agent-builder`, " +
+        "the Blocks.AI mode). The system prompt is rebuilt on every step, so the switch " +
+        "lands on your next step of this same turn: the conversation, the workspace and " +
+        "the user's approvals all survive it. Call it before you start the work, not after. " +
+        "Modes: " +
+        Object.entries(Agent.modes).map(([id, m]) => `${id} — ${m.blurb}`).join("; ") + ".",
+      input_schema: schema({
+        mode: str("Mode to switch to.", { enum: Object.keys(Agent.modes) }),
+        why: str("One short line for the user on what made this the right mode."),
+      }, ["mode"]),
+      summary: (i) => i.mode || "",
+      run({ mode, why }) {
+        const ids = Object.keys(Agent.modes);
+        if (!ids.includes(mode)) throw new Error(`unknown mode '${mode}'. Known: ${ids.join(", ")}`);
+        const from = hooks.mode();
+        if (mode === from) return `already in ${mode} — nothing changed; get on with the work`;
+        hooks.setMode(mode);
+        return `mode ${from} → ${mode} · ${Agent.modes[mode].blurb}\n` +
+               `${why ? why + "\n" : ""}` +
+               `Your next step is written under the ${mode} prompt. Do not switch again this turn.`;
       },
     },
 
