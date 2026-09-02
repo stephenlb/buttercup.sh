@@ -1,6 +1,6 @@
 # ButterCup Web Agent Harness
 
-**buttercup.sh** — em dashes welcome.
+**[buttercup.sh](https://buttercup.sh)** — em dashes welcome.
 
 <img width="2034" height="1316" alt="preview" src="https://github.com/user-attachments/assets/25dc7e3f-f6b1-474a-9872-7e6b665d4304" />
 
