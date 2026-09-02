@@ -19,7 +19,7 @@ CSS and JavaScript, classic `<script>` tags, no modules, no bundler, no
 dependencies, nothing to compile.
 
 ```
-git clone … && open index.html
+git clone git@github.com:stephenlb/buttercup.sh.git && cd buttercup.sh && open index.html
 ```
 
 That is the whole setup. Read `js/agent.js` for the loop, `js/tools.js` for the
