@@ -20,7 +20,7 @@
   <header class="titlebar">
     <span class="lamps" aria-hidden="true"><i></i><i></i><i></i></span>
     <h1>buttercup.sh<span class="rev"> rev.2</span></h1>
-    <p class="tagline">pure vintage charm &middot; aggressively anti&#8209;dystopian &middot; emdashes welcome &middot; <a href="https://github.com/stephenlb/buttercup.sh">github</a> &middot; <a href="https://github.com/stephenlb/buttercup.sh/issues/new">feedback</a></p>
+    <p class="tagline">emdashes welcome &middot; <a href="updates/">updates</a> &middot; <a href="https://github.com/stephenlb/buttercup.sh">github</a> &middot; <a href="https://github.com/stephenlb/buttercup.sh/issues/new">feedback</a></p>
     <output class="lamp-status" id="status" data-state="notready" aria-live="polite">NOT READY</output>
     <!-- All three faces ship here; CSS shows the live one. See js/theme.js.
          The glyphs are drawn on a 9&times;9 pixel grid, one path run per row, so
@@ -42,7 +42,7 @@
  │  a harness for building agents, in a browser   │
  └────────────────────────────────────────────────┘
 </pre>
-          <p>No server. No build step. No telemetry. Your keys stay in this
+          <p>Emdashes are welcome. Your keys stay in this
              browser's <code>localStorage</code>; model traffic goes straight
              from this tab to the vendor you pick.</p>
           <p>Open <label for="tab-keys" class="linky">KEYS</label> to paste an API key,
@@ -168,9 +168,11 @@
         <p class="note" id="preview-empty">Nothing mounted. The
            <code>preview</code> tool points this frame at a file in the
            workspace; <code>run_agent</code> executes one and reports back. Once
-           something is mounted, <code>SEND TO MODEL</code> has the frame draw
-           itself and attaches the picture to your next prompt — the page cannot
-           read inside the sandbox, so the screenshot comes back out of it.</p>
+           something is mounted, the model can <code>screenshot</code> it and
+           <code>navigate</code> it — click, type, scroll — and
+           <code>SEND TO MODEL</code> attaches a picture of it to your next
+           prompt. The page cannot read inside the sandbox, so the frame
+           photographs and operates itself and posts the result back out.</p>
         <iframe id="preview" title="Agent preview" allow="fullscreen" allowfullscreen
           sandbox="allow-scripts allow-forms allow-modals allow-popups" hidden></iframe>
       </div>
@@ -728,6 +730,7 @@
 <script src="js/drop.js"></script>
 <script src="js/frameworks.js"></script>
 <script src="js/capture.js"></script>
+<script src="js/drive.js"></script>
 <script src="js/sandbox.js"></script>
 <script src="js/tools.js"></script>
 <script src="js/llm.js"></script>

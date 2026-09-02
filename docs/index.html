@@ -19,7 +19,7 @@
   <header class="titlebar">
     <span class="lamps" aria-hidden="true"><i></i><i></i><i></i></span>
     <h1>buttercup.sh<span class="rev"> rev.2</span></h1>
-    <p class="tagline">pure vintage charm &middot; aggressively anti&#8209;dystopian &middot; emdashes welcome &middot; <a href="https://github.com/stephenlb/buttercup.sh">github</a> &middot; <a href="https://github.com/stephenlb/buttercup.sh/issues/new">feedback</a></p>
+    <p class="tagline">emdashes welcome &middot; <a href="updates/">updates</a> &middot; <a href="https://github.com/stephenlb/buttercup.sh">github</a> &middot; <a href="https://github.com/stephenlb/buttercup.sh/issues/new">feedback</a></p>
     <output class="lamp-status" id="status" data-state="notready" aria-live="polite">NOT READY</output>
     
     <button type="button" id="theme" class="lamp-theme" title="Tube: follow the system, or pin day or night">
@@ -39,7 +39,7 @@
  │  a harness for building agents, in a browser   │
  └────────────────────────────────────────────────┘
 </pre>
-          <p>No server. No build step. No telemetry. Your keys stay in this
+          <p>Emdashes are welcome. Your keys stay in this
              browser's <code>localStorage</code>; model traffic goes straight
              from this tab to the vendor you pick.</p>
           <p>Open <label for="tab-keys" class="linky">KEYS</label> to paste an API key,
@@ -157,9 +157,11 @@
         <p class="note" id="preview-empty">Nothing mounted. The
            <code>preview</code> tool points this frame at a file in the
            workspace; <code>run_agent</code> executes one and reports back. Once
-           something is mounted, <code>SEND TO MODEL</code> has the frame draw
-           itself and attaches the picture to your next prompt — the page cannot
-           read inside the sandbox, so the screenshot comes back out of it.</p>
+           something is mounted, the model can <code>screenshot</code> it and
+           <code>navigate</code> it — click, type, scroll — and
+           <code>SEND TO MODEL</code> attaches a picture of it to your next
+           prompt. The page cannot read inside the sandbox, so the frame
+           photographs and operates itself and posts the result back out.</p>
         <iframe id="preview" title="Agent preview" allow="fullscreen" allowfullscreen
           sandbox="allow-scripts allow-forms allow-modals allow-popups" hidden></iframe>
       </div>
@@ -2042,11 +2044,11 @@ return { x: box.left * sx, y: box.top * sy, w: box.width * sx, h: box.height * s
 }
 return {
 source() { return SOURCE; },
-async frame(node, name = "preview.png", { timeout = 6000 } = {}) {
+async frame(node, name = "preview.png", { timeout = 6000, scale: want = 0 } = {}) {
 const win = node && node.contentWindow;
 if (!win) throw new Error("there is no preview frame to photograph");
 const id = `shot_${++seq}`;
-const scale = Math.min(2, window.devicePixelRatio || 1);
+const scale = want > 0 ? want : Math.min(2, window.devicePixelRatio || 1);
 const shot = await new Promise((resolve, reject) => {
 const done = () => {
 clearTimeout(timer);
@@ -2067,7 +2069,12 @@ reject(new Error("the preview did not answer in time"));
 addEventListener("message", onMessage);
 win.postMessage({ bc: 1, kind: "shot", id, scale }, "*");
 });
-return { file: fileOf(shot, name), skipped: shot.skipped || 0 };
+return {
+file: fileOf(shot, name),
+skipped: shot.skipped || 0,
+width: shot.width,
+height: shot.height,
+};
 },
 tabCapture() { return !!(media() && media().getDisplayMedia && window.isSecureContext); },
 async element(node, name = "screenshot.png") {
@@ -2110,6 +2117,375 @@ return file;
 } finally {
 for (const t of stream.getTracks()) t.stop();
 }
+},
+};
+})();
+
+;
+/* js/drive.js */
+
+window.Drive = (function () {
+function DRIVER() {
+const post = (msg) => parent.postMessage(Object.assign({ bc: 1 }, msg), "*");
+const noise = [];
+const NOISE_CAP = 40;
+function fmt(v) {
+if (typeof v === "string") return v;
+if (v instanceof Error) return v.stack || String(v);
+try { return JSON.stringify(v); } catch (_) { return String(v); }
+}
+function record(level, text) {
+if (noise.length >= NOISE_CAP) return;
+noise.push(`[${level}] ${String(text).slice(0, 600)}`);
+}
+for (const level of ["warn", "error"]) {
+const native = console[level] && console[level].bind(console);
+console[level] = (...args) => {
+record(level, args.map(fmt).join(" "));
+if (native) native(...args);
+};
+}
+addEventListener("error", (e) => record("error", "uncaught: " + (e.message || e)));
+addEventListener("unhandledrejection", (e) => record("error", "unhandled rejection: " + fmt(e.reason)));
+function drain() {
+const out = noise.slice();
+noise.length = 0;
+return out;
+}
+const ATTRS = ["type", "name", "placeholder", "aria-label", "title", "href", "value"];
+function label(node) {
+if (!node) return "nothing";
+if (node === document.documentElement) return "<html>";
+if (node === document.body) return "<body>";
+let head = (node.tagName || node.nodeName || "?").toLowerCase();
+if (node.id) head += "#" + node.id;
+const cls = String((node.getAttribute && node.getAttribute("class")) || "")
+.trim().split(/\s+/).filter(Boolean).slice(0, 2);
+if (cls.length) head += "." + cls.join(".");
+const attrs = [];
+for (const name of ATTRS) {
+const value = node.getAttribute && node.getAttribute(name);
+if (value) attrs.push(`${name}="${String(value).slice(0, 40)}"`);
+}
+const text = String(node.textContent || "").replace(/\s+/g, " ").trim().slice(0, 60);
+return `<${head}${attrs.length ? " " + attrs.join(" ") : ""}>` + (text ? ` "${text}"` : "");
+}
+function state() {
+const view = document.documentElement;
+const bits = [
+`viewport ${Math.round(innerWidth)}x${Math.round(innerHeight)} css px`,
+`page ${Math.round(view.scrollWidth)}x${Math.round(view.scrollHeight)}`,
+`scroll ${Math.round(scrollX)},${Math.round(scrollY)}`,
+];
+const focus = document.activeElement;
+if (focus && focus !== document.body) bits.push(`focus ${label(focus)}`);
+if (document.title) bits.push(`title "${String(document.title).slice(0, 60)}"`);
+return bits.join(" · ");
+}
+function at(x, y) {
+if (!Number.isFinite(x) || !Number.isFinite(y)) throw new Error("x and y are required for this action");
+if (x < 0 || y < 0 || x > innerWidth || y > innerHeight) {
+throw new Error(
+`${x},${y} is outside the preview viewport (${Math.round(innerWidth)}x${Math.round(innerHeight)} css px). ` +
+`Scroll, or take a screenshot and read the coordinate off that.`
+);
+}
+const node = document.elementFromPoint(x, y);
+if (!node) throw new Error(`nothing is painted at ${x},${y}`);
+return node;
+}
+function target(job, { fallbackToFocus = false } = {}) {
+if (job.selector) {
+let node;
+try { node = document.querySelector(job.selector); }
+catch (_) { throw new Error(`'${job.selector}' is not a valid CSS selector`); }
+if (!node) throw new Error(`no element matches '${job.selector}' — try the inspect action`);
+return node;
+}
+if (Number.isFinite(job.x) && Number.isFinite(job.y)) return at(job.x, job.y);
+if (fallbackToFocus) {
+const focus = document.activeElement;
+if (focus && focus !== document.body) return focus;
+throw new Error("nothing is focused — pass a selector, or click the element first");
+}
+throw new Error("pass either x and y, or a selector");
+}
+function centre(node) {
+let box = node.getBoundingClientRect();
+if (box.bottom < 0 || box.top > innerHeight || box.right < 0 || box.left > innerWidth) {
+node.scrollIntoView({ block: "center", inline: "center" });
+box = node.getBoundingClientRect();
+}
+return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+}
+const FOCUSABLE = "a[href], button, input, textarea, select, summary, [tabindex], [contenteditable]";
+function pointer(node, type, x, y, button, detail) {
+const init = {
+bubbles: true, cancelable: true, composed: true, view: window,
+clientX: x, clientY: y, screenX: x, screenY: y,
+button: button || 0,
+buttons: /down|move/.test(type) ? (button === 2 ? 2 : 1) : 0,
+detail: detail || 1,
+pointerId: 1, pointerType: "mouse", isPrimary: true,
+};
+const Ctor = type.startsWith("pointer") ? (window.PointerEvent || MouseEvent) : MouseEvent;
+node.dispatchEvent(new Ctor(type, init));
+}
+function press(node, x, y, kind) {
+const button = kind === "right_click" ? 2 : 0;
+pointer(node, "pointermove", x, y, button);
+pointer(node, "mousemove", x, y, button);
+pointer(node, "pointerdown", x, y, button);
+pointer(node, "mousedown", x, y, button);
+if (node.focus && node.matches && node.matches(FOCUSABLE)) {
+try { node.focus(); } catch (_) { }
+}
+pointer(node, "pointerup", x, y, button);
+pointer(node, "mouseup", x, y, button);
+if (kind === "right_click") {
+pointer(node, "contextmenu", x, y, 2);
+return;
+}
+pointer(node, "click", x, y, 0, 1);
+if (kind === "double_click") {
+pointer(node, "click", x, y, 0, 2);
+pointer(node, "dblclick", x, y, 0, 2);
+}
+}
+const codeOf = (key) =>
+key.length === 1 && /[a-z]/i.test(key) ? "Key" + key.toUpperCase()
+: key.length === 1 && /[0-9]/.test(key) ? "Digit" + key
+: key === " " ? "Space" : key;
+function keyEvent(node, type, key) {
+const event = new KeyboardEvent(type, {
+key, code: codeOf(key), bubbles: true, cancelable: true, composed: true, view: window,
+});
+node.dispatchEvent(event);
+return event;
+}
+const isField = (node) => {
+const tag = (node.tagName || "").toLowerCase();
+return tag === "input" || tag === "textarea";
+};
+function insert(node, text) {
+if (isField(node)) node.value += text;
+else node.textContent += text;
+node.dispatchEvent(new InputEvent("input", {
+bubbles: true, composed: true, data: text, inputType: "insertText",
+}));
+}
+function erase(node) {
+if (isField(node)) node.value = node.value.slice(0, -1);
+else node.textContent = String(node.textContent).slice(0, -1);
+node.dispatchEvent(new InputEvent("input", {
+bubbles: true, composed: true, inputType: "deleteContentBackward",
+}));
+}
+function typeInto(node, text, clear) {
+const tag = (node.tagName || "").toLowerCase();
+if (tag === "select") {
+const wanted = String(text);
+const option = [...node.options].find((o) => o.value === wanted) ||
+[...node.options].find((o) => o.textContent.trim() === wanted) ||
+[...node.options].find((o) => o.textContent.trim().toLowerCase().includes(wanted.toLowerCase()));
+if (!option) {
+throw new Error(`no option matching '${wanted}' in ${label(node)} — options: ` +
+[...node.options].map((o) => o.value || o.textContent.trim()).join(", "));
+}
+node.value = option.value;
+node.dispatchEvent(new Event("input", { bubbles: true }));
+node.dispatchEvent(new Event("change", { bubbles: true }));
+return `selected "${option.textContent.trim()}" in ${label(node)}`;
+}
+if (!isField(node) && !node.isContentEditable) {
+throw new Error(`cannot type into ${label(node)} — it is not an input, textarea, select or contenteditable`);
+}
+if (node.disabled || node.readOnly) throw new Error(`${label(node)} is disabled or read-only`);
+try { node.focus(); } catch (_) { }
+if (clear) {
+if (isField(node)) node.value = "";
+else node.textContent = "";
+node.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "deleteContentBackward" }));
+}
+for (const ch of Array.from(String(text))) {
+const down = keyEvent(node, "keydown", ch);
+if (!down.defaultPrevented) insert(node, ch);
+keyEvent(node, "keyup", ch);
+}
+node.dispatchEvent(new Event("change", { bubbles: true }));
+const value = isField(node) ? node.value : node.textContent;
+return `typed ${JSON.stringify(String(text))} into ${label(node)} — value is now ` +
+JSON.stringify(String(value).slice(0, 200));
+}
+const EDIT_KEYS = { Backspace: 1, Delete: 1 };
+function pressKey(node, key, repeat) {
+const times = Math.max(1, Math.min(50, Number(repeat) || 1));
+let edited = false;
+for (let i = 0; i < times; i++) {
+const down = keyEvent(node, "keydown", key);
+const editable = isField(node) || node.isContentEditable;
+if (!down.defaultPrevented && editable) {
+if (key.length === 1) { insert(node, key); edited = true; }
+else if (EDIT_KEYS[key]) { erase(node); edited = true; }
+}
+keyEvent(node, "keyup", key);
+}
+let note = `pressed ${key}${times > 1 ? ` x${times}` : ""} at ${label(node)}`;
+if (edited) note += " — value is now " + JSON.stringify(String(isField(node) ? node.value : node.textContent).slice(0, 200));
+if (key === "Enter") {
+const form = node.form || (node.closest && node.closest("form"));
+if (form) {
+note += ". Note: a synthetic Enter does not submit a form the way a real one does — " +
+"if the page relies on native submission, click its submit button instead.";
+}
+}
+return note;
+}
+const INTERACTIVE = [
+"a[href]", "button", "input", "select", "textarea", "summary", "label",
+"[role=button]", "[role=link]", "[role=tab]", "[role=checkbox]", "[role=menuitem]",
+"[onclick]", "[contenteditable]", "[tabindex]",
+].join(", ");
+const visible = (box, node) => {
+if (box.width < 1 || box.height < 1) return false;
+if (box.bottom < 0 || box.top > innerHeight || box.right < 0 || box.left > innerWidth) return false;
+const style = getComputedStyle(node);
+return style.visibility !== "hidden" && style.display !== "none" && Number(style.opacity) !== 0;
+};
+function inspect(limit) {
+const rows = [];
+for (const node of document.querySelectorAll(INTERACTIVE)) {
+const box = node.getBoundingClientRect();
+if (!visible(box, node)) continue;
+rows.push(
+`${String(Math.round(box.left + box.width / 2)).padStart(5)},` +
+`${String(Math.round(box.top + box.height / 2)).padEnd(5)}  ` +
+`${Math.round(box.width)}x${Math.round(box.height)}  ` +
+(node.disabled ? "[disabled] " : "") + label(node)
+);
+if (rows.length >= limit) break;
+}
+if (!rows.length) return "no interactive elements are visible in the viewport";
+return `${rows.length} interactive element(s) on screen — "x,y  w×h  element":\n${rows.join("\n")}`;
+}
+function readText(max) {
+const text = String((document.body && document.body.innerText) || "").replace(/\n{3,}/g, "\n\n").trim();
+if (!text) return "the page renders no text";
+return text.length > max ? text.slice(0, max) + `\n… truncated at ${max} chars (${text.length} total)` : text;
+}
+const settle = () => new Promise((done) =>
+requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(done, 40))));
+async function perform(job) {
+const action = job.action;
+if (action === "inspect") return inspect(Math.max(1, Math.min(200, Number(job.limit) || 60)));
+if (action === "text") return readText(Math.max(200, Math.min(20000, Number(job.max_chars) || 6000)));
+if (action === "scroll") {
+const dx = Number(job.dx) || 0;
+const dy = Number(job.dy) || 0;
+const node = job.selector ? target(job) : null;
+if (node) {
+node.scrollIntoView({ block: "center", inline: "center" });
+await settle();
+return `scrolled ${label(node)} into view`;
+}
+if (!dx && !dy) throw new Error("scroll needs dx/dy, or a selector to bring into view");
+const before = { x: Math.round(scrollX), y: Math.round(scrollY) };
+scrollBy(dx, dy);
+await settle();
+const moved = Math.round(scrollX) - before.x || Math.round(scrollY) - before.y;
+return `scrolled by ${dx},${dy} — now at ${Math.round(scrollX)},${Math.round(scrollY)}` +
+(moved ? "" : " (nothing moved; the page may not scroll)");
+}
+if (action === "type") {
+const node = target(job, { fallbackToFocus: true });
+const text = job.text;
+if (typeof text !== "string" || !text.length) throw new Error("type needs `text`");
+const note = typeInto(node, text, !!job.clear);
+await settle();
+return note;
+}
+if (action === "key") {
+const key = job.key;
+if (!key) throw new Error("key needs `key`, e.g. Enter, Tab, Escape, ArrowDown");
+const node = target(job, { fallbackToFocus: true });
+const note = pressKey(node, String(key), job.repeat);
+await settle();
+return note;
+}
+if (action === "hover") {
+const node = target(job);
+const point = job.selector ? centre(node) : { x: job.x, y: job.y };
+pointer(node, "pointerover", point.x, point.y, 0);
+pointer(node, "mouseover", point.x, point.y, 0);
+pointer(node, "pointermove", point.x, point.y, 0);
+pointer(node, "mousemove", point.x, point.y, 0);
+await settle();
+return `hovered ${Math.round(point.x)},${Math.round(point.y)} → ${label(node)}`;
+}
+if (action === "click" || action === "double_click" || action === "right_click") {
+const node = target(job);
+const point = job.selector ? centre(node) : { x: job.x, y: job.y };
+const hit = label(node);
+const disabled = !!node.disabled;
+press(node, point.x, point.y, action);
+await settle();
+return `${action.replace("_", " ")} at ${Math.round(point.x)},${Math.round(point.y)} → ${hit}` +
+(disabled ? " (that element is disabled, so nothing was going to happen)" : "");
+}
+throw new Error(`unknown action '${action}'`);
+}
+addEventListener("message", async (event) => {
+const job = event.data;
+if (!job || job.bc !== 1 || job.kind !== "drive") return;
+try {
+const note = await perform(job);
+const logs = drain();
+post({
+id: job.id, type: "drive", ok: true,
+report: note + "\n\n" + state() +
+(logs.length ? `\n\nconsole since the last action:\n${logs.join("\n")}` : ""),
+});
+} catch (err) {
+const logs = drain();
+post({
+id: job.id, type: "drive", ok: false,
+error: String((err && err.message) || err) +
+(logs.length ? `\n\nconsole since the last action:\n${logs.join("\n")}` : ""),
+});
+}
+});
+}
+const SOURCE = "(" + DRIVER.toString() + ")();";
+let seq = 0;
+return {
+source() { return SOURCE; },
+act(node, job, { timeout = 8000 } = {}) {
+const win = node && node.contentWindow;
+if (!win) throw new Error("there is no preview to drive — mount a page with `preview` first");
+const id = `drive_${++seq}`;
+return new Promise((resolve, reject) => {
+const done = () => {
+clearTimeout(timer);
+removeEventListener("message", onMessage);
+};
+function onMessage(event) {
+const msg = event.data;
+if (!msg || msg.bc !== 1 || msg.type !== "drive" || msg.id !== id) return;
+if (event.source !== win) return;
+done();
+if (msg.ok) resolve(msg.report);
+else reject(new Error(msg.error || "the preview refused the action"));
+}
+const timer = setTimeout(() => {
+done();
+reject(new Error(
+"the preview did not answer in time — it may be busy in a long-running script, " +
+"or it navigated away from the mounted page. Re-run `preview` to remount it."
+));
+}, timeout);
+addEventListener("message", onMessage);
+win.postMessage({ bc: 1, kind: "drive", id, ...job }, "*");
+});
 },
 };
 })();
@@ -2195,7 +2571,7 @@ function link(files, entry, urls = new Map(), stack = []) {
 }
 
 /* ── HTML preview ─────────────────────────────────────────────────────────── */
-function mount(files, entry, capture) {
+function mount(files, entry, inject) {
   const urls = new Map();   // one instance per workspace file, shared across refs
   const rel = (ref) => {
     try { return link(files, resolve(files, entry, ref.startsWith(".") ? ref : "./" + ref), urls); }
@@ -2224,11 +2600,11 @@ function mount(files, entry, capture) {
   document.close();
 
   // The written document is a new one, and the listeners of this module went
-  // with the old one, so the screenshot script is appended to the page itself.
-  // Added afterwards, and only ever a listener, so it cannot affect the mount.
-  if (capture) {
+  // with the old one, so the harness scripts are appended to the page itself.
+  // Added afterwards, and only ever listeners, so they cannot affect the mount.
+  if (inject) {
     const script = document.createElement("script");
-    script.textContent = capture;
+    script.textContent = inject;
     (document.body || document.documentElement).appendChild(script);
   }
 }
@@ -2239,7 +2615,7 @@ addEventListener("message", async (event) => {
   if (!job || job.bc !== 1) return;
 
   if (job.kind === "preview") {
-    try { mount(job.files, job.entry, job.capture); post({ id: job.id, type: "done", ok: true }); }
+    try { mount(job.files, job.entry, job.inject); post({ id: job.id, type: "done", ok: true }); }
     catch (err) { post({ id: job.id, type: "done", ok: false, error: String(err.message || err) }); }
     return;
   }
@@ -2333,8 +2709,11 @@ runModule(entry, opts) {
 return withWorkspace(entry, { kind: "module", onLog: opts && opts.onLog }, opts);
 },
 preview(entry, frame) {
-const capture = window.Capture ? Capture.source() : null;
-return withWorkspace(entry, { kind: "preview", capture }, { visible: frame, timeout: 10000 });
+const inject = [
+window.Capture ? Capture.source() : null,
+window.Drive ? Drive.source() : null,
+].filter(Boolean).join("\n;\n");
+return withWorkspace(entry, { kind: "preview", inject }, { visible: frame, timeout: 10000 });
 },
 };
 })();
@@ -2345,6 +2724,9 @@ return withWorkspace(entry, { kind: "preview", capture }, { visible: frame, time
 window.Tools = (function () {
 const hooks = {
 preview: async () => { throw new Error("preview pane unavailable"); },
+navigate: async () => { throw new Error("preview pane unavailable"); },
+screenshot: async () => { throw new Error("preview pane unavailable"); },
+mounted: () => "",
 log: () => {},
 };
 const clip = (text, max) =>
@@ -2560,7 +2942,87 @@ input_schema: schema({ path: str("Workspace path to an .html file.") }, ["path"]
 summary: (i) => i.path,
 async run({ path }) {
 await hooks.preview(path);
-return `mounted ${VFS.norm(path)} in the PREVIEW pane — tell the user to look at it`;
+return `mounted ${VFS.norm(path)} in the PREVIEW pane — ` +
+`\`screenshot\` to look at it, \`navigate\` to click and type in it`;
+},
+},
+{
+name: "screenshot",
+kind: "read",
+description:
+"Photograph the mounted PREVIEW page and look at it. The picture comes back " +
+"attached to this tool's result, so you can compare what rendered against what " +
+"you intended instead of assuming. Image pixels are the frame's CSS pixels 1:1, " +
+"so a coordinate read off the shot is one `navigate` can click. Only the visible " +
+"viewport is captured — `navigate` scroll first to see further down. " +
+"The page redraws itself rather than being filmed, so a WebGL canvas or a " +
+"cross-origin frame inside it may come back blank; that is the shot, not the page.",
+input_schema: schema({}),
+summary: () => hooks.mounted() || "preview",
+async run() {
+const { shot, skipped, viewport } = await hooks.screenshot();
+const lines = [
+`screenshot of ${hooks.mounted() || "the preview"} — ${shot.width}x${shot.height} ${shot.mediaType}`,
+`the frame's viewport is ${viewport.w}x${viewport.h} css px` +
+(shot.width === viewport.w
+? " — image pixels are css pixels, so click what you see at the coordinates you see"
+: `, so multiply a coordinate read off this image by ${(viewport.w / shot.width).toFixed(3)} before clicking it`),
+];
+if (skipped) {
+lines.push(
+`${skipped} resource(s) (fonts or images) did not load in time, so the shot may ` +
+`differ from the frame in typeface or a missing picture — do not chase that as a bug.`
+);
+}
+return { output: lines.join("\n"), shots: [shot] };
+},
+},
+{
+name: "navigate",
+kind: "exec",
+description:
+"Operate the mounted PREVIEW page: click, type, press a key, scroll, or ask what " +
+"is on screen. Coordinates are CSS pixels of the frame's viewport, the same space " +
+"`screenshot` returns; a `selector` targets an element instead and is the more " +
+"reliable of the two. Actions:\n" +
+"  inspect      — every visible interactive element with the coordinate to click it. Start here.\n" +
+"  text         — the page's visible text; often the whole check, and cheaper than a picture.\n" +
+"  click / double_click / right_click / hover — at x,y or a selector.\n" +
+"  type         — into an input, textarea, contenteditable, or choose a <select> option. " +
+"Appends unless clear:true. Targets the selector, then x,y, then whatever has focus.\n" +
+"  key          — a named key at the focused element: Enter, Tab, Escape, ArrowDown, Backspace.\n" +
+"  scroll       — by dx,dy, or pass a selector to bring an element into view.\n" +
+"Each call reports what it hit, the frame's state after it, and any console errors " +
+"the page logged since the last action. Events are synthetic: a click activates " +
+"normally, but a synthetic Enter will not submit a form natively. Take a " +
+"`screenshot` after a click to see what it did.",
+input_schema: schema({
+action: str("What to do.", {
+enum: ["click", "double_click", "right_click", "hover", "type", "key", "scroll", "inspect", "text"],
+}),
+x: int("Horizontal CSS pixel in the frame's viewport."),
+y: int("Vertical CSS pixel in the frame's viewport."),
+selector: str("CSS selector to target instead of a coordinate, e.g. #save or .row button"),
+text: str("Text to type, or the option to choose in a <select>."),
+clear: bool("Empty the field before typing."),
+key: str("Key name for the key action, e.g. Enter, Tab, Escape, ArrowDown."),
+repeat: int("Press the key this many times (default 1, max 50)."),
+dx: int("Horizontal scroll in pixels."),
+dy: int("Vertical scroll in pixels (positive scrolls down)."),
+limit: int("inspect: how many elements to list (default 60)."),
+max_chars: int("text: truncate at this many characters (default 6000)."),
+}, ["action"]),
+summary: (i) => {
+const where = i.selector ? i.selector
+: Number.isFinite(i.x) && Number.isFinite(i.y) ? `${i.x},${i.y}` : "";
+const what = i.action === "type" ? JSON.stringify(String(i.text || "").slice(0, 30))
+: i.action === "key" ? i.key
+: i.action === "scroll" ? `${i.dx || 0},${i.dy || 0}`
+: "";
+return [i.action, what, where].filter(Boolean).join("  ");
+},
+async run(input) {
+return hooks.navigate(input);
 },
 },
 {
@@ -2749,7 +3211,10 @@ async run(name, input) {
 const def = byName[name];
 if (!def) throw new Error(`unknown tool '${name}'. Available: ${DEFS.map((d) => d.name).join(", ")}`);
 const out = await def.run(input || {});
-return String(out ?? "(no output)");
+if (out && typeof out === "object" && !Array.isArray(out)) {
+return { output: String(out.output ?? "(no output)"), shots: out.shots || [] };
+}
+return { output: String(out ?? "(no output)"), shots: [] };
 },
 };
 })();
@@ -2910,8 +3375,13 @@ return { type: "image", source: { type: "base64", media_type: p.mediaType, data:
 }
 if (p.type === "thinking") return { type: "thinking", thinking: p.text, signature: p.signature };
 if (p.type === "tool_use") return { type: "tool_use", id: p.id, name: p.name, input: p.input };
+const content = p.shots && p.shots.length
+? [{ type: "text", text: p.output }, ...p.shots.map((s) => ({
+type: "image", source: { type: "base64", media_type: s.mediaType, data: s.data },
+}))]
+: p.output;
 return {
-type: "tool_result", tool_use_id: p.id, content: p.output,
+type: "tool_result", tool_use_id: p.id, content,
 ...(p.error ? { is_error: true } : {}),
 };
 }),
@@ -2996,8 +3466,20 @@ if (m.role === "user") {
 const results = m.parts.filter((p) => p.type === "tool_result");
 const text = m.parts.filter((p) => p.type === "text").map((p) => p.text).join("\n");
 const shots = m.parts.filter((p) => p.type === "image");
+const fromTools = [];
 for (const r of results) {
 wire.push({ role: "tool", tool_call_id: r.id, content: r.error ? `error: ${r.output}` : r.output });
+for (const s of r.shots || []) fromTools.push({ name: r.name, shot: s });
+}
+if (fromTools.length) {
+const content = fromTools.map(({ shot }) => ({
+type: "image_url", image_url: { url: `data:${shot.mediaType};base64,${shot.data}` },
+}));
+content.push({
+type: "text",
+text: `The image(s) above are the result of the ${fromTools.map((f) => f.name).join(", ")} tool call above.`,
+});
+wire.push({ role: "user", content });
 }
 if (shots.length) {
 const content = shots.map((p) => ({
@@ -3074,17 +3556,23 @@ return { parts: flatParts(text, ready), stopReason, usage };
 async function google({ model, apiKey, system, messages, tools, effort, signal, on }) {
 const contents = messages.map((m) => ({
 role: m.role === "assistant" ? "model" : "user",
-parts: m.parts.map((p) => {
-if (p.type === "text") return { text: p.text };
-if (p.type === "image") return { inlineData: { mimeType: p.mediaType, data: p.data } };
-if (p.type === "thinking") return { text: p.text };
-if (p.type === "tool_use") return { functionCall: { name: p.name, args: p.input ?? {} } };
-return {
+parts: m.parts.flatMap((p) => {
+if (p.type === "text") return [{ text: p.text }];
+if (p.type === "image") return [{ inlineData: { mimeType: p.mediaType, data: p.data } }];
+if (p.type === "thinking") return [{ text: p.text }];
+if (p.type === "tool_use") return [{ functionCall: { name: p.name, args: p.input ?? {} } }];
+const response = {
 functionResponse: {
 name: p.name,
 response: p.error ? { error: p.output } : { output: p.output },
 },
 };
+if (!(p.shots && p.shots.length)) return [response];
+return [
+response,
+...p.shots.map((s) => ({ inlineData: { mimeType: s.mediaType, data: s.data } })),
+{ text: `The image(s) above are the result of the ${p.name} call above.` },
+];
 }),
 }));
 const body = { contents };
@@ -3214,7 +3702,7 @@ Turning a description into a working agent: an agent loop, a set of tool definit
 - Never write code against a package's API from memory. Confirm it: \`npm_info\`, then \`npm_file\` for the type declarations, then \`run_js\` with a dynamic import to see the real export names. If a package cannot be reached, say so and use the dependency-free path instead of inventing exports.
 - \`scaffold\` first, then edit. Rewriting the skeleton by hand wastes turns.
 - Use \`todo\` for anything with three or more steps, and keep it current.
-- Verify before you claim: \`run_agent\` for modules, \`run_js\` for snippets, \`preview\` for pages. If something failed, report which step failed and what the error said — do not describe unverified code as working.
+- Verify before you claim: \`run_agent\` for modules, \`run_js\` for snippets, \`preview\` then \`screenshot\` for pages. If something failed, report which step failed and what the error said — do not describe unverified code as working.
 - Batch independent tool calls in one turn. Read a file before editing it.
 - Finish the job. If part of it is blocked (offline, CORS, an unknown API), complete everything else and state plainly what you left and why.
 
@@ -3227,7 +3715,7 @@ ${PLACE}
 - \`list\` / \`read\` before you edit. \`write\` overwrites without warning.
 - Use \`todo\` for anything with three or more steps, and keep it current.
 - Never write code against a package's API from memory. Confirm it: \`npm_info\`, then \`npm_file\` for the type declarations, then \`run_js\` with a dynamic import to see the real export names.
-- Verify before you claim: \`run_js\` for snippets, \`run_agent\` for modules, \`preview\` for pages. If something failed, report which step failed and what the error said.
+- Verify before you claim: \`run_js\` for snippets, \`run_agent\` for modules, \`preview\` then \`screenshot\` for pages — and \`navigate\` to click and type through the flow you built. If something failed, report which step failed and what the error said.
 - Batch independent tool calls in one turn.
 - \`scaffold\` and \`framework_docs\` are still here if the task turns out to be an agent build; ignore them otherwise.
 - Finish the job. If part of it is blocked (offline, CORS, an unknown API), complete everything else and state plainly what you left and why.
@@ -3247,7 +3735,7 @@ Turning notes, an outline or a rough argument into a deck the user can present f
 - One idea per slide, and text large enough to read from the back of a room — 28px is a floor for body copy, not a target. If a slide needs a paragraph, it is two slides or it is speaker notes.
 - Speaker notes belong in the file (a hidden element per slide, revealed in a presenter view or on print), not in the transcript.
 - Diagrams and charts: inline SVG or a \`<canvas>\` you draw yourself. Never a remote image the deck cannot load offline.
-- Verify with \`preview\`, and step through every slide — an off-by-one in the navigation is the failure mode here. Say which slides you actually looked at.
+- Verify with \`preview\`, then step through every slide with \`navigate\` and \`screenshot\` — an off-by-one in the navigation is the failure mode here, and you can only see it by looking. Say which slides you actually looked at.
 - Finish the deck. If a slide is blocked on content only the user has, leave a clearly marked placeholder and name it in your reply.
 
 ${CDN}
@@ -3265,7 +3753,7 @@ Playable things: a page the user opens and immediately controls. Pick the render
 - Structure it: a fixed-timestep update separate from render, input as a held-keys map read by update (never gameplay in the keydown handler), state in one object you can serialize. \`requestAnimationFrame\` gives you \`dt\`; nothing may assume 60fps.
 - Assets are generated, not fetched: draw sprites into a canvas, build geometry in code, synthesize sound with WebAudio. A remote asset is a broken game the first time it is opened offline.
 - Clean up what you start — cancel the frame loop, remove listeners, dispose three.js geometries and materials — so a reload does not leak.
-- Verify with \`preview\`: confirm the loop runs, the input moves what it should, and the console is clean. State plainly what you could not test by looking (feel, difficulty, anything needing sustained play) and let the user judge it.
+- Verify with \`preview\`, then \`navigate\` and \`screenshot\`: confirm the loop runs, the keys and clicks move what they should, and the console is clean — \`navigate\` reports the page's console errors with every action. State plainly what you could not test by looking (feel, difficulty, anything needing sustained play) and let the user judge it.
 - Finish the loop before polishing. A game with win/lose and a restart beats a prettier fragment.
 
 ${CDN}
@@ -3283,7 +3771,7 @@ Turning data the user has into something readable: a static page with charts, ta
 - Say what the chart is answering, then pick the form for it — time series a line, comparison across categories bars, distribution a histogram, correlation a scatter. Refuse to make a pie chart of eight slices; say why and offer bars.
 - Label everything: axis titles with units, a legend when there is more than one series, and axes that start at zero when the mark is a bar. Sort categories by value unless their own order means something.
 - One accessible categorical palette across the whole page, distinguishable in greyscale, plus a direct value on hover or in a table beneath the chart — colour alone is never the only channel.
-- Verify with \`preview\` and check the numbers on the page against what \`run_js\` computed from the file. A chart that renders beautifully off the wrong aggregate is the failure mode here.
+- Verify with \`preview\` and \`screenshot\`, and check the numbers on the page against what \`run_js\` computed from the file. A chart that renders beautifully off the wrong aggregate is the failure mode here.
 - Report the caveats you found in the data — gaps, outliers, rows you dropped and why — rather than quietly smoothing them away.
 
 ${CDN}
@@ -3397,9 +3885,16 @@ return Number.isFinite(n) && n > 0 ? n : 0;
 }
 const textOnly = (messages) => messages.map((m) => ({
 role: m.role,
-parts: m.parts.map((p) => (p.type === "image"
-? { type: "text", text: "[an image was here; it was dropped when this session was saved]" }
-: p)),
+parts: m.parts.map((p) => {
+if (p.type === "image") {
+return { type: "text", text: "[an image was here; it was dropped when this session was saved]" };
+}
+if (p.type === "tool_result" && p.shots && p.shots.length) {
+const { shots, ...rest } = p;
+return { ...rest, output: `${p.output}\n[the picture was dropped when this session was saved]` };
+}
+return p;
+}),
 }));
 let saidQuota = false;
 function persist() {
@@ -3598,9 +4093,9 @@ continue;
 }
 }
 try {
-const output = await Tools.run(call.name, call.input);
-hooks.onToolEnd(handle, { ok: true, output });
-results.push({ type: "tool_result", id: call.id, name: call.name, output });
+const { output, shots } = await Tools.run(call.name, call.input);
+hooks.onToolEnd(handle, { ok: true, output, shots });
+results.push({ type: "tool_result", id: call.id, name: call.name, output, ...(shots.length ? { shots } : {}) });
 } catch (err) {
 const output = errText(err);
 hooks.onToolEnd(handle, { ok: false, output });
@@ -4162,10 +4657,14 @@ log.appendChild(box);
 autoscroll();
 return { box, flag, pre };
 },
-toolEnd(handle, { ok, output }) {
+toolEnd(handle, { ok, output, shots }) {
 handle.box.classList.add(ok ? "ok" : "err");
 handle.flag.textContent = ok ? "ok" : "failed";
 handle.pre.textContent += "\n\nout: " + (output || "").slice(0, 20000);
+if (shots && shots.length) {
+handle.box.appendChild(shotRow(shots, "shots"));
+handle.box.open = true;
+}
 if (!ok) handle.box.open = true;
 autoscroll();
 },
@@ -4328,6 +4827,26 @@ mounted = path;
 return result;
 },
 mountedPreview() { return mounted; },
+async liveFrame() {
+const frame = $("preview");
+if (frame.hidden || !mounted) {
+throw new Error("nothing is mounted in the PREVIEW pane — call `preview` with an .html path first");
+}
+$("tab-preview").checked = true;
+await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+return frame;
+},
+async drivePreview(job) {
+return Drive.act(await api.liveFrame(), job);
+},
+async shootPreview() {
+const frame = await api.liveFrame();
+const name = `preview-${String(mounted || "frame").replace(/[^\w.-]+/g, "-")}.png`;
+const { file, skipped, width, height } = await Capture.frame(frame, name, { scale: 1 });
+const { shots, errors } = await Images.load([file]);
+if (!shots.length) throw new Error(errors[0] || "the screenshot could not be prepared for the model");
+return { shot: shots[0], skipped, viewport: { w: width, h: height } };
+},
 };
 return api;
 })();
@@ -4823,6 +5342,9 @@ clearQueue: () => dropQueue(),
 });
 Object.assign(Tools.hooks, {
 preview: (path) => UI.mountPreview(path),
+navigate: (job) => UI.drivePreview(job),
+screenshot: () => UI.shootPreview(),
+mounted: () => UI.mountedPreview(),
 log: (msg) => UI.sandboxLog(msg),
 });
 VFS.onChange(() => {

@@ -10,7 +10,7 @@
           | { type: "image",       mediaType, data }        // base64, user turns
           | { type: "thinking",    text, signature? }
           | { type: "tool_use",    id, name, input }
-          | { type: "tool_result", id, name, output, error? }
+          | { type: "tool_result", id, name, output, error?, shots? }  // shots: images
 
    Raw fetch rather than an SDK: this page has no bundler, and shipping a CDN
    import for three vendors would trade a readable ~250 lines for a runtime
@@ -215,8 +215,16 @@ window.LLM = (function () {
           }
           if (p.type === "thinking") return { type: "thinking", thinking: p.text, signature: p.signature };
           if (p.type === "tool_use") return { type: "tool_use", id: p.id, name: p.name, input: p.input };
+          // A tool result may carry pictures (a preview screenshot); Anthropic
+          // takes image blocks inside the result itself, so they stay attached
+          // to the call that produced them.
+          const content = p.shots && p.shots.length
+            ? [{ type: "text", text: p.output }, ...p.shots.map((s) => ({
+                type: "image", source: { type: "base64", media_type: s.mediaType, data: s.data },
+              }))]
+            : p.output;
           return {
-            type: "tool_result", tool_use_id: p.id, content: p.output,
+            type: "tool_result", tool_use_id: p.id, content,
             ...(p.error ? { is_error: true } : {}),
           };
         }),
@@ -318,8 +326,23 @@ window.LLM = (function () {
         const results = m.parts.filter((p) => p.type === "tool_result");
         const text = m.parts.filter((p) => p.type === "text").map((p) => p.text).join("\n");
         const shots = m.parts.filter((p) => p.type === "image");
+        // A tool result's own pictures (a preview screenshot) cannot travel in a
+        // `tool` message — this format has no image content there, and gateways
+        // reject it — so they follow as a user turn that says where they came from.
+        const fromTools = [];
         for (const r of results) {
           wire.push({ role: "tool", tool_call_id: r.id, content: r.error ? `error: ${r.output}` : r.output });
+          for (const s of r.shots || []) fromTools.push({ name: r.name, shot: s });
+        }
+        if (fromTools.length) {
+          const content = fromTools.map(({ shot }) => ({
+            type: "image_url", image_url: { url: `data:${shot.mediaType};base64,${shot.data}` },
+          }));
+          content.push({
+            type: "text",
+            text: `The image(s) above are the result of the ${fromTools.map((f) => f.name).join(", ")} tool call above.`,
+          });
+          wire.push({ role: "user", content });
         }
         // A turn with pictures in it takes the array form of `content`; a plain
         // one stays a string, which is what every gateway has always accepted.
@@ -408,17 +431,27 @@ window.LLM = (function () {
   async function google({ model, apiKey, system, messages, tools, effort, signal, on }) {
     const contents = messages.map((m) => ({
       role: m.role === "assistant" ? "model" : "user",
-      parts: m.parts.map((p) => {
-        if (p.type === "text") return { text: p.text };
-        if (p.type === "image") return { inlineData: { mimeType: p.mediaType, data: p.data } };
-        if (p.type === "thinking") return { text: p.text };
-        if (p.type === "tool_use") return { functionCall: { name: p.name, args: p.input ?? {} } };
-        return {
+      // flatMap, because a tool result carrying pictures becomes a
+      // functionResponse plus one inlineData part per picture: Gemini's
+      // functionResponse holds JSON only, so the bytes sit beside it in the
+      // same turn rather than inside it.
+      parts: m.parts.flatMap((p) => {
+        if (p.type === "text") return [{ text: p.text }];
+        if (p.type === "image") return [{ inlineData: { mimeType: p.mediaType, data: p.data } }];
+        if (p.type === "thinking") return [{ text: p.text }];
+        if (p.type === "tool_use") return [{ functionCall: { name: p.name, args: p.input ?? {} } }];
+        const response = {
           functionResponse: {
             name: p.name,
             response: p.error ? { error: p.output } : { output: p.output },
           },
         };
+        if (!(p.shots && p.shots.length)) return [response];
+        return [
+          response,
+          ...p.shots.map((s) => ({ inlineData: { mimeType: s.mediaType, data: s.data } })),
+          { text: `The image(s) above are the result of the ${p.name} call above.` },
+        ];
       }),
     }));
 

@@ -11,13 +11,17 @@
      description   written for the model: when to reach for it, and its limits
      input_schema  JSON Schema (object) — also rendered in the TOOLS panel
      summary(in)   one-line label for the transcript
-     run(in)       -> string shown to the model. Throw to report failure.
+     run(in)       -> string shown to the model, or `{ output, shots }` when the
+                      result is a picture as well as words. Throw to fail.
    ═══════════════════════════════════════════════════════════════════════════ */
 window.Tools = (function () {
 
   /** Overridden by ui.js so tools can drive panels without importing the UI. */
   const hooks = {
     preview: async () => { throw new Error("preview pane unavailable"); },
+    navigate: async () => { throw new Error("preview pane unavailable"); },
+    screenshot: async () => { throw new Error("preview pane unavailable"); },
+    mounted: () => "",
     log: () => {},
   };
 
@@ -249,7 +253,87 @@ window.Tools = (function () {
       summary: (i) => i.path,
       async run({ path }) {
         await hooks.preview(path);
-        return `mounted ${VFS.norm(path)} in the PREVIEW pane — tell the user to look at it`;
+        return `mounted ${VFS.norm(path)} in the PREVIEW pane — ` +
+               `\`screenshot\` to look at it, \`navigate\` to click and type in it`;
+      },
+    },
+    {
+      name: "screenshot",
+      kind: "read",
+      description:
+        "Photograph the mounted PREVIEW page and look at it. The picture comes back " +
+        "attached to this tool's result, so you can compare what rendered against what " +
+        "you intended instead of assuming. Image pixels are the frame's CSS pixels 1:1, " +
+        "so a coordinate read off the shot is one `navigate` can click. Only the visible " +
+        "viewport is captured — `navigate` scroll first to see further down. " +
+        "The page redraws itself rather than being filmed, so a WebGL canvas or a " +
+        "cross-origin frame inside it may come back blank; that is the shot, not the page.",
+      input_schema: schema({}),
+      summary: () => hooks.mounted() || "preview",
+      async run() {
+        const { shot, skipped, viewport } = await hooks.screenshot();
+        const lines = [
+          `screenshot of ${hooks.mounted() || "the preview"} — ${shot.width}x${shot.height} ${shot.mediaType}`,
+          `the frame's viewport is ${viewport.w}x${viewport.h} css px` +
+            (shot.width === viewport.w
+              ? " — image pixels are css pixels, so click what you see at the coordinates you see"
+              : `, so multiply a coordinate read off this image by ${(viewport.w / shot.width).toFixed(3)} before clicking it`),
+        ];
+        if (skipped) {
+          lines.push(
+            `${skipped} resource(s) (fonts or images) did not load in time, so the shot may ` +
+            `differ from the frame in typeface or a missing picture — do not chase that as a bug.`
+          );
+        }
+        return { output: lines.join("\n"), shots: [shot] };
+      },
+    },
+    {
+      name: "navigate",
+      kind: "exec",
+      description:
+        "Operate the mounted PREVIEW page: click, type, press a key, scroll, or ask what " +
+        "is on screen. Coordinates are CSS pixels of the frame's viewport, the same space " +
+        "`screenshot` returns; a `selector` targets an element instead and is the more " +
+        "reliable of the two. Actions:\n" +
+        "  inspect      — every visible interactive element with the coordinate to click it. Start here.\n" +
+        "  text         — the page's visible text; often the whole check, and cheaper than a picture.\n" +
+        "  click / double_click / right_click / hover — at x,y or a selector.\n" +
+        "  type         — into an input, textarea, contenteditable, or choose a <select> option. " +
+        "Appends unless clear:true. Targets the selector, then x,y, then whatever has focus.\n" +
+        "  key          — a named key at the focused element: Enter, Tab, Escape, ArrowDown, Backspace.\n" +
+        "  scroll       — by dx,dy, or pass a selector to bring an element into view.\n" +
+        "Each call reports what it hit, the frame's state after it, and any console errors " +
+        "the page logged since the last action. Events are synthetic: a click activates " +
+        "normally, but a synthetic Enter will not submit a form natively. Take a " +
+        "`screenshot` after a click to see what it did.",
+      input_schema: schema({
+        action: str("What to do.", {
+          enum: ["click", "double_click", "right_click", "hover", "type", "key", "scroll", "inspect", "text"],
+        }),
+        x: int("Horizontal CSS pixel in the frame's viewport."),
+        y: int("Vertical CSS pixel in the frame's viewport."),
+        selector: str("CSS selector to target instead of a coordinate, e.g. #save or .row button"),
+        text: str("Text to type, or the option to choose in a <select>."),
+        clear: bool("Empty the field before typing."),
+        key: str("Key name for the key action, e.g. Enter, Tab, Escape, ArrowDown."),
+        repeat: int("Press the key this many times (default 1, max 50)."),
+        dx: int("Horizontal scroll in pixels."),
+        dy: int("Vertical scroll in pixels (positive scrolls down)."),
+        limit: int("inspect: how many elements to list (default 60)."),
+        max_chars: int("text: truncate at this many characters (default 6000)."),
+      }, ["action"]),
+      summary: (i) => {
+        const where = i.selector ? i.selector
+          : Number.isFinite(i.x) && Number.isFinite(i.y) ? `${i.x},${i.y}` : "";
+        const what = i.action === "type" ? JSON.stringify(String(i.text || "").slice(0, 30))
+          : i.action === "key" ? i.key
+          : i.action === "scroll" ? `${i.dx || 0},${i.dy || 0}`
+          : "";
+        return [i.action, what, where].filter(Boolean).join("  ");
+      },
+      async run(input) {
+        return hooks.navigate(input);
       },
     },
 
@@ -446,11 +530,19 @@ window.Tools = (function () {
       try { return String(def.summary(input || {}) ?? ""); } catch (_) { return ""; }
     },
 
+    /**
+     * Run one call. Always resolves `{ output, shots }`: a tool that returns a
+     * bare string has no pictures, and `screenshot` is the one that does — so
+     * the caller has a single result shape rather than two.
+     */
     async run(name, input) {
       const def = byName[name];
       if (!def) throw new Error(`unknown tool '${name}'. Available: ${DEFS.map((d) => d.name).join(", ")}`);
       const out = await def.run(input || {});
-      return String(out ?? "(no output)");
+      if (out && typeof out === "object" && !Array.isArray(out)) {
+        return { output: String(out.output ?? "(no output)"), shots: out.shots || [] };
+      }
+      return { output: String(out ?? "(no output)"), shots: [] };
     },
   };
 })();

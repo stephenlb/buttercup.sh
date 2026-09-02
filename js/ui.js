@@ -359,10 +359,16 @@ window.UI = (function () {
       return { box, flag, pre };
     },
 
-    toolEnd(handle, { ok, output }) {
+    toolEnd(handle, { ok, output, shots }) {
       handle.box.classList.add(ok ? "ok" : "err");
       handle.flag.textContent = ok ? "ok" : "failed";
       handle.pre.textContent += "\n\nout: " + (output || "").slice(0, 20000);
+      // A screenshot went to the model; the user sees the same picture, open,
+      // since a tool result that is a picture is unreadable collapsed.
+      if (shots && shots.length) {
+        handle.box.appendChild(shotRow(shots, "shots"));
+        handle.box.open = true;
+      }
       if (!ok) handle.box.open = true;
       autoscroll();
     },
@@ -562,6 +568,44 @@ window.UI = (function () {
 
     /** The workspace file currently in the preview frame, if any. */
     mountedPreview() { return mounted; },
+
+    /**
+     * The mounted frame, on screen and laid out. A hidden panel is
+     * `display:none`, which leaves the iframe with a zero-size viewport — so
+     * `elementFromPoint` finds nothing and a screenshot comes back 1×1. Both
+     * the driver and the camera therefore bring the pane forward first, which
+     * is also what the user wants to be looking at while the model clicks.
+     */
+    async liveFrame() {
+      const frame = $("preview");
+      if (frame.hidden || !mounted) {
+        throw new Error("nothing is mounted in the PREVIEW pane — call `preview` with an .html path first");
+      }
+      $("tab-preview").checked = true;
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      return frame;
+    },
+
+    /** Click, type or look around inside the preview — the `navigate` tool. */
+    async drivePreview(job) {
+      return Drive.act(await api.liveFrame(), job);
+    },
+
+    /**
+     * Photograph the preview for the model. Pinned to 1× so image pixels are
+     * the frame's CSS pixels: a coordinate the model reads off the picture is
+     * one `navigate` can click without any arithmetic in between.
+     */
+    async shootPreview() {
+      const frame = await api.liveFrame();
+      const name = `preview-${String(mounted || "frame").replace(/[^\w.-]+/g, "-")}.png`;
+      const { file, skipped, width, height } = await Capture.frame(frame, name, { scale: 1 });
+      // Through js/images.js like any other picture, so the size and format the
+      // vendors accept are decided in exactly one place.
+      const { shots, errors } = await Images.load([file]);
+      if (!shots.length) throw new Error(errors[0] || "the screenshot could not be prepared for the model");
+      return { shot: shots[0], skipped, viewport: { w: width, h: height } };
+    },
   };
 
   return api;

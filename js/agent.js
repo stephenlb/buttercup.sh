@@ -27,7 +27,7 @@ Turning a description into a working agent: an agent loop, a set of tool definit
 - Never write code against a package's API from memory. Confirm it: \`npm_info\`, then \`npm_file\` for the type declarations, then \`run_js\` with a dynamic import to see the real export names. If a package cannot be reached, say so and use the dependency-free path instead of inventing exports.
 - \`scaffold\` first, then edit. Rewriting the skeleton by hand wastes turns.
 - Use \`todo\` for anything with three or more steps, and keep it current.
-- Verify before you claim: \`run_agent\` for modules, \`run_js\` for snippets, \`preview\` for pages. If something failed, report which step failed and what the error said — do not describe unverified code as working.
+- Verify before you claim: \`run_agent\` for modules, \`run_js\` for snippets, \`preview\` then \`screenshot\` for pages. If something failed, report which step failed and what the error said — do not describe unverified code as working.
 - Batch independent tool calls in one turn. Read a file before editing it.
 - Finish the job. If part of it is blocked (offline, CORS, an unknown API), complete everything else and state plainly what you left and why.
 
@@ -41,7 +41,7 @@ ${PLACE}
 - \`list\` / \`read\` before you edit. \`write\` overwrites without warning.
 - Use \`todo\` for anything with three or more steps, and keep it current.
 - Never write code against a package's API from memory. Confirm it: \`npm_info\`, then \`npm_file\` for the type declarations, then \`run_js\` with a dynamic import to see the real export names.
-- Verify before you claim: \`run_js\` for snippets, \`run_agent\` for modules, \`preview\` for pages. If something failed, report which step failed and what the error said.
+- Verify before you claim: \`run_js\` for snippets, \`run_agent\` for modules, \`preview\` then \`screenshot\` for pages — and \`navigate\` to click and type through the flow you built. If something failed, report which step failed and what the error said.
 - Batch independent tool calls in one turn.
 - \`scaffold\` and \`framework_docs\` are still here if the task turns out to be an agent build; ignore them otherwise.
 - Finish the job. If part of it is blocked (offline, CORS, an unknown API), complete everything else and state plainly what you left and why.
@@ -66,7 +66,7 @@ Turning notes, an outline or a rough argument into a deck the user can present f
 - One idea per slide, and text large enough to read from the back of a room — 28px is a floor for body copy, not a target. If a slide needs a paragraph, it is two slides or it is speaker notes.
 - Speaker notes belong in the file (a hidden element per slide, revealed in a presenter view or on print), not in the transcript.
 - Diagrams and charts: inline SVG or a \`<canvas>\` you draw yourself. Never a remote image the deck cannot load offline.
-- Verify with \`preview\`, and step through every slide — an off-by-one in the navigation is the failure mode here. Say which slides you actually looked at.
+- Verify with \`preview\`, then step through every slide with \`navigate\` and \`screenshot\` — an off-by-one in the navigation is the failure mode here, and you can only see it by looking. Say which slides you actually looked at.
 - Finish the deck. If a slide is blocked on content only the user has, leave a clearly marked placeholder and name it in your reply.
 
 ${CDN}
@@ -85,7 +85,7 @@ Playable things: a page the user opens and immediately controls. Pick the render
 - Structure it: a fixed-timestep update separate from render, input as a held-keys map read by update (never gameplay in the keydown handler), state in one object you can serialize. \`requestAnimationFrame\` gives you \`dt\`; nothing may assume 60fps.
 - Assets are generated, not fetched: draw sprites into a canvas, build geometry in code, synthesize sound with WebAudio. A remote asset is a broken game the first time it is opened offline.
 - Clean up what you start — cancel the frame loop, remove listeners, dispose three.js geometries and materials — so a reload does not leak.
-- Verify with \`preview\`: confirm the loop runs, the input moves what it should, and the console is clean. State plainly what you could not test by looking (feel, difficulty, anything needing sustained play) and let the user judge it.
+- Verify with \`preview\`, then \`navigate\` and \`screenshot\`: confirm the loop runs, the keys and clicks move what they should, and the console is clean — \`navigate\` reports the page's console errors with every action. State plainly what you could not test by looking (feel, difficulty, anything needing sustained play) and let the user judge it.
 - Finish the loop before polishing. A game with win/lose and a restart beats a prettier fragment.
 
 ${CDN}
@@ -104,7 +104,7 @@ Turning data the user has into something readable: a static page with charts, ta
 - Say what the chart is answering, then pick the form for it — time series a line, comparison across categories bars, distribution a histogram, correlation a scatter. Refuse to make a pie chart of eight slices; say why and offer bars.
 - Label everything: axis titles with units, a legend when there is more than one series, and axes that start at zero when the mark is a bar. Sort categories by value unless their own order means something.
 - One accessible categorical palette across the whole page, distinguishable in greyscale, plus a direct value on hover or in a table beneath the chart — colour alone is never the only channel.
-- Verify with \`preview\` and check the numbers on the page against what \`run_js\` computed from the file. A chart that renders beautifully off the wrong aggregate is the failure mode here.
+- Verify with \`preview\` and \`screenshot\`, and check the numbers on the page against what \`run_js\` computed from the file. A chart that renders beautifully off the wrong aggregate is the failure mode here.
 - Report the caveats you found in the data — gaps, outliers, rows you dropped and why — rather than quietly smoothing them away.
 
 ${CDN}
@@ -265,9 +265,18 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
    */
   const textOnly = (messages) => messages.map((m) => ({
     role: m.role,
-    parts: m.parts.map((p) => (p.type === "image"
-      ? { type: "text", text: "[an image was here; it was dropped when this session was saved]" }
-      : p)),
+    parts: m.parts.map((p) => {
+      if (p.type === "image") {
+        return { type: "text", text: "[an image was here; it was dropped when this session was saved]" };
+      }
+      // A screenshot rides on its tool result; the words survive, the picture
+      // does not, and the result says so where the model will read it.
+      if (p.type === "tool_result" && p.shots && p.shots.length) {
+        const { shots, ...rest } = p;
+        return { ...rest, output: `${p.output}\n[the picture was dropped when this session was saved]` };
+      }
+      return p;
+    }),
   }));
 
   let saidQuota = false;
@@ -530,9 +539,11 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
           }
 
           try {
-            const output = await Tools.run(call.name, call.input);
-            hooks.onToolEnd(handle, { ok: true, output });
-            results.push({ type: "tool_result", id: call.id, name: call.name, output });
+            // A tool may hand back pictures as well as words — `screenshot`
+            // does — and they ride on the result part into the next request.
+            const { output, shots } = await Tools.run(call.name, call.input);
+            hooks.onToolEnd(handle, { ok: true, output, shots });
+            results.push({ type: "tool_result", id: call.id, name: call.name, output, ...(shots.length ? { shots } : {}) });
           } catch (err) {
             const output = errText(err);
             hooks.onToolEnd(handle, { ok: false, output });

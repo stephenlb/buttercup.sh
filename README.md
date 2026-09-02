@@ -131,9 +131,15 @@ so an edit lands on the next turn with no reload.
 
 ## What's in the box
 
-18 tools handed to the model on every turn: `read`, `list`, `glob`, `grep`,
+20 tools handed to the model on every turn: `read`, `list`, `glob`, `grep`,
 `todo`, `export_zip`, `write`, `edit`, `delete`, `move`, `scaffold`, `run_js`,
-`run_agent`, `preview`, `http_get`, `npm_info`, `npm_file`, `framework_docs`.
+`run_agent`, `preview`, `screenshot`, `navigate`, `http_get`, `npm_info`,
+`npm_file`, `framework_docs`.
+
+`screenshot` and `navigate` close the loop on anything visual: the model mounts a
+page, photographs it, clicks and types in it, and looks again. The preview is an
+opaque-origin sandbox, so neither one reaches into it — the frame photographs and
+operates itself and posts the result back out (`js/capture.js`, `js/drive.js`).
 
 Around them: a virtual filesystem in `localStorage`, a 25-deep undo stack that
 snapshots conversation and files together, drag-and-drop import of files and
@@ -144,8 +150,23 @@ imports resolve without a server.
 One optional script folds the whole thing into a single file for GitHub Pages:
 
 ```
-node build.mjs        # → public/index.html + public/.nojekyll
+node build.mjs        # → docs/index.html + docs/.nojekyll, and public/ copied in
 ```
 
 Zero dependencies, syntax-checked before it writes. A convenience, not a
 requirement — the source runs as-is.
+
+## Updates
+
+`public/` holds the plain documents served alongside the harness but not part of
+it — right now that is `public/updates/`, the news page. The build copies the
+directory into `docs/` verbatim, so `public/updates/index.html` is served at
+[buttercup.sh/updates/](https://buttercup.sh/updates/). Nothing there is
+minified or inlined; add an article by dropping an HTML file in beside the others
+and linking it from `public/updates/index.html`, newest first. Opening it from
+disk works too — `open public/updates/index.html`.
+
+The repository root has an `updates` symlink pointing at `public/updates`, so the
+relative `updates/` link in the header resolves the same way when you serve the
+root in development as it does once the build has copied the directory into
+`docs/`. It exists for that reason only; the build never reads it.

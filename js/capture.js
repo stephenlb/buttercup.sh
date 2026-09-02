@@ -441,12 +441,15 @@ window.Capture = (function () {
      * `{ file, skipped }` — a PNG and how many resources the budget dropped —
      * and rejects if the frame has no portrait script or cannot finish one.
      */
-    async frame(node, name = "preview.png", { timeout = 6000 } = {}) {
+    async frame(node, name = "preview.png", { timeout = 6000, scale: want = 0 } = {}) {
       const win = node && node.contentWindow;
       if (!win) throw new Error("there is no preview frame to photograph");
       const id = `shot_${++seq}`;
       // Retina where the screen is retina, capped: past 2× this is only bytes.
-      const scale = Math.min(2, window.devicePixelRatio || 1);
+      // A caller may pin the scale instead — the `screenshot` tool asks for 1×,
+      // so a coordinate read off the picture is a coordinate the page can be
+      // clicked at without any arithmetic in between.
+      const scale = want > 0 ? want : Math.min(2, window.devicePixelRatio || 1);
 
       const shot = await new Promise((resolve, reject) => {
         const done = () => {
@@ -469,7 +472,14 @@ window.Capture = (function () {
         win.postMessage({ bc: 1, kind: "shot", id, scale }, "*");
       });
 
-      return { file: fileOf(shot, name), skipped: shot.skipped || 0 };
+      // The frame's own numbers: at 1× they are its CSS viewport, which is what
+      // a caller handing coordinates back to the page needs to know.
+      return {
+        file: fileOf(shot, name),
+        skipped: shot.skipped || 0,
+        width: shot.width,
+        height: shot.height,
+      };
     },
 
     tabCapture() { return !!(media() && media().getDisplayMedia && window.isSecureContext); },

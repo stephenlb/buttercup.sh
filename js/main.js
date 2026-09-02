@@ -706,6 +706,9 @@
 
   Object.assign(Tools.hooks, {
     preview: (path) => UI.mountPreview(path),
+    navigate: (job) => UI.drivePreview(job),
+    screenshot: () => UI.shootPreview(),
+    mounted: () => UI.mountedPreview(),
     log: (msg) => UI.sandboxLog(msg),
   });
 

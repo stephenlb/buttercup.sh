@@ -13,8 +13,12 @@
    so a stack trace still means something), inlines them, and syntax-checks
    every minified script before emitting. A corrupted bundle fails the build
    instead of shipping.
+
+   Anything in public/ is copied to docs/ verbatim — the plain documents
+   (updates/, and whatever comes later) that are served alongside the harness
+   but are not part of it.
    ═══════════════════════════════════════════════════════════════════════════ */
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, cpSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
@@ -22,6 +26,7 @@ import vm from "node:vm";
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = join(ROOT, "docs");
+const STATIC_DIR = join(ROOT, "public");
 const read = (rel) => readFileSync(join(ROOT, rel), "utf8");
 
 /* ── JavaScript: a string/regex/template-aware comment stripper ──────────────
@@ -204,8 +209,13 @@ mkdirSync(OUT_DIR, { recursive: true });
 writeFileSync(join(OUT_DIR, "index.html"), html);
 writeFileSync(join(OUT_DIR, ".nojekyll"), "");   // Pages: serve the file as-is
 
+// Plain documents ride along untouched: nothing here is minified or inlined,
+// so what is in public/ is exactly what gets served.
+if (existsSync(STATIC_DIR)) cpSync(STATIC_DIR, OUT_DIR, { recursive: true });
+
 const sourceBytes = [...cssRefs, ...jsRefs].reduce((n, m) => n + read(m[1]).length, read("index.html").length);
 const kb = (n) => (n / 1024).toFixed(1) + " kB";
 console.log(`docs/index.html  ${kb(html.length)}  (${kb(gzipSync(html).length)} gzipped)`);
 console.log(`sources            ${kb(sourceBytes)} across ${cssRefs.length + jsRefs.length + 1} files`);
 console.log(`inlined            ${jsRefs.map((m) => m[1]).join(", ")}`);
+if (existsSync(STATIC_DIR)) console.log(`copied             public/ → docs/`);

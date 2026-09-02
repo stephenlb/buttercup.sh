@@ -10,6 +10,7 @@ on:
       - build.mjs
       - css/**
       - js/**
+      - public/**
       - .github/workflows/build.yml
   workflow_dispatch:
 

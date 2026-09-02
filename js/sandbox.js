@@ -89,7 +89,7 @@ function link(files, entry, urls = new Map(), stack = []) {
 }
 
 /* ── HTML preview ─────────────────────────────────────────────────────────── */
-function mount(files, entry, capture) {
+function mount(files, entry, inject) {
   const urls = new Map();   // one instance per workspace file, shared across refs
   const rel = (ref) => {
     try { return link(files, resolve(files, entry, ref.startsWith(".") ? ref : "./" + ref), urls); }
@@ -118,11 +118,11 @@ function mount(files, entry, capture) {
   document.close();
 
   // The written document is a new one, and the listeners of this module went
-  // with the old one, so the screenshot script is appended to the page itself.
-  // Added afterwards, and only ever a listener, so it cannot affect the mount.
-  if (capture) {
+  // with the old one, so the harness scripts are appended to the page itself.
+  // Added afterwards, and only ever listeners, so they cannot affect the mount.
+  if (inject) {
     const script = document.createElement("script");
-    script.textContent = capture;
+    script.textContent = inject;
     (document.body || document.documentElement).appendChild(script);
   }
 }
@@ -133,7 +133,7 @@ addEventListener("message", async (event) => {
   if (!job || job.bc !== 1) return;
 
   if (job.kind === "preview") {
-    try { mount(job.files, job.entry, job.capture); post({ id: job.id, type: "done", ok: true }); }
+    try { mount(job.files, job.entry, job.inject); post({ id: job.id, type: "done", ok: true }); }
     catch (err) { post({ id: job.id, type: "done", ok: false, error: String(err.message || err) }); }
     return;
   }
@@ -252,12 +252,17 @@ post({ type: "ready" });
 
     /**
      * Mount a workspace HTML file into an existing (visible) iframe element.
-     * `Capture.source()` rides along so the mounted page can hand back a
-     * screenshot of itself — the parent cannot reach in to ask for one later.
+     * `Capture.source()` and `Drive.source()` ride along so the mounted page can
+     * photograph and operate itself — the parent cannot reach into an opaque
+     * origin to ask for either one later. Both are appended after the mount and
+     * only ever add a message listener, so the page behaves as it would alone.
      */
     preview(entry, frame) {
-      const capture = window.Capture ? Capture.source() : null;
-      return withWorkspace(entry, { kind: "preview", capture }, { visible: frame, timeout: 10000 });
+      const inject = [
+        window.Capture ? Capture.source() : null,
+        window.Drive ? Drive.source() : null,
+      ].filter(Boolean).join("\n;\n");
+      return withWorkspace(entry, { kind: "preview", inject }, { visible: frame, timeout: 10000 });
     },
   };
 })();
