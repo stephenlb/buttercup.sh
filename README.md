@@ -1,12 +1,12 @@
 # ButterCup Web Agent Harness
 
-**buttercup.sh** — emdashes welcome.
+**buttercup.sh** — em dashes welcome.
 
 <img width="2034" height="1316" alt="preview" src="https://github.com/user-attachments/assets/25dc7e3f-f6b1-474a-9872-7e6b665d4304" />
 
 ## Why this exists
 
-To show that anyone can build a coding harness — the thing Claude Code, Codex,
+To show that anyone can build AI Agents — the thing Claude Code, Codex,
 Cursor and Antigravity are — in a web browser, and read the whole of it in an
 afternoon.
 
