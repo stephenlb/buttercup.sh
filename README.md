@@ -7,8 +7,7 @@
 ## Why this exists
 
 To show that anyone can build AI Agents — the thing Claude Code, Codex,
-Cursor and Antigravity are — in a web browser, and read the whole of it in an
-afternoon.
+Cursor and Antigravity are — in a web browser and beyond.
 
 Join the next few weeks and learn to build AI agents.
 Open source. Courses posted on Youtube and [buttercup.sh](https://buttercup.sh).
