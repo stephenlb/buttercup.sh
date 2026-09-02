@@ -362,6 +362,48 @@ button.mini { padding: .18rem .5rem; font-size: .68rem; }
 button.danger { border-color: var(--bad); color: var(--bad); }
 button.danger:hover { background: var(--bad); color: var(--paper); }
 
+/* ── signup ───────────────────────────────────────────────────────────────────
+   A stack in the boot notice: label, field, button, note — one per row, all
+   hanging off the same left edge as the transcript's own paragraphs, with the
+   sigil out in the margin the way the prompt below wears it. No card and no
+   background of its own; the transcript's paper carries it, which is the whole
+   point of not using the vendor's iframe. */
+.signup {
+  display: grid; grid-template-columns: auto minmax(0, 22rem);
+  gap: .35rem .6rem; justify-content: start; margin: .8rem 0;
+}
+.signup .sigil { grid-row: 1; align-self: baseline; }
+.signup > :not(.sigil) { grid-column: 2; }
+.signup .slabel { color: var(--ink-dim); font-size: .7rem; letter-spacing: .2em; }
+/* the button sizes to its word rather than the field above it */
+.signup button { justify-self: start; margin-top: .15rem; }
+.signup input[type="email"] {
+  font: inherit; color: var(--ink-hot); background: var(--paper);
+  border: 1px solid var(--rule); padding: .35rem .5rem; min-width: 0;
+}
+.signup input[type="email"]:focus-visible { outline: 2px solid var(--ink); outline-offset: -1px; }
+.signup input[type="email"]::placeholder { color: var(--ink-faint); }
+/* the honeypot: off-screen rather than `display:none`, which the crude bots
+   skip and the thorough ones read as a tell. Nothing here changes the layout. */
+.signup .trap {
+  position: absolute; left: -9999px; top: auto; width: 1px; height: 1px;
+  overflow: hidden; border: 0; padding: 0;
+}
+.signup .note, .signup .thanks {
+  grid-column: 2 / -1; margin: 0; font-size: .74rem; color: var(--ink-faint);
+}
+.signup .thanks { display: none; color: var(--good); }
+/* sent: the fields have done their job, so the row collapses to the receipt */
+.signup[data-sent="1"] .sigil, .signup[data-sent="1"] .slabel,
+.signup[data-sent="1"] input, .signup[data-sent="1"] button,
+.signup[data-sent="1"] .note { display: none; }
+.signup[data-sent="1"] .thanks { display: block; grid-column: 1 / -1; }
+
+@media (max-width: 40rem) {
+  /* narrow: the field takes whatever is left rather than holding 22rem */
+  .signup { grid-template-columns: auto minmax(0, 1fr); }
+}
+
 /* ── the view out the window ──────────────────────────────────────────────────
    Fills whatever room is left under the prompt, which means it is on screen
    exactly while the transcript is short — `flex: 1 1 0` grows into free space

@@ -19,7 +19,7 @@
   <!-- ══ title bar ═════════════════════════════════════════════════════════ -->
   <header class="titlebar">
     <span class="lamps" aria-hidden="true"><i></i><i></i><i></i></span>
-    <h1>buttercup.sh<span class="rev"> rev.2</span></h1>
+    <h1>buttercup.sh<span class="rev"></span></h1>
     <p class="tagline">emdashes welcome — <a href="updates/">updates</a> &middot; <a href="https://github.com/stephenlb/buttercup.sh">github</a> &middot; <a href="https://github.com/stephenlb/buttercup.sh/issues/new">feedback</a></p>
     <output class="lamp-status" id="status" data-state="notready" aria-live="polite">NOT READY</output>
     <!-- All three faces ship here; CSS shows the live one. See js/theme.js.
@@ -38,10 +38,25 @@
         <article class="entry boot">
 <pre>
  ┌────────────────────────────────────────────────┐
- │  B U T T E R C U P   AGENT WORKS   ·   rev.2   │
- │  a harness for building agents, in a browser   │
+ │  B U T T E R C U P                             │
+ │  learn how to build agents                     │
  └────────────────────────────────────────────────┘
 </pre>
+          <form class="signup" id="signup"
+                action="https://5487903a.sibforms.com/serve/MUIFAAPvkZdoviEts98XHd7P8K3TyLVS3MtyAoJy_sJMZ9DgAKwbaJqN4Lgn4NMQH3JL50ANiWCKfMJlE3Wj5aEiDLJ3sbnhtSTvh3z7Lgg2BOpAJjNZhMpN_BCn21Kz_o-buc-NY7aFM5JXPRkd-GW0iihg0KEvSJQiAgmUYcB_8D6DmR8Xb4bEFUzTJmlYFti6yJBG7K33hsR_MQ=="
+                method="POST" target="signup-sink" autocomplete="on">
+            <label class="sigil" for="signup-email" aria-hidden="true">&gt;</label>
+            <label class="slabel" for="signup-email">EMAIL</label>
+            <input id="signup-email" name="EMAIL" type="email" required
+                   spellcheck="false" placeholder="you@example.com">
+            <input type="text" name="email_address_check" value="" class="trap"
+                   tabindex="-1" aria-hidden="true" autocomplete="off">
+            <input type="hidden" name="locale" value="en">
+            <button type="submit" class="mini">SUBSCRIBE</button>
+            <p class="note">once weekly AI Agent training article</p>
+            <p class="thanks" role="status">subscribed — check your inbox to confirm</p>
+          </form>
+          <iframe name="signup-sink" title="subscription result" hidden></iframe>
           <p>Emdashes welcome — Join us over the next few months to learn how
              to build AI Agents.
              Your keys stay in this

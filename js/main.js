@@ -207,6 +207,26 @@
 
   $("reset-session").addEventListener("click", () => runCommand("/clear"));
 
+  /* ── the updates list ─────────────────────────────────────────────────────
+     The POST goes to the mailing-list vendor in a hidden frame, so the page
+     stays put and we never see the response — cross-origin. The receipt is
+     therefore "sent", not "accepted", which is honest: the confirmation email
+     is what actually confirms. The form only ever exists on the boot notice,
+     so a missing node here is normal (a cleared transcript). */
+  const signup = $("signup");
+  if (signup) {
+    // A password manager that fills the honeypot would get a real person
+    // rejected, so it starts every load empty no matter what restored it.
+    signup.elements.email_address_check.value = "";
+    signup.addEventListener("submit", (e) => {
+      // Filled means a script filled it. Swallow the submit and show the same
+      // receipt a person gets: nothing reaches the vendor, and nothing tells
+      // the bot which field gave it away.
+      if (signup.elements.email_address_check.value) e.preventDefault();
+      signup.dataset.sent = "1";
+    });
+  }
+
   /* ── workspace panel ────────────────────────────────────────────────────── */
 
   $("download-zip").addEventListener("click", () => {
