@@ -10,6 +10,15 @@ To show that anyone can build AI Agents — the thing Claude Code, Codex,
 Cursor and Antigravity are — in a web browser, and read the whole of it in an
 afternoon.
 
+Join the next few weeks and learn to build AI agents.
+Open source. Courses posted on Youtube and [buttercup.sh](https://buttercup.sh).
+Learn how to build AI Agents.
+
+You may be interested in the high-level discussion building agents and software.
+It's important to know what is possible,
+so you can learn what to ask code agents to add it to your apps.
+By knowing what is available, you'll be able to build more robust apps and agents.
+
 A coding harness is not much: a loop that sends a conversation to a model, hands
 it a list of tools, runs the tools it asks for, and puts the results back in the
 conversation. Everything else — the file tree, the diff view, the approval gate,
