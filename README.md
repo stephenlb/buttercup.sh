@@ -152,7 +152,7 @@ imports resolve without a server.
 One optional script folds the whole thing into a single file for GitHub Pages:
 
 ```
-node build.mjs        # → docs/index.html + docs/.nojekyll, and public/ copied in
+node build.mjs        # → docs/index.html + docs/.nojekyll
 ```
 
 Zero dependencies, syntax-checked before it writes. A convenience, not a
@@ -160,15 +160,16 @@ requirement — the source runs as-is.
 
 ## Updates
 
-`public/` holds the plain documents served alongside the harness but not part of
-it — right now that is `public/updates/`, the news page. The build copies the
-directory into `docs/` verbatim, so `public/updates/index.html` is served at
-[buttercup.sh/updates/](https://buttercup.sh/updates/). Nothing there is
-minified or inlined; add an article by dropping an HTML file in beside the others
-and linking it from `public/updates/index.html`, newest first. Opening it from
-disk works too — `open public/updates/index.html`.
+`docs/updates/` is the news page — a plain document served alongside the harness
+but not part of it, and its own source of truth. The build writes only
+`docs/index.html` and `docs/.nojekyll`, so nothing there is generated, minified
+or inlined; edit it in place. `docs/updates/index.html` is served at
+[buttercup.sh/updates/](https://buttercup.sh/updates/). Add an article by
+dropping an HTML file in beside the others and linking it from
+`docs/updates/index.html`, newest first. Opening it from disk works too —
+`open docs/updates/index.html`.
 
-The repository root has an `updates` symlink pointing at `public/updates`, so the
+The repository root has an `updates` symlink pointing at `docs/updates`, so the
 relative `updates/` link in the header resolves the same way when you serve the
-root in development as it does once the build has copied the directory into
-`docs/`. It exists for that reason only; the build never reads it.
+root in development as it does on Pages. It exists for that reason only; the
+build never reads it.
