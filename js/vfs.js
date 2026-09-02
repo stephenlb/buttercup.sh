@@ -4,15 +4,19 @@
    A flat path → text map, mirrored into localStorage. There is no server, so
    this *is* the filesystem: every fs tool in js/tools.js goes through here, and
    js/sandbox.js turns these entries into real ES modules to execute.
+
+   Which localStorage key that map lives under is js/workspaces.js's answer, so
+   it is asked for on every read and write rather than captured once: switching
+   workspaces changes the answer, and `reload()` is how this module hears about it.
    ═══════════════════════════════════════════════════════════════════════════ */
 window.VFS = (function () {
-  const KEY = "buttercup.vfs.v1";
+  const key = () => Workspaces.key("buttercup.vfs.v1");
   let files = load();
   const watchers = [];
 
   function load() {
     try {
-      const raw = localStorage.getItem(KEY);
+      const raw = localStorage.getItem(key());
       const parsed = raw ? JSON.parse(raw) : null;
       return parsed && typeof parsed === "object" ? parsed : {};
     } catch (_) {
@@ -22,7 +26,7 @@ window.VFS = (function () {
 
   function persist() {
     try {
-      localStorage.setItem(KEY, JSON.stringify(files));
+      localStorage.setItem(key(), JSON.stringify(files));
     } catch (err) {
       // Quota is the only realistic failure; the in-memory copy still works.
       console.warn("[vfs] could not persist:", err);
@@ -142,6 +146,17 @@ window.VFS = (function () {
     },
 
     wipe() { files = {}; persist(); },
+
+    /**
+     * Read the workspace back out of localStorage, whichever one is active now.
+     * Nothing is written on the way in — a switch must not stamp the workspace
+     * being left with the files of the one being entered.
+     */
+    reload() {
+      files = load();
+      watchers.forEach((fn) => fn());
+      return api.count();
+    },
 
     onChange(fn) { watchers.push(fn); },
   };

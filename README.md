@@ -133,6 +133,12 @@ spends one completion.
 | `/compact` | Summarizes the session into a handover note and continues from it. |
 | `/clear` | Drops the conversation and transcript; keeps every file. |
 | `/wipe` | Deletes the files *and* the conversation, after a confirm. |
+| `/workspace` | Lists the workspaces; `new`, `switch`, `rename`, `delete` manage them. |
+
+Each workspace is a project: its own files and its own conversation, switched
+together from the picker on the FILES panel or with `/workspace switch <name>`.
+Settings and API keys are shared across all of them; undo history is not — it
+stops at the workspace it was recorded in.
 
 Project rules go in `AGENTS.md` in the workspace — also read from
 `.buttercup/AGENTS.md` and `CLAUDE.md` — and are re-read fresh on every request,
@@ -152,7 +158,8 @@ page, photographs it, clicks and types in it, and looks again. The preview is an
 opaque-origin sandbox, so neither one reaches into it — the frame photographs and
 operates itself and posts the result back out (`js/capture.js`, `js/drive.js`).
 
-Around them: a virtual filesystem in `localStorage`, a 25-deep undo stack that
+Around them: a virtual filesystem in `localStorage` — one per workspace, with
+the conversation about it — a 25-deep undo stack that
 snapshots conversation and files together, drag-and-drop import of files and
 folders, pasted screenshots scaled for the wire, a request queue, ZIP export,
 and a sandboxed preview with a hand-written ES-module linker so the agent's

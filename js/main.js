@@ -227,11 +227,104 @@
     });
   }
 
+  /* ── workspaces ───────────────────────────────────────────────────────────
+     A workspace is a project: its files and the conversation about them. The
+     storage side is js/workspaces.js; the rest of a switch is here, because
+     everything else that has to move — the transcript, the undo stack, the
+     preview frame — belongs to this file's half of the harness.
+     ─────────────────────────────────────────────────────────────────────────── */
+
+  /** Whatever a switch would throw away, said plainly enough to answer "yes". */
+  function switchTo(id) {
+    if (Agent.busy) throw new Error("still working — press STOP first");
+    const target = Workspaces.get(id);
+    if (!target) throw new Error(`no such workspace: ${id}`);
+    const from = Workspaces.active();
+    if (target.id === from.id) return `already in ${target.name}`;
+
+    Workspaces.switchTo(target.id);
+    // Both halves of the state come from localStorage, so both are re-read;
+    // neither is written on the way out, which is what keeps the workspace
+    // being left exactly as it was.
+    VFS.reload();
+    Agent.reload();
+    // The undo stack holds snapshots of the workspace we just left. Rewinding
+    // into one from here would write another project's files over this one.
+    Checkpoints.clear();
+    UI.closeViewer();
+    UI.unmountPreview();
+    UI.clearLog();
+    paintWorkspaces();
+    paintStats();
+    paintReady();
+    const rules = Agent.rulesFiles();
+    return [
+      `workspace → ${target.name}`,
+      `  ${VFS.count()} file(s) · ${Agent.turns} message(s) of context restored` +
+        (rules.length ? ` · rules: ${rules.map((f) => f.path).join(", ")}` : ""),
+      `  ${from.name} is untouched and still there. Undo history does not cross workspaces.`,
+    ].join("\n");
+  }
+
+  function paintWorkspaces() {
+    UI.renderWorkspaces();
+  }
+
+  $("workspace-pick").addEventListener("change", (e) => {
+    const id = e.target.value;
+    try { UI.system(switchTo(id)); }
+    catch (err) { UI.fail(err); paintWorkspaces(); }   // put the picker back
+  });
+
+  $("workspace-new").addEventListener("click", () => {
+    const name = prompt("Name the new workspace:", "workspace");
+    if (name == null) return;
+    try {
+      const ws = Workspaces.create(name);
+      UI.system(switchTo(ws.id));
+    } catch (err) { UI.fail(err); }
+  });
+
+  $("workspace-rename").addEventListener("click", () => {
+    const active = Workspaces.active();
+    const name = prompt("Rename this workspace:", active.name);
+    if (name == null) return;
+    const ws = Workspaces.rename(active.id, name);
+    paintWorkspaces();
+    UI.system(ws.name === active.name ? `workspace name unchanged` : `renamed → ${ws.name}`);
+  });
+
+  /* DELETE is for the workspaces this tab is *not* in: dropping the one on
+     screen would leave the transcript describing files that no longer exist,
+     and there is no undo across workspaces to walk it back. */
+  $("workspace-delete").addEventListener("click", () => {
+    const others = Workspaces.list().filter((ws) => ws.id !== Workspaces.active().id);
+    if (!others.length) return UI.error("nothing to delete — this is the only workspace. /wipe empties it.");
+    const menu = others.map((ws, i) => {
+      const info = Workspaces.info(ws.id);
+      return `  ${i + 1}. ${ws.name} (${info.files} file(s), ${info.turns} msg)`;
+    }).join("\n");
+    const which = prompt(`Delete which workspace? This cannot be undone.\n\n${menu}\n\nNumber:`);
+    if (which == null) return;
+    const chosen = others[Number(which.trim()) - 1];
+    if (!chosen) return UI.error(`no workspace numbered '${which.trim()}'`);
+    if (!confirm(`Delete "${chosen.name}" and every file and message in it?\n\nThis cannot be undone.`)) {
+      return UI.system("delete cancelled");
+    }
+    try {
+      Workspaces.remove(chosen.id);
+      paintWorkspaces();
+      UI.system(`deleted workspace "${chosen.name}"`);
+    } catch (err) { UI.fail(err); }
+  });
+
   /* ── workspace panel ────────────────────────────────────────────────────── */
 
   $("download-zip").addEventListener("click", () => {
     if (!VFS.count()) return UI.error("workspace is empty; nothing to export");
-    Zip.download("agent-workspace.zip", Zip.build(VFS.snapshot()));
+    // Named after the workspace, so two exports do not land as the same file.
+    const slug = Workspaces.active().name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    Zip.download(`${slug || "agent"}-workspace.zip`, Zip.build(VFS.snapshot()));
     UI.system(`exported ${VFS.count()} file(s)`);
   });
 
@@ -710,7 +803,12 @@
       else paintReady();
       paintStats(step);
     },
-    onDone: ({ steps }) => paintStats(steps),
+    onDone: ({ steps }) => {
+      paintStats(steps);
+      // The picker carries each workspace's size; a turn that wrote files has
+      // just changed this one's. Once per turn, not once per write.
+      paintWorkspaces();
+    },
   });
 
   Object.assign(Commands.hooks, {
@@ -722,6 +820,17 @@
     },
     queue: () => queue.slice(),
     clearQueue: () => dropQueue(),
+    switchWorkspace: (id) => switchTo(id),
+    renameWorkspace: (id, name) => {
+      const ws = Workspaces.rename(id, name);
+      paintWorkspaces();
+      return ws;
+    },
+    removeWorkspace: (id) => {
+      const ws = Workspaces.remove(id);
+      paintWorkspaces();
+      return ws;
+    },
   });
 
   Object.assign(Tools.hooks, {
@@ -742,6 +851,7 @@
   Agent.setSettings(settings);
   paintSettings();
   UI.renderTools();
+  paintWorkspaces();
   UI.renderTree();
   paintStats();
   paintReady();
@@ -754,7 +864,10 @@
               `The transcript above is fresh, but the model still remembers. ` +
               `Use /clear to start clean.`);
   }
-  if (VFS.count()) UI.system(`workspace restored: ${VFS.count()} file(s)`);
+  if (VFS.count()) {
+    UI.system(`workspace "${Workspaces.active().name}" restored: ${VFS.count()} file(s)` +
+              (Workspaces.count() > 1 ? ` — ${Workspaces.count() - 1} other workspace(s) on the FILES panel` : ""));
+  }
   const rules = Agent.rulesFiles();
   if (rules.length) {
     UI.system(`project rules loaded: ${rules.map((f) => `${f.path} (${f.bytes}b)`).join(", ")} ` +

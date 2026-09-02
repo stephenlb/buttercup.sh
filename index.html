@@ -148,6 +148,17 @@
       </nav>
 
       <div class="panel" id="panel-files">
+        <!-- ══ which project this tab is looking at. Each workspace owns its own
+                files *and* its own conversation, so switching swaps both. ══ -->
+        <div class="wsbar">
+          <select id="workspace-pick" aria-label="Switch workspace"
+                  title="switch workspace — files and conversation both move"></select>
+          <button type="button" id="workspace-new" class="mini"
+                  title="start an empty workspace and switch to it">NEW</button>
+          <button type="button" id="workspace-rename" class="mini">RENAME</button>
+          <button type="button" id="workspace-delete" class="mini danger"
+                  title="delete another workspace and everything in it">DELETE</button>
+        </div>
         <div class="panel-head">
           <h2>workspace <code>/</code></h2>
           <button type="button" id="import-btn" class="mini"
@@ -738,6 +749,7 @@
   </footer>
 </main>
 
+<script src="js/workspaces.js"></script>
 <script src="js/vfs.js"></script>
 <script src="js/checkpoints.js"></script>
 <script src="js/zip.js"></script>

@@ -526,6 +526,38 @@ window.UI = (function () {
       $("tool-count").textContent = `${Tools.defs.length} tools`;
     },
 
+    /**
+     * The workspace picker. Each row says how much is in that workspace, so
+     * switching is a choice between projects rather than between names.
+     */
+    renderWorkspaces() {
+      const pick = $("workspace-pick");
+      const active = Workspaces.active();
+      pick.replaceChildren();
+      Workspaces.list().forEach((ws, i) => {
+        const info = Workspaces.info(ws.id);
+        const opt = document.createElement("option");
+        opt.value = ws.id;
+        opt.selected = ws.id === active.id;
+        opt.textContent = `${i + 1}. ${ws.name} — ${info.files} file${info.files === 1 ? "" : "s"}` +
+          (info.turns ? `, ${info.turns} msg` : "");
+        pick.appendChild(opt);
+      });
+      // DELETE is about another workspace, and the last one cannot go at all.
+      $("workspace-delete").disabled = Workspaces.count() < 2;
+    },
+
+    /** Let go of the preview frame — its file belongs to a workspace we left. */
+    unmountPreview() {
+      const frame = $("preview");
+      frame.hidden = true;
+      frame.removeAttribute("srcdoc");
+      frame.src = "about:blank";
+      $("preview-empty").hidden = false;
+      $("preview-shot").disabled = true;
+      mounted = null;
+    },
+
     renderTree() {
       const tree = $("tree");
       tree.replaceChildren();

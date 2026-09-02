@@ -2792,6 +2792,17 @@ button.danger:hover { background: var(--bad); color: var(--paper); }
 .dim { color: var(--ink-faint); }
 .linky { color: var(--ink-hot); text-decoration: underline dotted; cursor: pointer; }
 
+/* ── workspace switcher ───────────────────────────────────────────────────────
+   Its own row above the panel head: the picker wants the width, and the head's
+   three buttons already fill theirs. */
+.wsbar { display: flex; align-items: center; gap: .4rem; margin-bottom: .5rem; }
+.wsbar select {
+  flex: 1; min-width: 0; font: inherit; font-size: .78rem;
+  color: var(--ink-hot); background: var(--paper);
+  border: 1px solid var(--rule); padding: .18rem .35rem;
+}
+.wsbar select:focus-visible { outline: 2px solid var(--ink); outline-offset: -1px; }
+
 /* ── file tree ────────────────────────────────────────────────────────────── */
 .tree { list-style: none; margin: 0; padding: 0; }
 .tree li { display: flex; gap: .5rem; align-items: baseline; padding: .1rem 0; }

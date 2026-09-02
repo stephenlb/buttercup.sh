@@ -6,8 +6,10 @@
    as one turn, repeat until the model stops asking for tools.
    ═══════════════════════════════════════════════════════════════════════════ */
 window.Agent = (function () {
-  const SESSION_KEY = "buttercup.session.v1";
-  const CTX_KEY = "buttercup.context.v1";
+  /* The conversation belongs to the workspace it is about, so both keys are
+     scoped the way the VFS's is — asked for per access, never captured. */
+  const sessionKey = () => Workspaces.key("buttercup.session.v1");
+  const ctxKey = () => Workspaces.key("buttercup.context.v1");
 
   const PLACE = `# Where you are
 No server, no shell, no node. Your workspace is a virtual filesystem in this browser's localStorage, and your tools are plain JavaScript functions in this page. What you build must therefore run in a browser too: static HTML/CSS/ES modules, \`fetch\` to CORS-friendly endpoints, localStorage or IndexedDB for state. Read \`framework_docs {"framework":"harness"}\` once per session for how the sandbox behaves.`;
@@ -241,7 +243,7 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
 
   function load() {
     try {
-      const raw = localStorage.getItem(SESSION_KEY);
+      const raw = localStorage.getItem(sessionKey());
       const parsed = raw ? JSON.parse(raw) : null;
       return Array.isArray(parsed) ? parsed : [];
     } catch (_) { return []; }
@@ -253,7 +255,7 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
    * first reply came back, which is exactly one request too late.
    */
   function loadContext() {
-    const n = Number(localStorage.getItem(CTX_KEY));
+    const n = Number(localStorage.getItem(ctxKey()));
     return Number.isFinite(n) && n > 0 ? n : 0;
   }
 
@@ -283,8 +285,8 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
 
   function persist() {
     try {
-      localStorage.setItem(SESSION_KEY, JSON.stringify(state.messages));
-      localStorage.setItem(CTX_KEY, String(state.context));
+      localStorage.setItem(sessionKey(), JSON.stringify(state.messages));
+      localStorage.setItem(ctxKey(), String(state.context));
     } catch (_) {
       if (!saidQuota) {
         saidQuota = true;
@@ -294,12 +296,12 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
         );
       }
       try {
-        localStorage.setItem(SESSION_KEY, JSON.stringify(textOnly(state.messages)));
-        localStorage.setItem(CTX_KEY, String(state.context));
+        localStorage.setItem(sessionKey(), JSON.stringify(textOnly(state.messages)));
+        localStorage.setItem(ctxKey(), String(state.context));
       } catch (__) {
         // Still too large: keep the tail, which is what matters.
         state.messages = state.messages.slice(-20);
-        try { localStorage.setItem(SESSION_KEY, JSON.stringify(textOnly(state.messages))); } catch (___) {}
+        try { localStorage.setItem(sessionKey(), JSON.stringify(textOnly(state.messages))); } catch (___) {}
       }
     }
   }
@@ -604,12 +606,25 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
     get undoDepth() { return Checkpoints.depth; },
     get redoDepth() { return Checkpoints.redoDepth; },
 
+    /**
+     * Pick the conversation up out of whichever workspace is active now. The
+     * session total resets with it: what this project's turns have cost is not
+     * the sum of every project opened in this tab.
+     */
+    reload() {
+      state.messages = load();
+      state.context = loadContext();
+      state.usage = { input: 0, output: 0 };
+      state.steps = 0;
+      return state.messages.length;
+    },
+
     reset() {
       state.messages = [];
       state.usage = { input: 0, output: 0 };
       state.context = 0;
-      localStorage.removeItem(SESSION_KEY);
-      localStorage.removeItem(CTX_KEY);
+      localStorage.removeItem(sessionKey());
+      localStorage.removeItem(ctxKey());
     },
   };
 })();

@@ -18,12 +18,16 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 window.Commands = (function () {
 
-  /** Assigned by main.js: mode lives in settings, which main.js owns. */
+  /** Assigned by main.js: mode lives in settings, which main.js owns — and so
+      does the rest of a workspace switch, which is more than storage. */
   const hooks = {
     mode: () => Agent.defaultMode,
     setMode: () => {},
     queue: () => [],
     clearQueue: () => 0,
+    switchWorkspace: () => "",
+    renameWorkspace: (id, name) => Workspaces.rename(id, name),
+    removeWorkspace: (id) => Workspaces.remove(id),
   };
 
   const INIT_PROMPT = `Write the project rules file for this workspace.
@@ -175,6 +179,77 @@ The harness loads this file into your system prompt on every turn from now on, s
         Agent.reset();
         UI.clearLog();
         return `context cleared — ${turns} message(s) dropped, ${VFS.count()} workspace file(s) kept. /undo brings the context back.`;
+      },
+    },
+    {
+      name: "workspace",
+      usage: "/workspace [new|switch|rename|delete] <name>",
+      help: "list workspaces, or switch to / create / rename / delete one (files and context both move)",
+      run(rest) {
+        const [, verb = "", arg = ""] = rest.match(/^(\S*)\s*([\s\S]*)$/);
+        const active = Workspaces.active();
+
+        if (!verb) {
+          const rows = Workspaces.list().map((ws, i) => {
+            const info = Workspaces.info(ws.id);
+            return `  ${ws.id === active.id ? "*" : " "} ${String(i + 1).padStart(2)}. ` +
+              `${ws.name.padEnd(24)} ${info.files} file(s), ${info.turns} msg`;
+          });
+          return [
+            `${Workspaces.count()} workspace(s); * is the one you are in:`,
+            ...rows,
+            "",
+            "Each one has its own files and its own conversation. Settings and API",
+            "keys are shared, and undo history does not cross between them.",
+            "`/workspace switch 2` moves, or use the picker on the FILES panel.",
+          ].join("\n");
+        }
+
+        if (verb === "new") {
+          if (!arg) throw new Error("usage: /workspace new <name>");
+          return hooks.switchWorkspace(Workspaces.create(arg).id);
+        }
+        if (verb === "switch") {
+          const target = Workspaces.find(arg);
+          if (!target) throw new Error(`no workspace called '${arg}'. /workspace lists them.`);
+          return hooks.switchWorkspace(target.id);
+        }
+        if (verb === "rename") {
+          if (!arg) throw new Error("usage: /workspace rename <name>");
+          const ws = hooks.renameWorkspace(active.id, arg);
+          return ws.name === active.name ? "workspace name unchanged" : `renamed → ${ws.name}`;
+        }
+        if (verb === "delete") {
+          const target = Workspaces.find(arg);
+          if (!target) throw new Error(`no workspace called '${arg}'. /workspace lists them.`);
+          // A workspace cannot be deleted out from under the tab standing in it,
+          // so leaving it is part of the delete rather than a step to ask for —
+          // which is only possible when there is somewhere else to stand.
+          const other = target.id === active.id
+            ? Workspaces.list().find((ws) => ws.id !== target.id)
+            : null;
+          if (target.id === active.id && !other) {
+            throw new Error("this is the only workspace — /wipe empties it instead");
+          }
+          const info = Workspaces.info(target.id);
+          if (!confirm(`Delete workspace "${target.name}" — ${info.files} file(s) and ${info.turns} message(s)?\n\nThis cannot be undone, by /undo or otherwise.`)) {
+            return "delete cancelled — nothing was removed";
+          }
+          if (other) {
+            hooks.switchWorkspace(other.id);
+            const gone = hooks.removeWorkspace(target.id);
+            return [
+              `deleted workspace "${gone.name}" — ${info.files} file(s) and ${info.turns} message(s) gone for good`,
+              `  now in ${other.name}: ${VFS.count()} file(s) · ${Agent.turns} message(s) of context`,
+            ].join("\n");
+          }
+          return `deleted workspace "${hooks.removeWorkspace(target.id).name}"`;
+        }
+
+        // A bare name is the switch people mean: `/workspace deck`.
+        const guess = Workspaces.find(rest);
+        if (guess) return hooks.switchWorkspace(guess.id);
+        throw new Error(`usage: /workspace [new <name>|switch <n>|rename <name>|delete <n>]`);
       },
     },
     {
