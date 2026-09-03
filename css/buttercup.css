@@ -410,8 +410,8 @@ button.danger:hover { background: var(--bad); color: var(--paper); }
    and can never claim any when there is none, so a busy session hides it
    without a line of JS.
 
-   Eight scenes live in here and one is shown per load: js/scenes.js writes a
-   name to `data-scene` and the rules below reveal that scene. The other seven
+   Eleven scenes live in here and one is shown per load: js/scenes.js writes a
+   name to `data-scene` and the rules below reveal that scene. The other ten
    are `display: none`, which also parks their animations. `?scene=woods` pins
    one for a screenshot.
 
@@ -420,14 +420,17 @@ button.danger:hover { background: var(--bad); color: var(--paper); }
    ─────────────────────────────────────────────────────────────────────────── */
 .scenes { flex: 1 1 0; min-height: 0; position: relative; overflow: hidden; }
 .scene { position: absolute; inset: 0; overflow: hidden; display: none; }
-.scenes[data-scene="beach"]   .beach,
-.scenes[data-scene="city"]    .city,
-.scenes[data-scene="woods"]   .woods,
-.scenes[data-scene="orbit"]   .orbit,
-.scenes[data-scene="reef"]    .reef,
-.scenes[data-scene="rails"]   .rails,
-.scenes[data-scene="volcano"] .volcano,
-.scenes[data-scene="tower"]   .tower { display: block; }
+.scenes[data-scene="beach"]     .beach,
+.scenes[data-scene="city"]      .city,
+.scenes[data-scene="woods"]     .woods,
+.scenes[data-scene="orbit"]     .orbit,
+.scenes[data-scene="reef"]      .reef,
+.scenes[data-scene="rails"]     .rails,
+.scenes[data-scene="volcano"]   .volcano,
+.scenes[data-scene="tower"]     .tower,
+.scenes[data-scene="rain"]      .rain,
+.scenes[data-scene="bathhouse"] .bathhouse,
+.scenes[data-scene="stop"]      .stop { display: block; }
 
 /* ── scene: the beach ─────────────────────────────────────────────────────────
    True pixel art, which sets two rules. Every edge is horizontal or vertical:
@@ -3043,6 +3046,1442 @@ button.danger:hover { background: var(--bad); color: var(--paper); }
   0%   { bottom: var(--fly); }
   50%  { bottom: calc(var(--fly) + var(--px)); }
   100% { bottom: calc(var(--fly) + var(--px) * 2); }
+}
+
+/* ── scene: the rain ──────────────────────────────────────────────────────────
+   A megacity that has not been dry in years: a stepped ziggurat over two ranks
+   of blocks, refinery flares burning off beside it, a spinner crossing at
+   altitude and a searchlight walking the street.
+
+   The rain is the woods' snowfall, hurried and cut into streaks. Each column is
+   one `repeat-y` tile a pixel wide and N deep holding one or two two-pixel
+   dashes, slid down exactly N — its own period, so the loop is seamless — and
+   the twenty-eight columns run out from both edges on periods 11 to 38 over
+   durations that share no factor, so the eye finds scatter rather than ranks. A
+   dash is two pixels rather than one because that, and speed, is the whole
+   difference between rain and snow. Every column also leans on one shared
+   `--squall`, added left of centre and subtracted right of it, so a gust blows
+   the whole downpour the same way.
+   ─────────────────────────────────────────────────────────────────────────── */
+.rain {
+  --px: 6px;
+  --street: calc(var(--px) * 7);                     /* depth of the wet road */
+  --drop:    color-mix(in srgb, var(--ink) 40%, transparent);
+  --drop-lo: color-mix(in srgb, var(--ink) 20%, transparent);
+  --slick:   color-mix(in srgb, var(--ink) 30%, transparent);
+  --beam:    color-mix(in srgb, var(--ink) 9%, transparent);
+  /* opaque, for the reason spelled out over the city: stacked bands */
+  --tar:      color-mix(in srgb, var(--ink) 28%, var(--paper));
+  --block:    color-mix(in srgb, var(--ink) 22%, var(--paper));
+  --block-lo: color-mix(in srgb, var(--ink) 13%, var(--paper));
+
+  --rn1: 0px; --rn2: 0px; --rn3: 0px; --rn4: 0px; --rn5: 0px; --rn6: 0px;
+  --rn7: 0px; --rn8: 0px; --rn9: 0px; --rn10: 0px; --rn11: 0px; --rn12: 0px;
+  --rn13: 0px; --rn14: 0px; --rn15: 0px; --rn16: 0px; --rn17: 0px; --rn18:
+  0px; --rn19: 0px; --rn20: 0px; --rn21: 0px; --rn22: 0px; --rn23: 0px;
+  --rn24: 0px; --rn25: 0px; --rn26: 0px; --rn27: 0px; --rn28: 0px; --squall:
+  0px;
+
+  background-repeat:
+    repeat-y, repeat-y, repeat-y, repeat-y, repeat-y, repeat-y, repeat-y, repeat-y,   /* the rain */
+    repeat-y, repeat-y, repeat-y, repeat-y, repeat-y, repeat-y, repeat-y, repeat-y,
+    repeat-y, repeat-y, repeat-y, repeat-y, repeat-y, repeat-y, repeat-y, repeat-y,
+    repeat-y, repeat-y, repeat-y, repeat-y,
+    no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat,
+    no-repeat;
+  background-image:
+    /* twenty-eight ranks of rain, near ones lit, far ones dim */
+    linear-gradient(
+      var(--drop) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 8),
+      var(--drop) calc(var(--px) * 8) calc(var(--px) * 10),
+      transparent calc(var(--px) * 10)),
+    linear-gradient(
+      var(--drop-lo) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 11),
+      var(--drop-lo) calc(var(--px) * 11) calc(var(--px) * 13),
+      transparent calc(var(--px) * 13)),
+    linear-gradient(
+      var(--drop) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 6),
+      var(--drop) calc(var(--px) * 6) calc(var(--px) * 8),
+      transparent calc(var(--px) * 8)),
+    linear-gradient(
+      var(--drop-lo) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 9),
+      var(--drop-lo) calc(var(--px) * 9) calc(var(--px) * 11),
+      transparent calc(var(--px) * 11)),
+    linear-gradient(
+      var(--drop) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 14),
+      var(--drop) calc(var(--px) * 14) calc(var(--px) * 16),
+      transparent calc(var(--px) * 16)),
+    linear-gradient(
+      var(--drop-lo) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 10),
+      var(--drop-lo) calc(var(--px) * 10) calc(var(--px) * 12),
+      transparent calc(var(--px) * 12)),
+    linear-gradient(
+      var(--drop) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 7),
+      var(--drop) calc(var(--px) * 7) calc(var(--px) * 9),
+      transparent calc(var(--px) * 9)),
+    linear-gradient(
+      var(--drop-lo) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 12),
+      var(--drop-lo) calc(var(--px) * 12) calc(var(--px) * 14),
+      transparent calc(var(--px) * 14)),
+    linear-gradient(
+      var(--drop) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 15),
+      var(--drop) calc(var(--px) * 15) calc(var(--px) * 17),
+      transparent calc(var(--px) * 17)),
+    linear-gradient(
+      var(--drop-lo) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 9),
+      var(--drop-lo) calc(var(--px) * 9) calc(var(--px) * 11),
+      transparent calc(var(--px) * 11)),
+    linear-gradient(
+      var(--drop) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 13),
+      var(--drop) calc(var(--px) * 13) calc(var(--px) * 15),
+      transparent calc(var(--px) * 15)),
+    linear-gradient(
+      var(--drop-lo) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 11),
+      var(--drop-lo) calc(var(--px) * 11) calc(var(--px) * 13),
+      transparent calc(var(--px) * 13)),
+    linear-gradient(
+      var(--drop) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 8),
+      var(--drop) calc(var(--px) * 8) calc(var(--px) * 10),
+      transparent calc(var(--px) * 10)),
+    linear-gradient(
+      var(--drop-lo) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 13),
+      var(--drop-lo) calc(var(--px) * 13) calc(var(--px) * 15),
+      transparent calc(var(--px) * 15)),
+    linear-gradient(
+      var(--drop) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 16),
+      var(--drop) calc(var(--px) * 16) calc(var(--px) * 18),
+      transparent calc(var(--px) * 18)),
+    linear-gradient(
+      var(--drop-lo) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 10),
+      var(--drop-lo) calc(var(--px) * 10) calc(var(--px) * 12),
+      transparent calc(var(--px) * 12)),
+    linear-gradient(
+      var(--drop) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 7),
+      var(--drop) calc(var(--px) * 7) calc(var(--px) * 9),
+      transparent calc(var(--px) * 9)),
+    linear-gradient(
+      var(--drop-lo) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 14),
+      var(--drop-lo) calc(var(--px) * 14) calc(var(--px) * 16),
+      transparent calc(var(--px) * 16)),
+    linear-gradient(
+      var(--drop) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 12),
+      var(--drop) calc(var(--px) * 12) calc(var(--px) * 14),
+      transparent calc(var(--px) * 14)),
+    linear-gradient(
+      var(--drop-lo) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 15),
+      var(--drop-lo) calc(var(--px) * 15) calc(var(--px) * 17),
+      transparent calc(var(--px) * 17)),
+    linear-gradient(
+      var(--drop) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 16),
+      var(--drop) calc(var(--px) * 16) calc(var(--px) * 18),
+      transparent calc(var(--px) * 18)),
+    linear-gradient(
+      var(--drop-lo) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 17),
+      var(--drop-lo) calc(var(--px) * 17) calc(var(--px) * 19),
+      transparent calc(var(--px) * 19)),
+    linear-gradient(
+      var(--drop) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 6),
+      var(--drop) calc(var(--px) * 6) calc(var(--px) * 8),
+      transparent calc(var(--px) * 8)),
+    linear-gradient(
+      var(--drop-lo) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 17),
+      var(--drop-lo) calc(var(--px) * 17) calc(var(--px) * 19),
+      transparent calc(var(--px) * 19)),
+    linear-gradient(
+      var(--drop) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 18),
+      var(--drop) calc(var(--px) * 18) calc(var(--px) * 20),
+      transparent calc(var(--px) * 20)),
+    linear-gradient(
+      var(--drop-lo) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 5),
+      var(--drop-lo) calc(var(--px) * 5) calc(var(--px) * 7),
+      transparent calc(var(--px) * 7)),
+    linear-gradient(
+      var(--drop) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 18),
+      var(--drop) calc(var(--px) * 18) calc(var(--px) * 20),
+      transparent calc(var(--px) * 20)),
+    linear-gradient(
+      var(--drop-lo) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 19),
+      var(--drop-lo) calc(var(--px) * 19) calc(var(--px) * 21),
+      transparent calc(var(--px) * 21)),
+    /* standing water */
+    repeating-linear-gradient(90deg,
+      var(--slick) 0 calc(var(--px) * 3),
+      transparent calc(var(--px) * 3) calc(var(--px) * 11)),
+    /* grit in the road */
+    repeating-linear-gradient(90deg,
+      var(--slick) 0 var(--px),
+      transparent var(--px) calc(var(--px) * 6)),
+    /* near blocks, period 17 */
+    repeating-linear-gradient(90deg,
+      var(--block) 0 calc(var(--px) * 7),
+      transparent calc(var(--px) * 7) calc(var(--px) * 17)),
+    /* near blocks, period 11 */
+    repeating-linear-gradient(90deg,
+      var(--block) 0 calc(var(--px) * 4),
+      transparent calc(var(--px) * 4) calc(var(--px) * 11)),
+    /* far blocks, period 29 */
+    repeating-linear-gradient(90deg,
+      var(--block-lo) 0 calc(var(--px) * 11),
+      transparent calc(var(--px) * 11) calc(var(--px) * 29)),
+    /* far blocks, period 19 */
+    repeating-linear-gradient(90deg,
+      var(--block-lo) 0 calc(var(--px) * 6),
+      transparent calc(var(--px) * 6) calc(var(--px) * 19)),
+    /* the road */
+    linear-gradient(var(--tar), var(--tar));
+  background-size:
+    var(--px) calc(var(--px) * 17),  /* twenty-eight ranks of rain, near ones lit, far ones dim */
+    var(--px) calc(var(--px) * 23),
+    var(--px) calc(var(--px) * 13),
+    var(--px) calc(var(--px) * 19),
+    var(--px) calc(var(--px) * 29),
+    var(--px) calc(var(--px) * 21),
+    var(--px) calc(var(--px) * 15),
+    var(--px) calc(var(--px) * 25),
+    var(--px) calc(var(--px) * 31),
+    var(--px) calc(var(--px) * 18),
+    var(--px) calc(var(--px) * 27),
+    var(--px) calc(var(--px) * 22),
+    var(--px) calc(var(--px) * 16),
+    var(--px) calc(var(--px) * 26),
+    var(--px) calc(var(--px) * 33),
+    var(--px) calc(var(--px) * 20),
+    var(--px) calc(var(--px) * 14),
+    var(--px) calc(var(--px) * 28),
+    var(--px) calc(var(--px) * 24),
+    var(--px) calc(var(--px) * 30),
+    var(--px) calc(var(--px) * 32),
+    var(--px) calc(var(--px) * 35),
+    var(--px) calc(var(--px) * 12),
+    var(--px) calc(var(--px) * 34),
+    var(--px) calc(var(--px) * 36),
+    var(--px) calc(var(--px) * 11),
+    var(--px) calc(var(--px) * 37),
+    var(--px) calc(var(--px) * 38),
+    100% var(--px),                  /* standing water             */
+    100% var(--px),                  /* grit in the road           */
+    100% calc(var(--px) * 15),       /* near blocks, period 17     */
+    100% calc(var(--px) * 9),        /* near blocks, period 11     */
+    100% calc(var(--px) * 26),       /* far blocks, period 29      */
+    100% calc(var(--px) * 17),       /* far blocks, period 19      */
+    100% var(--street);              /* the road                   */
+  background-position:
+    left calc(var(--px) * 3 + var(--squall)) top var(--rn1),               /* twenty-eight ranks of rain, near ones lit, far ones dim */
+    left calc(var(--px) * 8 + var(--squall)) top var(--rn2),
+    left calc(var(--px) * 20 + var(--squall)) top var(--rn3),
+    left calc(var(--px) * 25 + var(--squall)) top var(--rn4),
+    left calc(var(--px) * 39 + var(--squall)) top var(--rn5),
+    left calc(var(--px) * 44 + var(--squall)) top var(--rn6),
+    left calc(var(--px) * 58 + var(--squall)) top var(--rn7),
+    left calc(var(--px) * 63 + var(--squall)) top var(--rn8),
+    left calc(var(--px) * 77 + var(--squall)) top var(--rn9),
+    left calc(var(--px) * 82 + var(--squall)) top var(--rn10),
+    left calc(var(--px) * 96 + var(--squall)) top var(--rn11),
+    left calc(var(--px) * 101 + var(--squall)) top var(--rn12),
+    left calc(var(--px) * 115 + var(--squall)) top var(--rn13),
+    left calc(var(--px) * 120 + var(--squall)) top var(--rn14),
+    right calc(var(--px) * 5 - var(--squall)) top var(--rn15),
+    right calc(var(--px) * 11 - var(--squall)) top var(--rn16),
+    right calc(var(--px) * 24 - var(--squall)) top var(--rn17),
+    right calc(var(--px) * 29 - var(--squall)) top var(--rn18),
+    right calc(var(--px) * 42 - var(--squall)) top var(--rn19),
+    right calc(var(--px) * 48 - var(--squall)) top var(--rn20),
+    right calc(var(--px) * 61 - var(--squall)) top var(--rn21),
+    right calc(var(--px) * 67 - var(--squall)) top var(--rn22),
+    right calc(var(--px) * 80 - var(--squall)) top var(--rn23),
+    right calc(var(--px) * 86 - var(--squall)) top var(--rn24),
+    right calc(var(--px) * 99 - var(--squall)) top var(--rn25),
+    right calc(var(--px) * 105 - var(--squall)) top var(--rn26),
+    right calc(var(--px) * 118 - var(--squall)) top var(--rn27),
+    right calc(var(--px) * 124 - var(--squall)) top var(--rn28),
+    bottom calc(var(--px) * 2) left calc(var(--px) * 2),                   /* standing water             */
+    bottom var(--px) left 0,                                               /* grit in the road           */
+    bottom var(--street) left 0,                                           /* near blocks, period 17     */
+    bottom var(--street) left calc(var(--px) * 9),                         /* near blocks, period 11     */
+    bottom calc(var(--street) + var(--px) * 2) left calc(var(--px) * 4),   /* far blocks, period 29      */
+    bottom calc(var(--street) + var(--px) * 2) left calc(var(--px) * 13),  /* far blocks, period 19      */
+    bottom left;                                                           /* the road                   */
+}
+
+/* Neon spilled across the wet road, and the reflection of it. */
+.rain::before {
+  content: ""; position: absolute; left: 0; right: 0;
+  bottom: calc(var(--px) * 5); height: var(--px);
+  background-image: repeating-linear-gradient(90deg,
+    var(--ink-hot) 0 calc(var(--px) * 2), transparent calc(var(--px) * 2) calc(var(--px) * 23));
+}
+
+/* The searchlight: a faint column the full height of the box, walking the
+   street a pixel at a time. Vertical, because a beam that leaned would need an
+   anti-aliased edge — the same reason the reef's shafts stand up straight. */
+.rain::after {
+  content: ""; position: absolute; top: 0; bottom: 0;
+  left: calc(var(--px) * 12); width: calc(var(--px) * 3);
+  background: var(--beam);
+}
+
+/* The ziggurat, drawn double-size: six terraces and three ranks of lit windows.
+   Two rows to a terrace, each terrace wider than the one above it, and every
+   third pixel of a window row alight:
+
+     ........#########........
+     ........#########........
+     ......#############......
+     ......■##■##■##■##■......
+     .....###############.....
+     .....###############.....
+     ...###################...
+     ...■##■##■##■##■##■##■...
+     ..#####################..
+     ..#####################..
+     #########################
+     ■##■##■##■##■##■##■##■##■
+     #########################
+     #########################
+   ─────────────────────────────────────────────────────────────────────────── */
+.rain .zig {
+  --zp: calc(var(--px) * 2);                  /* the ziggurat is double-size */
+  --face: color-mix(in srgb, var(--ink) 34%, var(--paper));
+  position: absolute; z-index: 1; right: calc(var(--px) * 7);
+  bottom: var(--street);
+  width: calc(var(--zp) * 25); height: calc(var(--zp) * 14);
+  background-repeat: no-repeat;
+  background-image:
+    /* lit windows, row 3 */
+    repeating-linear-gradient(90deg,
+      var(--ink-hot) 0 var(--zp),
+      transparent var(--zp) calc(var(--zp) * 3)),
+    /* lit windows, row 7 */
+    repeating-linear-gradient(90deg,
+      var(--ink-hot) 0 var(--zp),
+      transparent var(--zp) calc(var(--zp) * 3)),
+    /* lit windows, row 11 */
+    repeating-linear-gradient(90deg,
+      var(--ink-hot) 0 var(--zp),
+      transparent var(--zp) calc(var(--zp) * 3)),
+    /* rows 0-1 */
+    linear-gradient(var(--face), var(--face)),
+    /* rows 2-3 */
+    linear-gradient(var(--face), var(--face)),
+    /* rows 4-5 */
+    linear-gradient(var(--face), var(--face)),
+    /* rows 6-7 */
+    linear-gradient(var(--face), var(--face)),
+    /* rows 8-9 */
+    linear-gradient(var(--face), var(--face)),
+    /* rows 10-13 */
+    linear-gradient(var(--face), var(--face));
+  background-size:
+    calc(var(--zp) * 13) var(--zp),            /* lit windows, row 3         */
+    calc(var(--zp) * 19) var(--zp),            /* lit windows, row 7         */
+    calc(var(--zp) * 25) var(--zp),            /* lit windows, row 11        */
+    calc(var(--zp) * 9) calc(var(--zp) * 2),   /* rows 0-1                   */
+    calc(var(--zp) * 13) calc(var(--zp) * 2),  /* rows 2-3                   */
+    calc(var(--zp) * 15) calc(var(--zp) * 2),  /* rows 4-5                   */
+    calc(var(--zp) * 19) calc(var(--zp) * 2),  /* rows 6-7                   */
+    calc(var(--zp) * 21) calc(var(--zp) * 2),  /* rows 8-9                   */
+    calc(var(--zp) * 25) calc(var(--zp) * 4);  /* rows 10-13                 */
+  background-position:
+    top calc(var(--zp) * 3) left calc(var(--zp) * 6),  /* lit windows, row 3         */
+    top calc(var(--zp) * 7) left calc(var(--zp) * 3),  /* lit windows, row 7         */
+    top calc(var(--zp) * 11) left 0,                   /* lit windows, row 11        */
+    top 0 left calc(var(--zp) * 8),                    /* rows 0-1                   */
+    top calc(var(--zp) * 2) left calc(var(--zp) * 6),  /* rows 2-3                   */
+    top calc(var(--zp) * 4) left calc(var(--zp) * 5),  /* rows 4-5                   */
+    top calc(var(--zp) * 6) left calc(var(--zp) * 3),  /* rows 6-7                   */
+    top calc(var(--zp) * 8) left calc(var(--zp) * 2),  /* rows 8-9                   */
+    top calc(var(--zp) * 10) left 0;                   /* rows 10-13                 */
+}
+
+/* A flare stack: the mast is the element, the flame is its `::after`, so the
+   flame can flicker without taking the mast with it. */
+.rain .flare {
+  --stack: color-mix(in srgb, var(--ink) 40%, var(--paper));
+  position: absolute; z-index: 1; left: calc(var(--px) * 9);
+  bottom: var(--street);
+  width: var(--px); height: calc(var(--px) * 21);
+  background: var(--stack);
+}
+/* The flame: one pixel on the mast, one either side of it and one above — a
+   plus sign, which at this size is the only shape that reads as burning. */
+.rain .flare::after {
+  content: ""; position: absolute; left: 0; top: calc(var(--px) * -1);
+  width: var(--px); height: var(--px); background: var(--ink-hot);
+  box-shadow:
+    calc(var(--px) * -1) 0 0 var(--ink-hot),
+    var(--px) 0 0 var(--ink-hot),
+    0 calc(var(--px) * -1) 0 var(--ink-hot);
+}
+.rain .flare:nth-of-type(2) {
+  left: calc(var(--px) * 20); height: calc(var(--px) * 16);
+}
+
+/* A spinner crossing at altitude: a canopy, a hull and two landing lamps. */
+.rain .spinner {
+  --sp: calc(var(--px) * 2);                    /* the spinner is double-size */
+  --hull: color-mix(in srgb, var(--ink) 44%, var(--paper));
+  position: absolute; z-index: 1; left: calc(var(--sp) * -6);
+  bottom: calc(var(--street) + var(--px) * 38);
+  width: calc(var(--sp) * 6); height: calc(var(--sp) * 3);
+  background-repeat: no-repeat;
+  background-image:
+    linear-gradient(var(--ink-hot), var(--ink-hot)),    /* lamp, port  */
+    linear-gradient(var(--ink-hot), var(--ink-hot)),    /* lamp, star  */
+    linear-gradient(var(--hull), var(--hull)),          /* the canopy  */
+    linear-gradient(var(--hull), var(--hull));          /* the hull    */
+  background-size:
+    var(--sp) var(--sp),
+    var(--sp) var(--sp),
+    calc(var(--sp) * 3) var(--sp),
+    calc(var(--sp) * 6) var(--sp);
+  background-position:
+    top calc(var(--sp) * 2) left 0,
+    top calc(var(--sp) * 2) right 0,
+    top 0 left calc(var(--sp) * 2),
+    top var(--sp) left 0;
+}
+
+/* ── the rain, moving ─────────────────────────────────────────────────────── */
+@property --rn1  { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --rn2  { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --rn3  { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --rn4  { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --rn5  { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --rn6  { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --rn7  { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --rn8  { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --rn9  { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --rn10 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --rn11 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --rn12 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --rn13 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --rn14 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --rn15 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --rn16 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --rn17 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --rn18 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --rn19 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --rn20 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --rn21 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --rn22 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --rn23 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --rn24 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --rn25 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --rn26 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --rn27 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --rn28 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --squall { syntax: "<length>"; inherits: false; initial-value: 0px; }
+
+/* Every column falls exactly one tile — its own period — a whole pixel per
+   step, and the squall walks two pixels out and back under all of them. */
+.rain {
+  animation:
+    fall-r1    0.77s steps(17, end) infinite,
+    fall-r2    1.76s steps(23, end) infinite,
+    fall-r3    0.58s steps(13, end) infinite,
+    fall-r4    1.45s steps(19, end) infinite,
+    fall-r5     1.3s steps(29, end) infinite,
+    fall-r6    1.61s steps(21, end) infinite,
+    fall-r7    0.67s steps(15, end) infinite,
+    fall-r8    1.91s steps(25, end) infinite,
+    fall-r9     1.4s steps(31, end) infinite,
+    fall-r10   1.38s steps(18, end) infinite,
+    fall-r11   1.21s steps(27, end) infinite,
+    fall-r12   1.68s steps(22, end) infinite,
+    fall-r13   0.72s steps(16, end) infinite,
+    fall-r14   1.99s steps(26, end) infinite,
+    fall-r15   1.48s steps(33, end) infinite,
+    fall-r16   1.53s steps(20, end) infinite,
+    fall-r17   0.63s steps(14, end) infinite,
+    fall-r18   2.14s steps(28, end) infinite,
+    fall-r19   1.08s steps(24, end) infinite,
+    fall-r20   2.29s steps(30, end) infinite,
+    fall-r21   1.44s steps(32, end) infinite,
+    fall-r22   2.68s steps(35, end) infinite,
+    fall-r23   0.54s steps(12, end) infinite,
+    fall-r24    2.6s steps(34, end) infinite,
+    fall-r25   1.62s steps(36, end) infinite,
+    fall-r26   0.84s steps(11, end) infinite,
+    fall-r27   1.67s steps(37, end) infinite,
+    fall-r28   2.91s steps(38, end) infinite,
+    squall 19s steps(2, end) infinite alternate;
+}
+@keyframes fall-r1  { to { --rn1: calc(var(--px) * 17); } }
+@keyframes fall-r2  { to { --rn2: calc(var(--px) * 23); } }
+@keyframes fall-r3  { to { --rn3: calc(var(--px) * 13); } }
+@keyframes fall-r4  { to { --rn4: calc(var(--px) * 19); } }
+@keyframes fall-r5  { to { --rn5: calc(var(--px) * 29); } }
+@keyframes fall-r6  { to { --rn6: calc(var(--px) * 21); } }
+@keyframes fall-r7  { to { --rn7: calc(var(--px) * 15); } }
+@keyframes fall-r8  { to { --rn8: calc(var(--px) * 25); } }
+@keyframes fall-r9  { to { --rn9: calc(var(--px) * 31); } }
+@keyframes fall-r10 { to { --rn10: calc(var(--px) * 18); } }
+@keyframes fall-r11 { to { --rn11: calc(var(--px) * 27); } }
+@keyframes fall-r12 { to { --rn12: calc(var(--px) * 22); } }
+@keyframes fall-r13 { to { --rn13: calc(var(--px) * 16); } }
+@keyframes fall-r14 { to { --rn14: calc(var(--px) * 26); } }
+@keyframes fall-r15 { to { --rn15: calc(var(--px) * 33); } }
+@keyframes fall-r16 { to { --rn16: calc(var(--px) * 20); } }
+@keyframes fall-r17 { to { --rn17: calc(var(--px) * 14); } }
+@keyframes fall-r18 { to { --rn18: calc(var(--px) * 28); } }
+@keyframes fall-r19 { to { --rn19: calc(var(--px) * 24); } }
+@keyframes fall-r20 { to { --rn20: calc(var(--px) * 30); } }
+@keyframes fall-r21 { to { --rn21: calc(var(--px) * 32); } }
+@keyframes fall-r22 { to { --rn22: calc(var(--px) * 35); } }
+@keyframes fall-r23 { to { --rn23: calc(var(--px) * 12); } }
+@keyframes fall-r24 { to { --rn24: calc(var(--px) * 34); } }
+@keyframes fall-r25 { to { --rn25: calc(var(--px) * 36); } }
+@keyframes fall-r26 { to { --rn26: calc(var(--px) * 11); } }
+@keyframes fall-r27 { to { --rn27: calc(var(--px) * 37); } }
+@keyframes fall-r28 { to { --rn28: calc(var(--px) * 38); } }
+@keyframes squall { to { --squall: calc(var(--px) * 2); } }
+
+/* The neon on the road comes and goes; the flames lick a pixel higher and drop
+   back, each stack on its own clock. */
+.rain::before { animation: neon-wash 3.9s steps(1, end) infinite alternate; }
+@keyframes neon-wash { from { opacity: .8; } to { opacity: .25; } }
+.rain .flare::after { animation: flare-lick 1.3s steps(1, end) infinite alternate; }
+.rain .flare:nth-of-type(2)::after { animation-duration: 2.1s; animation-delay: -.7s; }
+@keyframes flare-lick {
+  from { transform: translateY(0); opacity: 1; }
+  to   { transform: translateY(calc(var(--px) * -1)); opacity: .55; }
+}
+
+/* The searchlight sweeps out and back; the spinner crosses and keeps going, so
+   its reset happens off the right edge. */
+.rain::after { animation: beam-sweep 31s steps(60, end) infinite alternate; }
+@keyframes beam-sweep { to { transform: translateX(calc(var(--px) * 60)); } }
+.rain .spinner { animation: spin-cross 46s steps(190, end) infinite; }
+@keyframes spin-cross { to { transform: translateX(calc(var(--px) * 190)); } }
+
+/* ── scene: the bathhouse ─────────────────────────────────────────────────────
+   The flood has come in overnight and the sea is over the tracks. A tiered
+   bathhouse stands lit on the far bank, a two-carriage train runs across the
+   water on rails nobody can see any more, and the moon is up.
+
+   The water is the beach's: flat fill, crest rows on periods of 7, 11 and 13
+   cut wider than the box so a shifted row cannot open a gap at either edge, all
+   three drifting in whole pixels. The moon is three bars rather than a circle,
+   for the reason the beach's sun is: a real disc gets anti-aliased.
+   ─────────────────────────────────────────────────────────────────────────── */
+.bathhouse {
+  --px: 6px;
+  --water: calc(var(--px) * 12);                     /* depth of the flood   */
+  --tide: calc(100% + var(--px) * 16);               /* drift overhang       */
+  --sea:    color-mix(in srgb, var(--ink) 34%, transparent);
+  --sea-lo: color-mix(in srgb, var(--ink) 16%, transparent);
+  /* opaque, for the reason spelled out over the city: stacked bands */
+  --deep:  color-mix(in srgb, var(--ink) 22%, var(--paper));
+  --bank:  color-mix(in srgb, var(--ink) 17%, var(--paper));
+  --lune:  color-mix(in srgb, var(--ink) 26%, var(--paper));
+
+  --wk1: 0px; --wk2: 0px; --wk3: 0px;
+
+  background-repeat: no-repeat;
+  background-image:
+    /* crest, period 11 */
+    repeating-linear-gradient(90deg,
+      var(--sea) 0 calc(var(--px) * 3),
+      transparent calc(var(--px) * 3) calc(var(--px) * 11)),
+    /* crest, period 7 */
+    repeating-linear-gradient(90deg,
+      var(--sea) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 7)),
+    /* crest, period 13 */
+    repeating-linear-gradient(90deg,
+      var(--sea-lo) 0 calc(var(--px) * 4),
+      transparent calc(var(--px) * 4) calc(var(--px) * 13)),
+    /* the flood */
+    linear-gradient(var(--deep), var(--deep)),
+    /* the far bank */
+    repeating-linear-gradient(90deg,
+      var(--bank) 0 calc(var(--px) * 9),
+      transparent calc(var(--px) * 9) calc(var(--px) * 23)),
+    /* the bank itself */
+    linear-gradient(var(--bank), var(--bank)),
+    /* the moon, top cap */
+    linear-gradient(var(--lune), var(--lune)),
+    /* the moon, middle */
+    linear-gradient(var(--lune), var(--lune)),
+    /* the moon, bottom cap */
+    linear-gradient(var(--lune), var(--lune));
+  background-size:
+    var(--tide) var(--px),                     /* crest, period 11           */
+    var(--tide) var(--px),                     /* crest, period 7            */
+    var(--tide) var(--px),                     /* crest, period 13           */
+    100% var(--water),                         /* the flood                  */
+    100% calc(var(--px) * 4),                  /* the far bank               */
+    100% calc(var(--px) * 2),                  /* the bank itself            */
+    calc(var(--px) * 6) calc(var(--px) * 2),   /* the moon, top cap          */
+    calc(var(--px) * 10) calc(var(--px) * 6),  /* the moon, middle           */
+    calc(var(--px) * 6) calc(var(--px) * 2);   /* the moon, bottom cap       */
+  background-position:
+    bottom calc(var(--px) * 2) left calc(var(--px) * 2 - var(--wk1)),       /* crest, period 11           */
+    bottom calc(var(--px) * 5) left calc(var(--px) * 5 - var(--wk2)),       /* crest, period 7            */
+    bottom calc(var(--px) * 8) left calc(var(--px) - var(--wk3)),           /* crest, period 13           */
+    bottom left,                                                            /* the flood                  */
+    bottom var(--water) left 0,                                             /* the far bank               */
+    bottom var(--water) left 0,                                             /* the bank itself            */
+    bottom calc(var(--water) + var(--px) * 46) right calc(var(--px) * 16),  /* the moon, top cap          */
+    bottom calc(var(--water) + var(--px) * 40) right calc(var(--px) * 14),  /* the moon, middle           */
+    bottom calc(var(--water) + var(--px) * 38) right calc(var(--px) * 16);  /* the moon, bottom cap       */
+}
+
+/* The lights of the bathhouse on the water under it. */
+.bathhouse::before {
+  content: ""; position: absolute;
+  left: calc(var(--px) * 16); bottom: calc(var(--water) - var(--px));
+  width: calc(var(--px) * 50); height: var(--px);
+  background-image: repeating-linear-gradient(90deg,
+    var(--ink-hot) 0 var(--px), transparent var(--px) calc(var(--px) * 5));
+}
+
+/* Stars over the flood. */
+.bathhouse::after {
+  content: ""; position: absolute;
+  right: calc(var(--px) * 28); bottom: calc(var(--water) + var(--px) * 52);
+  width: var(--px); height: var(--px); background: var(--ink-dim);
+  box-shadow:
+    calc(var(--px) * -11) calc(var(--px) * 5) 0 var(--ink-faint),
+    calc(var(--px) * -19) calc(var(--px) * -4) 0 var(--ink-dim),
+    calc(var(--px) * -30) calc(var(--px) * 7) 0 var(--ink-faint),
+    calc(var(--px) * -24) calc(var(--px) * -11) 0 var(--ink-faint),
+    calc(var(--px) * -41) calc(var(--px) * 2) 0 var(--ink-dim);
+}
+
+/* The bathhouse, drawn double-size: a roof in four steps, then three storeys
+   each with its eave a couple of pixels wider than the storey above, and a row
+   of lit windows in every one of them.
+
+     ..........#######..........      the ridge
+     .......#############.......
+     ....###################....
+     ..#######################..
+     ###########################      the eave lip
+     .....#################.....      the top storey
+     .....■##■##■##■##■##■#.....      and its lanterns
+     .....#################.....
+     ...#####################...      the middle storey
+     ...#####################...
+     ...■##■##■##■##■##■##■...
+     ...#####################...
+     .#########################.      the bottom storey
+     .#########################.
+     .■##■##■##■##■##■##■##■##■.
+     .#########################.
+     ###########################      the dock it stands on
+     ###########################
+   ─────────────────────────────────────────────────────────────────────────── */
+.bathhouse .baths {
+  --bp: calc(var(--px) * 2);                  /* the bathhouse is double-size */
+  --timber: color-mix(in srgb, var(--ink) 44%, var(--paper));
+  position: absolute; z-index: 1; left: calc(var(--px) * 16);
+  bottom: var(--water);
+  width: calc(var(--bp) * 27); height: calc(var(--bp) * 18);
+  background-repeat: no-repeat;
+  background-image:
+    /* lit windows, row 6 */
+    repeating-linear-gradient(90deg,
+      var(--ink-hot) 0 var(--bp),
+      transparent var(--bp) calc(var(--bp) * 3)),
+    /* lit windows, row 10 */
+    repeating-linear-gradient(90deg,
+      var(--ink-hot) 0 var(--bp),
+      transparent var(--bp) calc(var(--bp) * 3)),
+    /* lit windows, row 14 */
+    repeating-linear-gradient(90deg,
+      var(--ink-hot) 0 var(--bp),
+      transparent var(--bp) calc(var(--bp) * 3)),
+    /* row 0 */
+    linear-gradient(var(--timber), var(--timber)),
+    /* row 1 */
+    linear-gradient(var(--timber), var(--timber)),
+    /* row 2 */
+    linear-gradient(var(--timber), var(--timber)),
+    /* row 3 */
+    linear-gradient(var(--timber), var(--timber)),
+    /* row 4 */
+    linear-gradient(var(--timber), var(--timber)),
+    /* rows 5-7 */
+    linear-gradient(var(--timber), var(--timber)),
+    /* rows 8-11 */
+    linear-gradient(var(--timber), var(--timber)),
+    /* rows 12-15 */
+    linear-gradient(var(--timber), var(--timber)),
+    /* rows 16-17 */
+    linear-gradient(var(--timber), var(--timber));
+  background-size:
+    calc(var(--bp) * 17) var(--bp),            /* lit windows, row 6         */
+    calc(var(--bp) * 21) var(--bp),            /* lit windows, row 10        */
+    calc(var(--bp) * 25) var(--bp),            /* lit windows, row 14        */
+    calc(var(--bp) * 7) var(--bp),             /* row 0                      */
+    calc(var(--bp) * 13) var(--bp),            /* row 1                      */
+    calc(var(--bp) * 19) var(--bp),            /* row 2                      */
+    calc(var(--bp) * 23) var(--bp),            /* row 3                      */
+    calc(var(--bp) * 27) var(--bp),            /* row 4                      */
+    calc(var(--bp) * 17) calc(var(--bp) * 3),  /* rows 5-7                   */
+    calc(var(--bp) * 21) calc(var(--bp) * 4),  /* rows 8-11                  */
+    calc(var(--bp) * 25) calc(var(--bp) * 4),  /* rows 12-15                 */
+    calc(var(--bp) * 27) calc(var(--bp) * 2);  /* rows 16-17                 */
+  background-position:
+    top calc(var(--bp) * 6) left calc(var(--bp) * 5),   /* lit windows, row 6         */
+    top calc(var(--bp) * 10) left calc(var(--bp) * 3),  /* lit windows, row 10        */
+    top calc(var(--bp) * 14) left var(--bp),            /* lit windows, row 14        */
+    top 0 left calc(var(--bp) * 10),                    /* row 0                      */
+    top var(--bp) left calc(var(--bp) * 7),             /* row 1                      */
+    top calc(var(--bp) * 2) left calc(var(--bp) * 4),   /* row 2                      */
+    top calc(var(--bp) * 3) left calc(var(--bp) * 2),   /* row 3                      */
+    top calc(var(--bp) * 4) left 0,                     /* row 4                      */
+    top calc(var(--bp) * 5) left calc(var(--bp) * 5),   /* rows 5-7                   */
+    top calc(var(--bp) * 8) left calc(var(--bp) * 3),   /* rows 8-11                  */
+    top calc(var(--bp) * 12) left var(--bp),            /* rows 12-15                 */
+    top calc(var(--bp) * 16) left 0;                    /* rows 16-17                 */
+}
+
+/* The train, two carriages of it, out on the water where the tracks used to be.
+   It runs along the near edge of the flood and passes *in front* of the
+   bathhouse, crossing the lit bottom storey rather than disappearing behind it:
+   `z-index: 2` puts it over the house, and it is drawn double-size and inked
+   darker for the same reason — in every one of these scenes the nearer thing is
+   the bigger and darker one.
+
+   Every part of it is one period-12 band clipped to the sprite, so a carriage is
+   drawn once and the pattern makes the second:
+
+     ##########..##########..
+     #■#■#■#■##..#■#■#■#■##..
+     ##########..##########..
+     ##########..##########..
+     .########....########...      the underframe, a shade darker
+   ─────────────────────────────────────────────────────────────────────────── */
+.bathhouse .tram {
+  --tp: calc(var(--px) * 2);                       /* the train is double-size */
+  --car:   color-mix(in srgb, var(--ink) 62%, var(--paper));
+  --frame: color-mix(in srgb, var(--ink) 78%, var(--paper));
+  position: absolute; z-index: 2; left: 0;
+  bottom: calc(var(--px) * 2);
+  width: calc(var(--tp) * 24); height: calc(var(--tp) * 5);
+  background-repeat: no-repeat;
+  background-image:
+    /* lit windows: four to a carriage, and none in the coupling gap */
+    repeating-linear-gradient(90deg,
+      transparent 0 var(--tp),
+      var(--ink-hot) var(--tp) calc(var(--tp) * 2),
+      transparent calc(var(--tp) * 2) calc(var(--tp) * 3),
+      var(--ink-hot) calc(var(--tp) * 3) calc(var(--tp) * 4),
+      transparent calc(var(--tp) * 4) calc(var(--tp) * 5),
+      var(--ink-hot) calc(var(--tp) * 5) calc(var(--tp) * 6),
+      transparent calc(var(--tp) * 6) calc(var(--tp) * 7),
+      var(--ink-hot) calc(var(--tp) * 7) calc(var(--tp) * 8),
+      transparent calc(var(--tp) * 8) calc(var(--tp) * 12)),
+    /* the underframe, inset a pixel each side */
+    repeating-linear-gradient(90deg,
+      transparent 0 var(--tp),
+      var(--frame) var(--tp) calc(var(--tp) * 9),
+      transparent calc(var(--tp) * 9) calc(var(--tp) * 12)),
+    /* the carriages */
+    repeating-linear-gradient(90deg,
+      var(--car) 0 calc(var(--tp) * 10),
+      transparent calc(var(--tp) * 10) calc(var(--tp) * 12));
+  background-size:
+    calc(var(--tp) * 24) var(--tp),      /* lit windows  */
+    calc(var(--tp) * 24) var(--tp),      /* underframe   */
+    calc(var(--tp) * 24) calc(var(--tp) * 4);
+  background-position:
+    top var(--tp) left 0,
+    top calc(var(--tp) * 4) left 0,
+    top 0 left 0;
+}
+
+/* The reflection: the train again, broken into alternate pixels, because still
+   water gives a whole shape back and moving water gives a dashed one. */
+.bathhouse .tram::after {
+  content: ""; position: absolute; left: 0; right: 0;
+  top: calc(var(--tp) * 5); height: var(--px);
+  background-image: repeating-linear-gradient(90deg,
+    var(--sea) 0 var(--px), transparent var(--px) calc(var(--px) * 2));
+}
+
+/* ── the bathhouse, moving ────────────────────────────────────────────────── */
+@property --wk1 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --wk2 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --wk3 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+
+/* Each crest row slides exactly its own period, so the reset lands on an
+   identical frame; the near row runs fastest, which is the parallax. */
+.bathhouse {
+  animation:
+    wake-11 6.6s  steps(11, end) infinite,
+    wake-7  3.5s  steps(7, end)  infinite,
+    wake-13 11.7s steps(13, end) infinite;
+}
+@keyframes wake-11 { to { --wk1: calc(var(--px) * 11); } }
+@keyframes wake-7  { to { --wk2: calc(var(--px) * 7); } }
+@keyframes wake-13 { to { --wk3: calc(var(--px) * 13); } }
+
+/* The house lights on the water are never quite steady, and the stars flicker
+   on the same keyframes the city's do. */
+.bathhouse::before { animation: spill 2.9s steps(1, end) infinite alternate; }
+@keyframes spill { from { opacity: .7; } to { opacity: .3; } }
+.bathhouse::after { animation: star-flicker 5.2s steps(1, end) infinite alternate; }
+
+/* The train crosses and keeps going: no `alternate`, because a train that
+   reversed back over the water would be a different scene. */
+.bathhouse .tram { animation: tram-run 58s steps(280, end) infinite; }
+@keyframes tram-run {
+  from { transform: translateX(calc(var(--px) * -50)); }
+  to   { transform: translateX(calc(var(--px) * 230)); }
+}
+
+/* ── scene: the stop ──────────────────────────────────────────────────────────
+   A country bus stop in the rain, at night: two treelines behind it, a signpost,
+   a child under an umbrella, and something very large standing next to them
+   waiting for the same bus. The bus comes, waits, and goes on.
+
+   The rain is the same trick as the megacity's, dimmer and half the speed — this
+   is weather to stand about in, not weather to be hunted in. The treelines are
+   the woods' firs on longer periods: six ranks near, seven far, each rank two
+   pixels narrower and two taller than the one under it, which is a conifer.
+   ─────────────────────────────────────────────────────────────────────────── */
+.stop {
+  --px: 6px;
+  --ground: calc(var(--px) * 5);                     /* the wet verge        */
+  --drip:    color-mix(in srgb, var(--ink) 32%, transparent);
+  --drip-lo: color-mix(in srgb, var(--ink) 16%, transparent);
+  --puddle:  color-mix(in srgb, var(--ink) 26%, transparent);
+  /* opaque, for the reason spelled out over the city: stacked bands */
+  --verge:  color-mix(in srgb, var(--ink) 24%, var(--paper));
+  --leaf:   color-mix(in srgb, var(--ink) 40%, var(--paper));
+  --leaf-lo: color-mix(in srgb, var(--ink) 22%, var(--paper));
+
+  --dp1: 0px; --dp2: 0px; --dp3: 0px; --dp4: 0px; --dp5: 0px; --dp6: 0px;
+  --dp7: 0px; --dp8: 0px; --dp9: 0px; --dp10: 0px; --dp11: 0px; --dp12: 0px;
+  --dp13: 0px; --dp14: 0px; --dp15: 0px; --dp16: 0px; --dp17: 0px; --dp18:
+  0px; --dp19: 0px; --dp20: 0px; --dp21: 0px; --dp22: 0px; --dp23: 0px;
+  --dp24: 0px;
+
+  background-repeat:
+    repeat-y, repeat-y, repeat-y, repeat-y, repeat-y, repeat-y, repeat-y, repeat-y,   /* the rain */
+    repeat-y, repeat-y, repeat-y, repeat-y, repeat-y, repeat-y, repeat-y, repeat-y,
+    repeat-y, repeat-y, repeat-y, repeat-y, repeat-y, repeat-y, repeat-y, repeat-y,
+    no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat,
+    no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat,
+    no-repeat, no-repeat, no-repeat, no-repeat;
+  background-image:
+    /* the rain, twenty-four ranks of it */
+    linear-gradient(
+      var(--drip) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 10),
+      var(--drip) calc(var(--px) * 10) calc(var(--px) * 12),
+      transparent calc(var(--px) * 12)),
+    linear-gradient(
+      var(--drip-lo) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 14),
+      var(--drip-lo) calc(var(--px) * 14) calc(var(--px) * 16),
+      transparent calc(var(--px) * 16)),
+    linear-gradient(
+      var(--drip) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 8),
+      var(--drip) calc(var(--px) * 8) calc(var(--px) * 10),
+      transparent calc(var(--px) * 10)),
+    linear-gradient(
+      var(--drip-lo) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 12),
+      var(--drip-lo) calc(var(--px) * 12) calc(var(--px) * 14),
+      transparent calc(var(--px) * 14)),
+    linear-gradient(
+      var(--drip) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 16),
+      var(--drip) calc(var(--px) * 16) calc(var(--px) * 18),
+      transparent calc(var(--px) * 18)),
+    linear-gradient(
+      var(--drip-lo) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 9),
+      var(--drip-lo) calc(var(--px) * 9) calc(var(--px) * 11),
+      transparent calc(var(--px) * 11)),
+    linear-gradient(
+      var(--drip) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 11),
+      var(--drip) calc(var(--px) * 11) calc(var(--px) * 13),
+      transparent calc(var(--px) * 13)),
+    linear-gradient(
+      var(--drip-lo) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 15),
+      var(--drip-lo) calc(var(--px) * 15) calc(var(--px) * 17),
+      transparent calc(var(--px) * 17)),
+    linear-gradient(
+      var(--drip) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 7),
+      var(--drip) calc(var(--px) * 7) calc(var(--px) * 9),
+      transparent calc(var(--px) * 9)),
+    linear-gradient(
+      var(--drip-lo) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 13),
+      var(--drip-lo) calc(var(--px) * 13) calc(var(--px) * 15),
+      transparent calc(var(--px) * 15)),
+    linear-gradient(
+      var(--drip) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 17),
+      var(--drip) calc(var(--px) * 17) calc(var(--px) * 19),
+      transparent calc(var(--px) * 19)),
+    linear-gradient(
+      var(--drip-lo) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 9),
+      var(--drip-lo) calc(var(--px) * 9) calc(var(--px) * 11),
+      transparent calc(var(--px) * 11)),
+    linear-gradient(
+      var(--drip) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 10),
+      var(--drip) calc(var(--px) * 10) calc(var(--px) * 12),
+      transparent calc(var(--px) * 12)),
+    linear-gradient(
+      var(--drip-lo) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 13),
+      var(--drip-lo) calc(var(--px) * 13) calc(var(--px) * 15),
+      transparent calc(var(--px) * 15)),
+    linear-gradient(
+      var(--drip) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 8),
+      var(--drip) calc(var(--px) * 8) calc(var(--px) * 10),
+      transparent calc(var(--px) * 10)),
+    linear-gradient(
+      var(--drip-lo) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 15),
+      var(--drip-lo) calc(var(--px) * 15) calc(var(--px) * 17),
+      transparent calc(var(--px) * 17)),
+    linear-gradient(
+      var(--drip) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 11),
+      var(--drip) calc(var(--px) * 11) calc(var(--px) * 13),
+      transparent calc(var(--px) * 13)),
+    linear-gradient(
+      var(--drip-lo) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 17),
+      var(--drip-lo) calc(var(--px) * 17) calc(var(--px) * 19),
+      transparent calc(var(--px) * 19)),
+    linear-gradient(
+      var(--drip) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 6),
+      var(--drip) calc(var(--px) * 6) calc(var(--px) * 8),
+      transparent calc(var(--px) * 8)),
+    linear-gradient(
+      var(--drip-lo) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 16),
+      var(--drip-lo) calc(var(--px) * 16) calc(var(--px) * 18),
+      transparent calc(var(--px) * 18)),
+    linear-gradient(
+      var(--drip) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 12),
+      var(--drip) calc(var(--px) * 12) calc(var(--px) * 14),
+      transparent calc(var(--px) * 14)),
+    linear-gradient(
+      var(--drip-lo) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 14),
+      var(--drip-lo) calc(var(--px) * 14) calc(var(--px) * 16),
+      transparent calc(var(--px) * 16)),
+    linear-gradient(
+      var(--drip) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 7),
+      var(--drip) calc(var(--px) * 7) calc(var(--px) * 9),
+      transparent calc(var(--px) * 9)),
+    linear-gradient(
+      var(--drip-lo) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 18),
+      var(--drip-lo) calc(var(--px) * 18) calc(var(--px) * 20),
+      transparent calc(var(--px) * 20)),
+    /* puddles on the verge */
+    repeating-linear-gradient(90deg,
+      var(--puddle) 0 calc(var(--px) * 2),
+      transparent calc(var(--px) * 2) calc(var(--px) * 9)),
+    /* grit */
+    repeating-linear-gradient(90deg,
+      var(--puddle) 0 var(--px),
+      transparent var(--px) calc(var(--px) * 6)),
+    /* near treeline, period 13 */
+    repeating-linear-gradient(90deg,
+      var(--leaf) 0 calc(var(--px) * 11),
+      transparent calc(var(--px) * 11) calc(var(--px) * 13)),
+    repeating-linear-gradient(90deg,
+      transparent 0 var(--px),
+      var(--leaf) var(--px) calc(var(--px) * 10),
+      transparent calc(var(--px) * 10) calc(var(--px) * 13)),
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 2),
+      var(--leaf) calc(var(--px) * 2) calc(var(--px) * 9),
+      transparent calc(var(--px) * 9) calc(var(--px) * 13)),
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 3),
+      var(--leaf) calc(var(--px) * 3) calc(var(--px) * 8),
+      transparent calc(var(--px) * 8) calc(var(--px) * 13)),
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 4),
+      var(--leaf) calc(var(--px) * 4) calc(var(--px) * 7),
+      transparent calc(var(--px) * 7) calc(var(--px) * 13)),
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 5),
+      var(--leaf) calc(var(--px) * 5) calc(var(--px) * 6),
+      transparent calc(var(--px) * 6) calc(var(--px) * 13)),
+    /* the verge */
+    linear-gradient(var(--verge), var(--verge)),
+    /* far treeline, period 17 */
+    repeating-linear-gradient(90deg,
+      var(--leaf-lo) 0 calc(var(--px) * 13),
+      transparent calc(var(--px) * 13) calc(var(--px) * 17)),
+    repeating-linear-gradient(90deg,
+      transparent 0 var(--px),
+      var(--leaf-lo) var(--px) calc(var(--px) * 12),
+      transparent calc(var(--px) * 12) calc(var(--px) * 17)),
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 2),
+      var(--leaf-lo) calc(var(--px) * 2) calc(var(--px) * 11),
+      transparent calc(var(--px) * 11) calc(var(--px) * 17)),
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 3),
+      var(--leaf-lo) calc(var(--px) * 3) calc(var(--px) * 10),
+      transparent calc(var(--px) * 10) calc(var(--px) * 17)),
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 4),
+      var(--leaf-lo) calc(var(--px) * 4) calc(var(--px) * 9),
+      transparent calc(var(--px) * 9) calc(var(--px) * 17)),
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 5),
+      var(--leaf-lo) calc(var(--px) * 5) calc(var(--px) * 8),
+      transparent calc(var(--px) * 8) calc(var(--px) * 17)),
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(var(--px) * 6),
+      var(--leaf-lo) calc(var(--px) * 6) calc(var(--px) * 7),
+      transparent calc(var(--px) * 7) calc(var(--px) * 17));
+  background-size:
+    var(--px) calc(var(--px) * 21),  /* the rain, twenty-four ranks of it */
+    var(--px) calc(var(--px) * 29),
+    var(--px) calc(var(--px) * 17),
+    var(--px) calc(var(--px) * 25),
+    var(--px) calc(var(--px) * 33),
+    var(--px) calc(var(--px) * 19),
+    var(--px) calc(var(--px) * 23),
+    var(--px) calc(var(--px) * 31),
+    var(--px) calc(var(--px) * 15),
+    var(--px) calc(var(--px) * 27),
+    var(--px) calc(var(--px) * 35),
+    var(--px) calc(var(--px) * 18),
+    var(--px) calc(var(--px) * 20),
+    var(--px) calc(var(--px) * 26),
+    var(--px) calc(var(--px) * 16),
+    var(--px) calc(var(--px) * 30),
+    var(--px) calc(var(--px) * 22),
+    var(--px) calc(var(--px) * 34),
+    var(--px) calc(var(--px) * 13),
+    var(--px) calc(var(--px) * 32),
+    var(--px) calc(var(--px) * 24),
+    var(--px) calc(var(--px) * 28),
+    var(--px) calc(var(--px) * 14),
+    var(--px) calc(var(--px) * 36),
+    100% var(--px),                  /* puddles on the verge       */
+    100% var(--px),                  /* grit                       */
+    100% calc(var(--px) * 4),        /* near treeline, period 13   */
+    100% calc(var(--px) * 7),
+    100% calc(var(--px) * 10),
+    100% calc(var(--px) * 13),
+    100% calc(var(--px) * 16),
+    100% calc(var(--px) * 19),
+    100% var(--ground),              /* the verge                  */
+    100% calc(var(--px) * 4),        /* far treeline, period 17    */
+    100% calc(var(--px) * 6),
+    100% calc(var(--px) * 8),
+    100% calc(var(--px) * 10),
+    100% calc(var(--px) * 12),
+    100% calc(var(--px) * 14),
+    100% calc(var(--px) * 16);
+  background-position:
+    left calc(var(--px) * 4) top var(--dp1),                              /* the rain, twenty-four ranks of it */
+    left calc(var(--px) * 10) top var(--dp2),
+    left calc(var(--px) * 23) top var(--dp3),
+    left calc(var(--px) * 28) top var(--dp4),
+    left calc(var(--px) * 46) top var(--dp5),
+    left calc(var(--px) * 52) top var(--dp6),
+    left calc(var(--px) * 66) top var(--dp7),
+    left calc(var(--px) * 71) top var(--dp8),
+    left calc(var(--px) * 85) top var(--dp9),
+    left calc(var(--px) * 90) top var(--dp10),
+    left calc(var(--px) * 104) top var(--dp11),
+    left calc(var(--px) * 110) top var(--dp12),
+    right calc(var(--px) * 6) top var(--dp13),
+    right calc(var(--px) * 12) top var(--dp14),
+    right calc(var(--px) * 27) top var(--dp15),
+    right calc(var(--px) * 33) top var(--dp16),
+    right calc(var(--px) * 49) top var(--dp17),
+    right calc(var(--px) * 55) top var(--dp18),
+    right calc(var(--px) * 68) top var(--dp19),
+    right calc(var(--px) * 74) top var(--dp20),
+    right calc(var(--px) * 88) top var(--dp21),
+    right calc(var(--px) * 93) top var(--dp22),
+    right calc(var(--px) * 107) top var(--dp23),
+    right calc(var(--px) * 113) top var(--dp24),
+    bottom calc(var(--px) * 2) left calc(var(--px) * 3),                  /* puddles on the verge       */
+    bottom var(--px) left 0,                                              /* grit                       */
+    bottom var(--ground) left 0,                                          /* near treeline, period 13   */
+    bottom var(--ground) left 0,
+    bottom var(--ground) left 0,
+    bottom var(--ground) left 0,
+    bottom var(--ground) left 0,
+    bottom var(--ground) left 0,
+    bottom left,                                                          /* the verge                  */
+    bottom calc(var(--ground) + var(--px) * 3) left calc(var(--px) * 6),  /* far treeline, period 17    */
+    bottom calc(var(--ground) + var(--px) * 3) left calc(var(--px) * 6),
+    bottom calc(var(--ground) + var(--px) * 3) left calc(var(--px) * 6),
+    bottom calc(var(--ground) + var(--px) * 3) left calc(var(--px) * 6),
+    bottom calc(var(--ground) + var(--px) * 3) left calc(var(--px) * 6),
+    bottom calc(var(--ground) + var(--px) * 3) left calc(var(--px) * 6),
+    bottom calc(var(--ground) + var(--px) * 3) left calc(var(--px) * 6);
+}
+
+/* The verge shines where the bus lamps catch it. */
+.stop::before {
+  content: ""; position: absolute; left: 0; right: 0;
+  bottom: calc(var(--px) * 3); height: var(--px);
+  background-image: repeating-linear-gradient(90deg,
+    var(--puddle) 0 calc(var(--px) * 2), transparent calc(var(--px) * 2) calc(var(--px) * 19));
+}
+
+/* The large one, drawn double-size — two ears, a barrel of a body, a paler
+   chest and two feet. Fifteen rows of it, which is three times the child:
+
+     ..#......#..      the ears
+     ..########..
+     .##o####o##.      the eyes, which are holes in the fur
+     .##########.
+     ############
+     ############
+     ############
+     ####....####
+     ####....####      the chest, in a paler ink
+     ####....####
+     ####....####
+     ####....####
+     ############
+     .##########.
+     .###....###.      the feet
+   ─────────────────────────────────────────────────────────────────────────── */
+.stop .spirit {
+  --gp: calc(var(--px) * 2);                     /* the large one is double-size */
+  --fur:   color-mix(in srgb, var(--ink) 58%, var(--paper));
+  --chest: color-mix(in srgb, var(--ink) 30%, var(--paper));
+  position: absolute; z-index: 1; left: calc(var(--px) * 36);
+  bottom: var(--ground);
+  width: calc(var(--gp) * 12); height: calc(var(--gp) * 15);
+  background-repeat: no-repeat;
+  background-image:
+    /* ear, left */
+    linear-gradient(var(--fur), var(--fur)),
+    /* ear, right */
+    linear-gradient(var(--fur), var(--fur)),
+    /* the chest */
+    linear-gradient(var(--chest), var(--chest)),
+    /* row 1 */
+    linear-gradient(var(--fur), var(--fur)),
+    /* rows 2-3 */
+    linear-gradient(var(--fur), var(--fur)),
+    /* rows 4-12 */
+    linear-gradient(var(--fur), var(--fur)),
+    /* row 13 */
+    linear-gradient(var(--fur), var(--fur)),
+    /* foot, left */
+    linear-gradient(var(--fur), var(--fur)),
+    /* foot, right */
+    linear-gradient(var(--fur), var(--fur));
+  background-size:
+    var(--gp) var(--gp),                       /* ear, left                  */
+    var(--gp) var(--gp),                       /* ear, right                 */
+    calc(var(--gp) * 4) calc(var(--gp) * 5),   /* the chest                  */
+    calc(var(--gp) * 8) var(--gp),             /* row 1                      */
+    calc(var(--gp) * 10) calc(var(--gp) * 2),  /* rows 2-3                   */
+    calc(var(--gp) * 12) calc(var(--gp) * 9),  /* rows 4-12                  */
+    calc(var(--gp) * 10) var(--gp),            /* row 13                     */
+    calc(var(--gp) * 3) var(--gp),             /* foot, left                 */
+    calc(var(--gp) * 3) var(--gp);             /* foot, right                */
+  background-position:
+    top 0 left calc(var(--gp) * 2),                     /* ear, left                  */
+    top 0 left calc(var(--gp) * 9),                     /* ear, right                 */
+    top calc(var(--gp) * 7) left calc(var(--gp) * 4),   /* the chest                  */
+    top var(--gp) left calc(var(--gp) * 2),             /* row 1                      */
+    top calc(var(--gp) * 2) left var(--gp),             /* rows 2-3                   */
+    top calc(var(--gp) * 4) left 0,                     /* rows 4-12                  */
+    top calc(var(--gp) * 13) left var(--gp),            /* row 13                     */
+    top calc(var(--gp) * 14) left var(--gp),            /* foot, left                 */
+    top calc(var(--gp) * 14) left calc(var(--gp) * 8);  /* foot, right                */
+}
+
+/* A leaf held over its head, and two eyes that blink. Both are pseudo-elements
+   so they can move and blink without the body doing either. */
+.stop .spirit::before {
+  content: ""; position: absolute;
+  left: calc(var(--gp) * 4); top: calc(var(--gp) * -1);
+  width: calc(var(--gp) * 4); height: var(--gp);
+  background: var(--chest);
+  box-shadow: var(--gp) calc(var(--gp) * -1) 0 var(--chest);
+}
+.stop .spirit::after {
+  content: ""; position: absolute;
+  left: calc(var(--gp) * 3); top: calc(var(--gp) * 2);
+  width: var(--gp); height: var(--gp); background: var(--paper);
+  box-shadow: calc(var(--gp) * 5) 0 0 var(--paper);
+}
+
+/* The child under the umbrella, the same double-size grid, eight rows of it:
+
+     ..###..
+     #######      the lip, in the paler ink
+     ...#...      the shaft, so the umbrella is not the head
+     ..###..
+     .#####.
+     .#####.
+     ..#.#..
+     ..#.#..
+   ─────────────────────────────────────────────────────────────────────────── */
+.stop .child {
+  --cp: calc(var(--px) * 2);
+  --coat:  color-mix(in srgb, var(--ink) 76%, var(--paper));
+  --cloth: color-mix(in srgb, var(--ink) 58%, var(--paper));
+  position: absolute; z-index: 1; left: calc(var(--px) * 16);
+  bottom: var(--ground);
+  width: calc(var(--cp) * 7); height: calc(var(--cp) * 8);
+  background-repeat: no-repeat;
+  background-image:
+    /* the umbrella */
+    linear-gradient(var(--cloth), var(--cloth)),
+    /* and its lip */
+    linear-gradient(var(--cloth), var(--cloth)),
+    /* the shaft */
+    linear-gradient(var(--coat), var(--coat)),
+    /* the head */
+    linear-gradient(var(--coat), var(--coat)),
+    /* the coat */
+    linear-gradient(var(--coat), var(--coat)),
+    /* leg, left */
+    linear-gradient(var(--coat), var(--coat)),
+    /* leg, right */
+    linear-gradient(var(--coat), var(--coat));
+  background-size:
+    calc(var(--cp) * 3) var(--cp),            /* the umbrella               */
+    calc(var(--cp) * 7) var(--cp),            /* and its lip                */
+    var(--cp) var(--cp),                      /* the shaft                  */
+    calc(var(--cp) * 3) var(--cp),            /* the head                   */
+    calc(var(--cp) * 5) calc(var(--cp) * 2),  /* the coat                   */
+    var(--cp) calc(var(--cp) * 2),            /* leg, left                  */
+    var(--cp) calc(var(--cp) * 2);            /* leg, right                 */
+  background-position:
+    top 0 left calc(var(--cp) * 2),                    /* the umbrella               */
+    top var(--cp) left 0,                              /* and its lip                */
+    top calc(var(--cp) * 2) left calc(var(--cp) * 3),  /* the shaft                  */
+    top calc(var(--cp) * 3) left calc(var(--cp) * 2),  /* the head                   */
+    top calc(var(--cp) * 4) left var(--cp),            /* the coat                   */
+    top calc(var(--cp) * 6) left calc(var(--cp) * 2),  /* leg, left                  */
+    top calc(var(--cp) * 6) left calc(var(--cp) * 4);  /* leg, right                 */
+}
+
+/* The signpost: a mast with the timetable box on top of it. */
+.stop .sign {
+  --post: color-mix(in srgb, var(--ink) 60%, var(--paper));
+  position: absolute; z-index: 1; left: calc(var(--px) * 6);
+  bottom: var(--ground);
+  width: var(--px); height: calc(var(--px) * 14);
+  background: var(--post);
+}
+.stop .sign::after {
+  content: ""; position: absolute;
+  left: calc(var(--px) * -2); top: calc(var(--px) * -3);
+  width: calc(var(--px) * 5); height: calc(var(--px) * 3);
+  background: var(--post);
+}
+
+/* The bus, drawn double-size, headlamp at the front:
+
+     ..##################..
+     ##■##■##■##■##■##■####      lit windows, every third pixel
+     #####################■      and the headlamp at the front
+     ######################
+     .####################.
+     ..#..#..#..#..#..#....      the wheels
+   ─────────────────────────────────────────────────────────────────────────── */
+.stop .bus {
+  --up: calc(var(--px) * 2);                        /* the bus is double-size */
+  --panel: color-mix(in srgb, var(--ink) 52%, var(--paper));
+  --tyre:  color-mix(in srgb, var(--ink) 70%, var(--paper));
+  position: absolute; z-index: 0; left: calc(var(--px) * 62);
+  bottom: calc(var(--px) * 2);
+  width: calc(var(--up) * 22); height: calc(var(--up) * 6);
+  background-repeat: no-repeat;
+  background-image:
+    /* lit windows */
+    repeating-linear-gradient(90deg,
+      var(--ink-hot) 0 var(--up),
+      transparent var(--up) calc(var(--up) * 3)),
+    /* the headlamp */
+    linear-gradient(var(--ink-hot), var(--ink-hot)),
+    /* the wheels */
+    repeating-linear-gradient(90deg,
+      transparent 0 var(--up),
+      var(--tyre) var(--up) calc(var(--up) * 2),
+      transparent calc(var(--up) * 2) calc(var(--up) * 3)),
+    /* row 0 */
+    linear-gradient(var(--panel), var(--panel)),
+    /* rows 1-3 */
+    linear-gradient(var(--panel), var(--panel)),
+    /* row 4 */
+    linear-gradient(var(--panel), var(--panel));
+  background-size:
+    calc(var(--up) * 18) var(--up),            /* lit windows                */
+    var(--up) var(--up),                       /* the headlamp               */
+    calc(var(--up) * 20) var(--up),            /* the wheels                 */
+    calc(var(--up) * 18) var(--up),            /* row 0                      */
+    calc(var(--up) * 22) calc(var(--up) * 3),  /* rows 1-3                   */
+    calc(var(--up) * 20) var(--up);            /* row 4                      */
+  background-position:
+    top var(--up) left calc(var(--up) * 2),  /* lit windows                */
+    top calc(var(--up) * 2) right 0,         /* the headlamp               */
+    top calc(var(--up) * 5) left var(--up),  /* the wheels                 */
+    top 0 left calc(var(--up) * 2),          /* row 0                      */
+    top var(--up) left 0,                    /* rows 1-3                   */
+    top calc(var(--up) * 4) left var(--up);  /* row 4                      */
+}
+
+/* ── the stop, moving ─────────────────────────────────────────────────────── */
+@property --dp1  { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --dp2  { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --dp3  { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --dp4  { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --dp5  { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --dp6  { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --dp7  { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --dp8  { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --dp9  { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --dp10 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --dp11 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --dp12 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --dp13 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --dp14 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --dp15 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --dp16 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --dp17 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --dp18 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --dp19 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --dp20 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --dp21 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --dp22 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --dp23 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --dp24 { syntax: "<length>"; inherits: false; initial-value: 0px; }
+
+.stop {
+  animation:
+    fall-s1    1.89s steps(21, end) infinite,
+    fall-s2    4.44s steps(29, end) infinite,
+    fall-s3    1.53s steps(17, end) infinite,
+    fall-s4    3.82s steps(25, end) infinite,
+    fall-s5    2.97s steps(33, end) infinite,
+    fall-s6    2.91s steps(19, end) infinite,
+    fall-s7    2.07s steps(23, end) infinite,
+    fall-s8    4.74s steps(31, end) infinite,
+    fall-s9    1.35s steps(15, end) infinite,
+    fall-s10   4.13s steps(27, end) infinite,
+    fall-s11   3.15s steps(35, end) infinite,
+    fall-s12   2.75s steps(18, end) infinite,
+    fall-s13    1.8s steps(20, end) infinite,
+    fall-s14   3.98s steps(26, end) infinite,
+    fall-s15   1.44s steps(16, end) infinite,
+    fall-s16   4.59s steps(30, end) infinite,
+    fall-s17   1.98s steps(22, end) infinite,
+    fall-s18    5.2s steps(34, end) infinite,
+    fall-s19   1.17s steps(13, end) infinite,
+    fall-s20    4.9s steps(32, end) infinite,
+    fall-s21   2.16s steps(24, end) infinite,
+    fall-s22   4.28s steps(28, end) infinite,
+    fall-s23   1.26s steps(14, end) infinite,
+    fall-s24   5.51s steps(36, end) infinite;
+}
+@keyframes fall-s1  { to { --dp1: calc(var(--px) * 21); } }
+@keyframes fall-s2  { to { --dp2: calc(var(--px) * 29); } }
+@keyframes fall-s3  { to { --dp3: calc(var(--px) * 17); } }
+@keyframes fall-s4  { to { --dp4: calc(var(--px) * 25); } }
+@keyframes fall-s5  { to { --dp5: calc(var(--px) * 33); } }
+@keyframes fall-s6  { to { --dp6: calc(var(--px) * 19); } }
+@keyframes fall-s7  { to { --dp7: calc(var(--px) * 23); } }
+@keyframes fall-s8  { to { --dp8: calc(var(--px) * 31); } }
+@keyframes fall-s9  { to { --dp9: calc(var(--px) * 15); } }
+@keyframes fall-s10 { to { --dp10: calc(var(--px) * 27); } }
+@keyframes fall-s11 { to { --dp11: calc(var(--px) * 35); } }
+@keyframes fall-s12 { to { --dp12: calc(var(--px) * 18); } }
+@keyframes fall-s13 { to { --dp13: calc(var(--px) * 20); } }
+@keyframes fall-s14 { to { --dp14: calc(var(--px) * 26); } }
+@keyframes fall-s15 { to { --dp15: calc(var(--px) * 16); } }
+@keyframes fall-s16 { to { --dp16: calc(var(--px) * 30); } }
+@keyframes fall-s17 { to { --dp17: calc(var(--px) * 22); } }
+@keyframes fall-s18 { to { --dp18: calc(var(--px) * 34); } }
+@keyframes fall-s19 { to { --dp19: calc(var(--px) * 13); } }
+@keyframes fall-s20 { to { --dp20: calc(var(--px) * 32); } }
+@keyframes fall-s21 { to { --dp21: calc(var(--px) * 24); } }
+@keyframes fall-s22 { to { --dp22: calc(var(--px) * 28); } }
+@keyframes fall-s23 { to { --dp23: calc(var(--px) * 14); } }
+@keyframes fall-s24 { to { --dp24: calc(var(--px) * 36); } }
+
+/* The verge shines, the leaf tips a pixel, and the eyes shut for one beat in
+   twenty — a blink is one frame, so it is `steps(1)` and a 4% window. */
+.stop::before { animation: shine 6.1s steps(1, end) infinite alternate; }
+@keyframes shine { from { opacity: .7; } to { opacity: .3; } }
+.stop .spirit::before { animation: leaf-tip 9s steps(1, end) infinite alternate; }
+@keyframes leaf-tip {
+  from { transform: translateX(0); }
+  to   { transform: translateX(calc(var(--px) * -1)); }
+}
+.stop .spirit::after { animation: blink-eyes 7.4s steps(1, end) infinite; }
+@keyframes blink-eyes { 0%, 96% { opacity: 1; } 97%, 100% { opacity: 0; } }
+.stop .child { animation: brolly 8.3s steps(1, end) infinite alternate; }
+@keyframes brolly {
+  from { transform: translateX(0); }
+  to   { transform: translateX(var(--px)); }
+}
+
+/* The bus arrives, waits at the stop, and goes on — three moves out of one
+   animation, and each one needs its own step count to stay on whole pixels.
+   Which is what `animation-timing-function` inside a keyframe is for: the
+   function declared on a keyframe governs the segment that *starts* there, so
+   the run in is 80 steps, the wait is one, and the run out is 150. */
+.stop .bus { animation: bus-run 54s steps(1, end) infinite; }
+@keyframes bus-run {
+  0%        { transform: translateX(calc(var(--px) * 80));
+              animation-timing-function: steps(80, end); }
+  30%       { transform: translateX(0);
+              animation-timing-function: steps(1, end); }
+  46%       { transform: translateX(0);
+              animation-timing-function: steps(150, end); }
+  100%      { transform: translateX(calc(var(--px) * -150)); }
 }
 
 /* ── tab deck (CSS-only) ──────────────────────────────────────────────────── */
