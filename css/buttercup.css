@@ -2780,8 +2780,11 @@ button.danger:hover { background: var(--bad); color: var(--paper); }
 #tab-keys:checked    ~ .tabbar label[for="tab-keys"] {
   color: var(--paper); background: var(--ink);
 }
-/* preview needs to fill its panel */
-#tab-preview:checked ~ #panel-preview { display: grid; grid-template-rows: auto auto 1fr; }
+/* Preview needs to fill its panel, and a flex column does it whatever else is
+   in there: the named grid rows this used to be handed the last track to the
+   empty row the note leaves behind once something is mounted, which left the
+   frame at its minimum with a few hundred px of pane going spare underneath. */
+#tab-preview:checked ~ #panel-preview { display: flex; flex-direction: column; }
 
 .panel-head { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
   border-bottom: 1px dashed var(--rule); padding-bottom: .35rem; margin-bottom: .6rem; }
@@ -2839,9 +2842,12 @@ button.danger:hover { background: var(--bad); color: var(--paper); }
 .tools dd .req { color: var(--warn); }
 .tools .desc { margin: .3rem 0; color: var(--ink-dim); font-size: .82rem; }
 
-/* ── preview frame ────────────────────────────────────────────────────────── */
-#preview { width: 100%; height: 100%; min-height: 18rem; border: 1px solid var(--rule);
-  background: #fff; }
+/* ── preview frame ────────────────────────────────────────────────────────────
+   Takes the pane's leftover height, never less than 18rem. `min-height` is only
+   the floor: js/drive.js raises it inline when the mounted page reports that it
+   needs more room than the pane has, and the panel scrolls for the difference. */
+#preview { width: 100%; flex: 1 1 auto; min-height: 18rem;
+  border: 1px solid var(--rule); background: #fff; }
 
 /* ── settings ─────────────────────────────────────────────────────────────── */
 .settings fieldset { border: 1px solid var(--rule); margin: 0 0 .7rem; padding: .5rem .6rem; }

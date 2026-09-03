@@ -853,6 +853,9 @@
     paintStats();
   });
 
+  // The mounted page sizes the frame it lives in — see js/drive.js.
+  Drive.watch(document.getElementById("preview"));
+
   /* ── boot ───────────────────────────────────────────────────────────────── */
 
   Agent.setSettings(settings);

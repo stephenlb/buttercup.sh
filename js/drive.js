@@ -414,11 +414,85 @@ window.Drive = (function () {
       throw new Error(`unknown action '${action}'`);
     }
 
+    /* ── how tall the page wants to be ───────────────────────────────────────
+       The parent cannot measure an opaque-origin document, so the page
+       volunteers the height it needs and the frame out there grows to it.
+
+       Two ways a preview runs out of room. The plain one is a document longer
+       than the frame, which the body's own box reports — the body is measured
+       rather than `documentElement`, whose scroll height is padded out to the
+       viewport and so can never ask for less than the frame already is. The
+       other is a viewport-locked shell (the `100vh` layout every deck and
+       dashboard reaches for) clipping its own content: nothing about the
+       document's height says so, so the big clipped boxes are measured too.
+       Only `hidden` and `clip` count — an `auto` scroller is somebody's
+       deliberate scrollbar, and a long chat log should not become a 4000px
+       frame.
+       ─────────────────────────────────────────────────────────────────────── */
+
+    const CLIPPED = /^(hidden|clip)$/;
+    const FIT_CAP = 4000;      // past this the pane is scrolling either way
+    const FIT_SCAN = 2000;     // elements measured before we call it a page
+
+    function wanted() {
+      const body = document.body;
+      if (!body) return 0;
+      const style = getComputedStyle(body);
+      const margins = (parseFloat(style.marginTop) || 0) + (parseFloat(style.marginBottom) || 0);
+      let need = Math.max(body.scrollHeight, body.offsetHeight) + margins;
+
+      let deficit = 0;
+      let seen = 0;
+      for (const node of document.querySelectorAll("*")) {
+        if (++seen > FIT_SCAN) break;
+        const short = node.scrollHeight - node.clientHeight;
+        // A box the viewport is pinning, not a small overflowing one: anything
+        // that short already has room in the page, and the body height has it.
+        if (short < 4 || node.clientHeight < innerHeight * 0.5) continue;
+        if (!CLIPPED.test(getComputedStyle(node).overflowY)) continue;
+        if (short > deficit) deficit = short;
+      }
+      return Math.min(Math.round(need + deficit), FIT_CAP);
+    }
+
+    let told = 0;
+    let pending = 0;
+
+    /** Report the height, but only when it is news. */
+    function tell() {
+      const h = wanted();
+      if (!h || Math.abs(h - told) < 5) return;
+      told = h;
+      post({ type: "fit", h });
+    }
+
+    // Debounced: a page settling in lays out many times, and the frame it lives
+    // in should be resized once at the end of that, not during it.
+    const measure = () => { clearTimeout(pending); pending = setTimeout(tell, 120); };
+
+    if (window.ResizeObserver) {
+      const watcher = new ResizeObserver(measure);
+      watcher.observe(document.documentElement);
+      if (document.body) watcher.observe(document.body);
+    }
+    // A clipped shell keeps its size while its contents change, so the DOM is
+    // watched as well: a deck moving to a taller slide is exactly this case.
+    new MutationObserver(measure).observe(document.documentElement, {
+      childList: true, subtree: true, attributes: true,
+    });
+    addEventListener("load", measure);
+    measure();
+
     addEventListener("message", async (event) => {
       const job = event.data;
-      if (!job || job.bc !== 1 || job.kind !== "drive") return;
+      if (!job || job.bc !== 1) return;
+      // The frame was put back to the pane's height and wants to hear the ask
+      // again, even if the answer has not changed since last time.
+      if (job.kind === "refit") { told = 0; measure(); return; }
+      if (job.kind !== "drive") return;
       try {
         const note = await perform(job);
+        measure();
         const logs = drain();
         post({
           id: job.id, type: "drive", ok: true,
@@ -440,9 +514,64 @@ window.Drive = (function () {
 
   let seq = 0;
 
+  /* ── fitting the frame to the page in it ──────────────────────────────────
+     The page reports the height it needs; the element grows to meet it, up to
+     twice the room the pane hands it, and the panel scrolls for anything past
+     that. The floor is that pane height — captured while no inline height is
+     set, so it stays the stylesheet's number and not one of ours — and the
+     frame drops back to it on a remount or a window resize, which is the only
+     way a smaller pane is ever noticed.
+     ─────────────────────────────────────────────────────────────────────────── */
+
+  const MAX_GROWTH = 2;
+  const floors = new WeakMap();
+
+  function fit(node, need) {
+    if (!node.style.minHeight) floors.set(node, node.clientHeight);
+    const floor = floors.get(node) || node.clientHeight;
+    if (!floor) return;                       // the pane is hidden; nothing to fit
+    const want = Math.min(Math.max(need, floor), Math.round(floor * MAX_GROWTH));
+    const now = parseFloat(node.style.minHeight) || floor;
+    if (Math.abs(want - now) < 9) return;     // hysteresis: a px or two is not news
+    node.style.minHeight = want > floor + 8 ? `${want}px` : "";
+  }
+
+  /**
+   * Back to the pane's own height, and ask again from there. A new page has its
+   * own idea of tall, and a page whose answer has not changed still has to say
+   * it — the frame it is reporting about is a different size now.
+   */
+  function release(node) {
+    node.style.minHeight = "";
+    floors.delete(node);
+    const win = node.contentWindow;
+    if (win) win.postMessage({ bc: 1, kind: "refit" }, "*");
+  }
+
   return {
     /** The script js/sandbox.js injects into a mounted preview. */
     source() { return SOURCE; },
+
+    release,
+
+    /**
+     * Let whatever is mounted size the frame it lives in. Wired once, at boot:
+     * the element outlives every page that passes through it, and a report is
+     * only trusted from the window currently in it.
+     */
+    watch(node) {
+      addEventListener("message", (event) => {
+        const msg = event.data;
+        if (!msg || msg.bc !== 1 || msg.type !== "fit") return;
+        if (event.source !== node.contentWindow) return;
+        fit(node, Number(msg.h) || 0);
+      });
+      let timer;
+      addEventListener("resize", () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => release(node), 200);
+      });
+    },
 
     /**
      * Ask a mounted preview to act on itself. Resolves the frame's own report,

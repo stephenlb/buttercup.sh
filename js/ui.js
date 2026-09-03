@@ -550,6 +550,7 @@ window.UI = (function () {
     /** Let go of the preview frame — its file belongs to a workspace we left. */
     unmountPreview() {
       const frame = $("preview");
+      Drive.release(frame);
       frame.hidden = true;
       frame.removeAttribute("srcdoc");
       frame.src = "about:blank";
@@ -586,6 +587,9 @@ window.UI = (function () {
 
     async mountPreview(path) {
       const frame = $("preview");
+      // Whatever the last page needed, this one is measured from the pane's own
+      // height up. js/drive.js grows the frame again once the page reports in.
+      Drive.release(frame);
       frame.hidden = false;
       $("preview-empty").hidden = true;
       $("tab-preview").checked = true;
