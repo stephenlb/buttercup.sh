@@ -29,7 +29,7 @@
          lesson goes out by email: a single idea, the code that makes it work,
          and an exercise you run in the tab you are reading this from.
          <strong>Free, no account, unsubscribe whenever.</strong></p>
-      <a class="cta" href="/">sign up on the harness</a>
+      <a class="cta" href="#signup">subscribe</a>
     </header>
 
     <h2>Why weekly, and why by email</h2>
@@ -91,10 +91,11 @@
 
     <h2>How to start</h2>
 
-    <p>Open <a href="/">the harness</a> and drop your address in the box at the
-       top of the transcript. The next lesson finds you; the ones you missed
-       stay in <a href="./">this archive</a>, so signing up late costs you
-       nothing.</p>
+    <p>Drop your address in the <a href="#signup">box at the foot of this
+       page</a> — or in the one at the top of the transcript on
+       <a href="/">the harness</a>; they are the same list. The next lesson
+       finds you; the ones you missed stay in <a href="./">this archive</a>, so
+       signing up late costs you nothing.</p>
 
     <p>And you do not have to wait for an email to begin. Open
        <em>KEYS</em>, paste a key, and ask for an agent — the first exercise is
@@ -104,8 +105,30 @@
 
     <p>Vintage charm, aggressively anti-dystopian. Emdashes welcome.</p>
 
-    <p><a class="cta" href="/">sign up on the harness</a></p>
+    <p><a class="cta" href="/">open the harness</a></p>
   </article>
+
+  <!-- ══ subscribe: the same form the harness carries, posting to the same
+          list. Every page in the archive ends here. ═══════════════════════ -->
+  <section class="subscribe">
+    <h2>One lesson a week</h2>
+    <form class="signup" id="signup"
+          action="https://5487903a.sibforms.com/serve/MUIFAAPvkZdoviEts98XHd7P8K3TyLVS3MtyAoJy_sJMZ9DgAKwbaJqN4Lgn4NMQH3JL50ANiWCKfMJlE3Wj5aEiDLJ3sbnhtSTvh3z7Lgg2BOpAJjNZhMpN_BCn21Kz_o-buc-NY7aFM5JXPRkd-GW0iihg0KEvSJQiAgmUYcB_8D6DmR8Xb4bEFUzTJmlYFti6yJBG7K33hsR_MQ=="
+          method="POST" target="signup-sink" autocomplete="on">
+      <label class="sigil" for="signup-email" aria-hidden="true">&gt;</label>
+      <label class="slabel" for="signup-email">EMAIL</label>
+      <input id="signup-email" name="EMAIL" type="email" required
+             spellcheck="false" placeholder="you@example.com">
+      <input type="text" name="email_address_check" value="" class="trap"
+             tabindex="-1" aria-hidden="true" autocomplete="off">
+      <input type="hidden" name="locale" value="en">
+      <button type="submit">SUBSCRIBE</button>
+      <p class="note">one AI Agent training lesson, weekly</p>
+      <p class="note">starting mid-September 2026</p>
+      <p class="thanks" role="status">subscribed — thank you!</p>
+    </form>
+    <iframe name="signup-sink" title="subscription result" hidden></iframe>
+  </section>
 
   <footer class="foot">
     <p><a href="./">← all updates</a> &middot;
@@ -115,5 +138,6 @@
 
 </div>
 
+<script src="signup.js"></script>
 </body>
 </html>

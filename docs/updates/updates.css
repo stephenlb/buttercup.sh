@@ -141,6 +141,60 @@ th { color: var(--ink-hot); background: var(--paper-2); font-weight: 600; }
 }
 .cta:hover { color: var(--paper); filter: brightness(1.1); }
 
+/* ── signup ───────────────────────────────────────────────────────────────────
+   The same stack the harness wears on its boot notice — label, field, button,
+   note, one per row, sigil out in the margin — restated here because these
+   documents do not load css/buttercup.css. Kept a copy on purpose: the two can
+   drift without either page breaking. */
+
+.subscribe { margin: 3rem 0 0; border-top: 1px dashed var(--rule); padding-top: 1.5rem; }
+/* the index's last entry already closed with a dashed rule; one is enough */
+.log + .subscribe { border-top: 0; padding-top: 0; }
+.subscribe > h2 { margin-top: 0; }
+
+.signup {
+  display: grid; grid-template-columns: auto minmax(0, 22rem);
+  gap: .35rem .6rem; justify-content: start; margin: .8rem 0;
+}
+.signup .sigil { grid-row: 1; align-self: baseline;
+  color: var(--ink-hot); font-weight: 700; }
+.signup > :not(.sigil) { grid-column: 2; }
+.signup .slabel { color: var(--ink-dim); font-size: .7rem; letter-spacing: .2em; }
+/* the button sizes to its word rather than the field above it */
+.signup button {
+  justify-self: start; margin-top: .15rem; cursor: pointer;
+  font: inherit; font-size: .68rem; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--ink); background: var(--paper-3);
+  border: 1px solid var(--rule); padding: .18rem .5rem;
+}
+.signup button:hover { background: var(--ink); color: var(--paper); }
+.signup input[type="email"] {
+  font: inherit; color: var(--ink-hot); background: var(--paper);
+  border: 1px solid var(--rule); padding: .35rem .5rem; min-width: 0;
+}
+.signup input[type="email"]:focus-visible { outline: 2px solid var(--ink); outline-offset: -1px; }
+.signup input[type="email"]::placeholder { color: var(--ink-faint); }
+/* the honeypot: off-screen rather than `display:none`, which the crude bots
+   skip and the thorough ones read as a tell. Nothing here changes the layout. */
+.signup .trap {
+  position: absolute; left: -9999px; top: auto; width: 1px; height: 1px;
+  overflow: hidden; border: 0; padding: 0;
+}
+.signup .note, .signup .thanks {
+  grid-column: 2 / -1; margin: 0; font-size: .74rem; color: var(--ink-faint);
+}
+.signup .thanks { display: none; color: var(--good); }
+/* sent: the fields have done their job, so the row collapses to the receipt */
+.signup[data-sent="1"] .sigil, .signup[data-sent="1"] .slabel,
+.signup[data-sent="1"] input, .signup[data-sent="1"] button,
+.signup[data-sent="1"] .note { display: none; }
+.signup[data-sent="1"] .thanks { display: block; grid-column: 1 / -1; }
+
+@media (max-width: 40rem) {
+  /* narrow: the field takes whatever is left rather than holding 22rem */
+  .signup { grid-template-columns: auto minmax(0, 1fr); }
+}
+
 footer.foot {
   margin-top: 3rem; border-top: 2px solid var(--rule); padding-top: 1rem;
   color: var(--ink-faint); font-size: .8rem;
