@@ -410,8 +410,8 @@ button.danger:hover { background: var(--bad); color: var(--paper); }
    and can never claim any when there is none, so a busy session hides it
    without a line of JS.
 
-   Seven scenes live in here and one is shown per load: js/scenes.js writes a
-   name to `data-scene` and the rules below reveal that scene. The other six
+   Eight scenes live in here and one is shown per load: js/scenes.js writes a
+   name to `data-scene` and the rules below reveal that scene. The other seven
    are `display: none`, which also parks their animations. `?scene=woods` pins
    one for a screenshot.
 
@@ -426,7 +426,8 @@ button.danger:hover { background: var(--bad); color: var(--paper); }
 .scenes[data-scene="orbit"]   .orbit,
 .scenes[data-scene="reef"]    .reef,
 .scenes[data-scene="rails"]   .rails,
-.scenes[data-scene="volcano"] .volcano { display: block; }
+.scenes[data-scene="volcano"] .volcano,
+.scenes[data-scene="tower"]   .tower { display: block; }
 
 /* ── scene: the beach ─────────────────────────────────────────────────────────
    True pixel art, which sets two rules. Every edge is horizontal or vertical:
@@ -2755,6 +2756,293 @@ button.danger:hover { background: var(--bad); color: var(--paper); }
   60%  { transform: translate(calc(var(--px) * 4), calc(var(--px) * -9)); opacity: .6; }
   80%  { transform: translate(calc(var(--px) * 7), calc(var(--px) * -10)); opacity: .3; }
   100% { transform: translate(calc(var(--px) * 10), calc(var(--px) * -10)); opacity: 0; }
+}
+
+/* ── scene: the ivory tower ───────────────────────────────────────────────────
+   The Ivory Tower is the magnificent capital and central palace of the realm of
+   Fantasia: a single tiered spire standing out of the walled labyrinth city that
+   rings its foot. Depth is done with nothing but tone — the city's roofs at 24%
+   of the ink, its wall at 36%, the tower's own stone at 46% — so the eye reads
+   the stack front to back without a single diagonal or gradient ramp.
+
+   Far off in the sky a luck dragon patrols, dog-faced and small enough to be
+   ten pixels of it. It crosses on `transform` and rises on `bottom` — two
+   properties rather than one, because a single diagonal keyframe would have to
+   sample X and Y on the same step count and land the sprite on half a pixel.
+   ─────────────────────────────────────────────────────────────────────────── */
+.tower {
+  --px: 6px;
+  --ground: calc(var(--px) * 6);              /* the plain in front of the city */
+  --wall: calc(var(--px) * 4);                /* the city wall's own height     */
+  --crest: calc(var(--ground) + var(--wall)); /* the top of the wall            */
+  --seat: calc(var(--px) * 24);               /* where the spire stands         */
+  --fly: calc(var(--ground) + var(--px) * 34);/* the dragon's altitude          */
+
+  /* opaque, for the reason spelled out over the city: these bands stack, and a
+     band mixed with `transparent` would let the one behind it show through */
+  --plaza: color-mix(in srgb, var(--ink) 28%, var(--paper));
+  --stone: color-mix(in srgb, var(--ink) 36%, var(--paper));
+  --roof:  color-mix(in srgb, var(--ink) 24%, var(--paper));
+  --lancet: color-mix(in srgb, var(--ink) 62%, var(--paper));
+  /* these two sit over the paper alone, so a mix with `transparent` is right */
+  --fleck: color-mix(in srgb, var(--ink) 34%, transparent);
+  --vapour: color-mix(in srgb, var(--ink) 22%, transparent);
+
+  --cloud-c: 0px; --cloud-d: 0px;
+
+  background-repeat: no-repeat;
+  background-image:
+    /* flagstones: two stipple rows on different rhythms */
+    repeating-linear-gradient(90deg, var(--fleck) 0 calc(var(--px) * 2), transparent calc(var(--px) * 2) calc(var(--px) * 9)),
+    repeating-linear-gradient(90deg, var(--fleck) 0 var(--px), transparent var(--px) calc(var(--px) * 6)),
+    /* battlements along the top of the wall, four pixels of merlon in nine */
+    repeating-linear-gradient(90deg, var(--stone) 0 calc(var(--px) * 4), transparent calc(var(--px) * 4) calc(var(--px) * 9)),
+    /* the wall itself */
+    linear-gradient(var(--stone), var(--stone)),
+    /* the labyrinth city behind the wall: tall narrow houses on a period of
+       seventeen, squat ones on thirteen, and one rank of low roofline so the
+       gaps between them are not empty paper */
+    repeating-linear-gradient(90deg, var(--roof) 0 calc(var(--px) * 3), transparent calc(var(--px) * 3) calc(var(--px) * 17)),
+    repeating-linear-gradient(90deg, var(--roof) 0 calc(var(--px) * 4), transparent calc(var(--px) * 4) calc(var(--px) * 13)),
+    repeating-linear-gradient(90deg, var(--roof) 0 calc(var(--px) * 9), transparent calc(var(--px) * 9) calc(var(--px) * 13)),
+    /* the plain */
+    linear-gradient(var(--plaza), var(--plaza)),
+    /* two clouds, two pixel rows each */
+    linear-gradient(var(--vapour), var(--vapour)),
+    linear-gradient(var(--vapour), var(--vapour)),
+    linear-gradient(var(--vapour), var(--vapour)),
+    linear-gradient(var(--vapour), var(--vapour));
+  background-size:
+    100% var(--px),                            /* flagstones, low row  */
+    100% var(--px),                            /* flagstones, high row */
+    100% calc(var(--px) * 2),                  /* battlements          */
+    100% var(--wall),                          /* the wall             */
+    100% calc(var(--px) * 11),                 /* tall houses          */
+    100% calc(var(--px) * 7),                  /* squat houses         */
+    100% calc(var(--px) * 3),                  /* low roofline         */
+    100% var(--ground),                      /* the plain            */
+    calc(var(--px) * 12) var(--px),            /* clouds               */
+    calc(var(--px) * 18) var(--px),
+    calc(var(--px) * 7) var(--px),
+    calc(var(--px) * 11) var(--px);
+  background-position:
+    bottom var(--px) left calc(var(--px) * 2),
+    bottom calc(var(--px) * 3) left var(--px),
+    bottom var(--crest) left calc(var(--px) * 2),
+    bottom var(--ground) left 0,
+    bottom var(--ground) left calc(var(--px) * 6),
+    bottom var(--ground) left calc(var(--px) * 2),
+    bottom var(--ground) left 0,
+    bottom left,
+    bottom calc(var(--crest) + var(--px) * 33) right calc(var(--px) * 14 + var(--cloud-c)),
+    bottom calc(var(--crest) + var(--px) * 32) right calc(var(--px) * 12 + var(--cloud-c)),
+    bottom calc(var(--crest) + var(--px) * 44) right calc(var(--px) * 34 + var(--cloud-d)),
+    bottom calc(var(--crest) + var(--px) * 43) right calc(var(--px) * 32 + var(--cloud-d));
+}
+
+/* Windows lit along the wall, one pixel in nine. */
+.tower::before {
+  content: ""; position: absolute; left: 0; right: 0;
+  bottom: calc(var(--ground) + var(--px) * 2); height: var(--px);
+  background-image: repeating-linear-gradient(90deg,
+    var(--lancet) 0 var(--px), transparent var(--px) calc(var(--px) * 9));
+}
+
+/* The pennant on the finial, flying off the spire's peak. */
+.tower::after {
+  content: ""; position: absolute;
+  left: calc(var(--seat) + var(--px) * 14); bottom: calc(var(--ground) + var(--px) * 49);
+  width: calc(var(--px) * 3); height: var(--px);
+  background: var(--stone);
+  box-shadow: var(--px) var(--px) 0 var(--stone);
+}
+
+/* The spire, drawn double-size, one solid bar per row: a finial, the bud-shaped
+   crown under it, then three galleries stepping out on the way down to the
+   plinth. Six pairs of lancet windows are lit in the shafts between them.
+
+     ......#......      the finial
+     ......#......
+     .....###.....
+     ....#####....      the crown
+     ....#####....
+     ....#####....
+     .....###.....
+     .....###.....
+     ...#######...      the upper gallery
+     ....#####....
+     ....#####....
+     ....#####....
+     ....#####....
+     ..#########..      the middle gallery
+     ...#######...
+     ...#######...
+     ...#######...
+     ...#######...
+     ...#######...
+     .###########.      the lower gallery
+     ..#########..
+     ..#########..
+     ..#########..
+     ..#########..
+     #############      the plinth
+     #############
+   ─────────────────────────────────────────────────────────────────────────── */
+.tower .spire {
+  --sp: calc(var(--px) * 2);                  /* the spire is drawn double-size */
+  --pale: color-mix(in srgb, var(--ink) 46%, var(--paper));
+  position: absolute; z-index: 1; left: var(--seat); bottom: var(--ground);
+  width: calc(var(--sp) * 13); height: calc(var(--sp) * 26);
+  background-repeat: no-repeat;
+  background-image:
+    linear-gradient(var(--lancet), var(--lancet)),   /* windows, rows 9-10  */
+    linear-gradient(var(--lancet), var(--lancet)),   /* windows, rows 15-16 */
+    linear-gradient(var(--lancet), var(--lancet)),
+    linear-gradient(var(--lancet), var(--lancet)),   /* windows, rows 21-22 */
+    linear-gradient(var(--lancet), var(--lancet)),
+    linear-gradient(var(--lancet), var(--lancet)),
+    linear-gradient(var(--pale), var(--pale)),       /* row 0               */
+    linear-gradient(var(--pale), var(--pale)),       /* row 1               */
+    linear-gradient(var(--pale), var(--pale)),       /* row 2               */
+    linear-gradient(var(--pale), var(--pale)),       /* row 3               */
+    linear-gradient(var(--pale), var(--pale)),       /* row 4               */
+    linear-gradient(var(--pale), var(--pale)),       /* row 5               */
+    linear-gradient(var(--pale), var(--pale)),       /* row 6               */
+    linear-gradient(var(--pale), var(--pale)),       /* row 7               */
+    linear-gradient(var(--pale), var(--pale)),       /* row 8               */
+    linear-gradient(var(--pale), var(--pale)),       /* rows 9-12           */
+    linear-gradient(var(--pale), var(--pale)),       /* row 13              */
+    linear-gradient(var(--pale), var(--pale)),       /* rows 14-18          */
+    linear-gradient(var(--pale), var(--pale)),       /* row 19              */
+    linear-gradient(var(--pale), var(--pale)),       /* rows 20-23          */
+    linear-gradient(var(--pale), var(--pale));       /* rows 24-25          */
+  background-size:
+    var(--sp) calc(var(--sp) * 2),
+    var(--sp) calc(var(--sp) * 2),
+    var(--sp) calc(var(--sp) * 2),
+    var(--sp) calc(var(--sp) * 2),
+    var(--sp) calc(var(--sp) * 2),
+    var(--sp) calc(var(--sp) * 2),
+    var(--sp) var(--sp),
+    var(--sp) var(--sp),
+    calc(var(--sp) * 3) var(--sp),
+    calc(var(--sp) * 5) var(--sp),
+    calc(var(--sp) * 5) var(--sp),
+    calc(var(--sp) * 5) var(--sp),
+    calc(var(--sp) * 3) var(--sp),
+    calc(var(--sp) * 3) var(--sp),
+    calc(var(--sp) * 7) var(--sp),
+    calc(var(--sp) * 5) calc(var(--sp) * 4),
+    calc(var(--sp) * 9) var(--sp),
+    calc(var(--sp) * 7) calc(var(--sp) * 5),
+    calc(var(--sp) * 11) var(--sp),
+    calc(var(--sp) * 9) calc(var(--sp) * 4),
+    calc(var(--sp) * 13) calc(var(--sp) * 2);
+  background-position:
+    top calc(var(--sp) * 9) left calc(var(--sp) * 6),
+    top calc(var(--sp) * 15) left calc(var(--sp) * 5),
+    top calc(var(--sp) * 15) left calc(var(--sp) * 7),
+    top calc(var(--sp) * 21) left calc(var(--sp) * 4),
+    top calc(var(--sp) * 21) left calc(var(--sp) * 6),
+    top calc(var(--sp) * 21) left calc(var(--sp) * 8),
+    top 0 left calc(var(--sp) * 6),
+    top var(--sp) left calc(var(--sp) * 6),
+    top calc(var(--sp) * 2) left calc(var(--sp) * 5),
+    top calc(var(--sp) * 3) left calc(var(--sp) * 4),
+    top calc(var(--sp) * 4) left calc(var(--sp) * 4),
+    top calc(var(--sp) * 5) left calc(var(--sp) * 4),
+    top calc(var(--sp) * 6) left calc(var(--sp) * 5),
+    top calc(var(--sp) * 7) left calc(var(--sp) * 5),
+    top calc(var(--sp) * 8) left calc(var(--sp) * 3),
+    top calc(var(--sp) * 9) left calc(var(--sp) * 4),
+    top calc(var(--sp) * 13) left calc(var(--sp) * 2),
+    top calc(var(--sp) * 14) left calc(var(--sp) * 3),
+    top calc(var(--sp) * 19) left var(--sp),
+    top calc(var(--sp) * 20) left calc(var(--sp) * 2),
+    top calc(var(--sp) * 24) left 0;
+}
+
+/* The luck dragon, twelve pixels of dog-faced serpent seen from a long way off,
+   heading right: an ear, a blunt muzzle, a body that undulates rather than lies
+   flat, two paws under it and the tail tip flicked up behind.
+
+     .........#..
+     .........##.
+     .......#####
+     #..######...
+     .##..#.#....
+
+   The element is the ear — the top-right pixel — because that is the one pixel
+   the whole sprite can be positioned from without a fractional offset; the rest
+   are shadows, and the body and tail are the negative ones. */
+.tower .luck {
+  --scale: color-mix(in srgb, var(--ink) 38%, transparent);
+  position: absolute; z-index: 1;
+  left: calc(var(--px) * -3); bottom: var(--fly);
+  width: var(--px); height: var(--px); background: var(--scale);
+  box-shadow:
+    /* the head, and the muzzle out in front of it */
+    0 var(--px) 0 var(--scale),
+    var(--px) var(--px) 0 var(--scale),
+    0 calc(var(--px) * 2) 0 var(--scale),
+    var(--px) calc(var(--px) * 2) 0 var(--scale),
+    calc(var(--px) * 2) calc(var(--px) * 2) 0 var(--scale),
+    /* the neck */
+    calc(var(--px) * -2) calc(var(--px) * 2) 0 var(--scale),
+    calc(var(--px) * -1) calc(var(--px) * 2) 0 var(--scale),
+    /* the body, one row lower */
+    calc(var(--px) * -6) calc(var(--px) * 3) 0 var(--scale),
+    calc(var(--px) * -5) calc(var(--px) * 3) 0 var(--scale),
+    calc(var(--px) * -4) calc(var(--px) * 3) 0 var(--scale),
+    calc(var(--px) * -3) calc(var(--px) * 3) 0 var(--scale),
+    calc(var(--px) * -2) calc(var(--px) * 3) 0 var(--scale),
+    /* two paws hanging off it */
+    calc(var(--px) * -4) calc(var(--px) * 4) 0 var(--scale),
+    calc(var(--px) * -2) calc(var(--px) * 4) 0 var(--scale),
+    /* the tail, trailing and flicked up at the tip */
+    calc(var(--px) * -9) calc(var(--px) * 3) 0 var(--scale),
+    calc(var(--px) * -8) calc(var(--px) * 4) 0 var(--scale),
+    calc(var(--px) * -7) calc(var(--px) * 4) 0 var(--scale);
+}
+
+/* ── the ivory tower, moving ───────────────────────────────────────────────── */
+@property --cloud-c { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --cloud-d { syntax: "<length>"; inherits: false; initial-value: 0px; }
+
+/* The clouds drift out and back rather than looping, so a short drift never has
+   to teleport home. */
+.tower {
+  animation:
+    cloud-c 37s steps(7, end)  infinite alternate,
+    cloud-d 53s steps(10, end) infinite alternate;
+}
+@keyframes cloud-c { to { --cloud-c: calc(var(--px) * 7); } }
+@keyframes cloud-d { to { --cloud-d: calc(var(--px) * 10); } }
+
+/* The city keeps different hours: the lit windows come up, then go down. */
+.tower::before { animation: lamps 5.3s steps(1, end) infinite alternate; }
+@keyframes lamps { from { opacity: .85; } to { opacity: .35; } }
+
+/* The pennant snaps one pixel out and back. */
+.tower::after { animation: pennant 6.7s steps(1, end) infinite alternate; }
+@keyframes pennant {
+  from { transform: translateX(0); }
+  to   { transform: translateX(var(--px)); }
+}
+
+/* The dragon crosses far enough to leave any box before it loops, so the reset
+   happens off screen, and rises and falls on `bottom` while it goes: two
+   properties, one whole pixel at a time each, no diagonal in sight. */
+.tower .luck {
+  animation:
+    soar 84s steps(280, end) infinite,
+    bob  11s steps(1, end)   infinite alternate;
+}
+@keyframes soar { to { transform: translateX(calc(var(--px) * 280)); } }
+@keyframes bob {
+  0%   { bottom: var(--fly); }
+  50%  { bottom: calc(var(--fly) + var(--px)); }
+  100% { bottom: calc(var(--fly) + var(--px) * 2); }
 }
 
 /* ── tab deck (CSS-only) ──────────────────────────────────────────────────── */
