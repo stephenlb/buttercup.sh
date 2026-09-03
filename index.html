@@ -192,9 +192,12 @@
 
       <div class="panel" id="panel-tools">
         <div class="panel-head"><h2>tool definitions</h2>
-          <span class="dim" id="tool-count"></span></div>
+          <span class="dim" id="tool-count"></span>
+          <button type="button" id="tools-all" class="mini">ALL</button>
+          <button type="button" id="tools-none" class="mini">NONE</button></div>
         <p class="note">Handed to the model verbatim on every turn. Each one is a
-           plain JS function in <code>js/tools.js</code> — no server touches them.</p>
+           plain JS function in <code>js/tools.js</code> — no server touches them.
+           Switch one off and the model never sees it.</p>
         <ul class="tools" id="tools"></ul>
       </div>
 
