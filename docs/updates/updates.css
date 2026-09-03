@@ -190,6 +190,27 @@ th { color: var(--ink-hot); background: var(--paper-2); font-weight: 600; }
 .signup[data-sent="1"] .note { display: none; }
 .signup[data-sent="1"] .thanks { display: block; grid-column: 1 / -1; }
 
+/* the lede copy of the form — the one that used to be a green CTA button, so
+   its button keeps the CTA's colour and weight. Everything else is the same. */
+.signup.lede { margin: 1.2rem 0 .2rem; }
+.signup.lede button {
+  border: 2px solid var(--good); background: var(--good); color: var(--paper);
+  font-size: .8rem; letter-spacing: .1em; padding: .35rem .9rem;
+}
+.signup.lede button:hover {
+  background: var(--good); color: var(--paper); filter: brightness(1.1);
+}
+/* when a green CTA already sits above the form, that link is the loud thing on
+   the page — the subscribe button steps back to the quiet outlined style. */
+.cta + .signup.lede { margin-top: 1.4rem; }
+.cta + .signup.lede button {
+  border: 1px solid var(--rule); background: var(--paper-3); color: var(--ink);
+  padding: .3rem .8rem; filter: none;
+}
+.cta + .signup.lede button:hover {
+  background: var(--ink); color: var(--paper); filter: none;
+}
+
 @media (max-width: 40rem) {
   /* narrow: the field takes whatever is left rather than holding 22rem */
   .signup { grid-template-columns: auto minmax(0, 1fr); }

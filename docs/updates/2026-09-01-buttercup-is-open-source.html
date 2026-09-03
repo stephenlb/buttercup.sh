@@ -30,6 +30,22 @@
          running on your own machine. No server, no build step, no account.
          <strong>Free forever.</strong></p>
       <a class="cta" href="/">open the harness</a>
+      <!-- the form itself rather than a link down to it: one field, one
+           button, no jump. Same list, same sink frame as the foot. -->
+      <form class="signup lede" id="signup-lede"
+            action="https://5487903a.sibforms.com/serve/MUIFAAPvkZdoviEts98XHd7P8K3TyLVS3MtyAoJy_sJMZ9DgAKwbaJqN4Lgn4NMQH3JL50ANiWCKfMJlE3Wj5aEiDLJ3sbnhtSTvh3z7Lgg2BOpAJjNZhMpN_BCn21Kz_o-buc-NY7aFM5JXPRkd-GW0iihg0KEvSJQiAgmUYcB_8D6DmR8Xb4bEFUzTJmlYFti6yJBG7K33hsR_MQ=="
+            method="POST" target="signup-sink" autocomplete="on">
+        <label class="sigil" for="signup-lede-email" aria-hidden="true">&gt;</label>
+        <label class="slabel" for="signup-lede-email">EMAIL</label>
+        <input id="signup-lede-email" name="EMAIL" type="email" required
+               spellcheck="false" placeholder="you@example.com">
+        <input type="text" name="email_address_check" value="" class="trap"
+               tabindex="-1" aria-hidden="true" autocomplete="off">
+        <input type="hidden" name="locale" value="en">
+        <button type="submit">SUBSCRIBE</button>
+        <p class="note">one lesson a week, starting mid-September 2026</p>
+        <p class="thanks" role="status">subscribed — thank you!</p>
+      </form>
     </header>
 
     <h2>What it is</h2>
@@ -45,7 +61,7 @@
        tags, no modules, no bundler, no dependencies, nothing to compile. The
        whole setup is:</p>
 
-<pre><code>git clone https://github.com/stephenlb/buttercup.sh &amp;&amp; open index.html</code></pre>
+<pre><code>git clone https://github.com/stephenlb/buttercup.sh &amp;&amp; open buttercup.sh/index.html</code></pre>
 
     <p>That is not a quickstart with a "production deployment" section hiding
        behind it. There is no production deployment. The page you open <em>is</em>

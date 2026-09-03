@@ -4322,55 +4322,94 @@ button.danger:hover { background: var(--bad); color: var(--paper); }
   background: var(--post);
 }
 
-/* The bus, drawn double-size, headlamp at the front:
+/* The bus, drawn double-size, twenty-four across and nine down, front to the
+   right. It is the thing everyone in the scene is waiting for, so it rides in
+   front of the sign, the child and the large one — `z-index: 3`, above their 1:
 
-     ..##################..
-     ##■##■##■##■##■##■####      lit windows, every third pixel
-     #####################■      and the headlamp at the front
-     ######################
-     .####################.
-     ..#..#..#..#..#..#....      the wheels
+     ..####################..      the roof, a paler panel
+     .######################.
+     #■■#■■#■■#■■#■■#DDD#WWW#      lit windows, the door, the windscreen
+     #■■#■■#■■#■■#■■#DDD#WWW#
+     ########################
+     T######################L      the tail lamp and the headlamp
+     ========================      the skirt, a darker panel
+     .======================.      the bumper
+     ...###..........###.....      the wheels, hubs a paler ink
    ─────────────────────────────────────────────────────────────────────────── */
 .stop .bus {
   --up: calc(var(--px) * 2);                        /* the bus is double-size */
   --panel: color-mix(in srgb, var(--ink) 52%, var(--paper));
-  --tyre:  color-mix(in srgb, var(--ink) 70%, var(--paper));
-  position: absolute; z-index: 0; left: calc(var(--px) * 62);
+  --roof:  color-mix(in srgb, var(--ink) 38%, var(--paper));
+  --skirt: color-mix(in srgb, var(--ink) 66%, var(--paper));
+  --door:  color-mix(in srgb, var(--ink) 34%, var(--paper));
+  --tyre:  color-mix(in srgb, var(--ink) 80%, var(--paper));
+  --hub:   color-mix(in srgb, var(--ink) 26%, var(--paper));
+  --tail:  color-mix(in srgb, var(--ink-hot) 55%, var(--panel));
+  position: absolute; z-index: 3; left: calc(var(--px) * 62);
   bottom: calc(var(--px) * 2);
-  width: calc(var(--up) * 22); height: calc(var(--up) * 6);
+  width: calc(var(--up) * 24); height: calc(var(--up) * 9);
   background-repeat: no-repeat;
   background-image:
-    /* lit windows */
-    repeating-linear-gradient(90deg,
-      var(--ink-hot) 0 var(--up),
-      transparent var(--up) calc(var(--up) * 3)),
     /* the headlamp */
     linear-gradient(var(--ink-hot), var(--ink-hot)),
-    /* the wheels */
+    /* the tail lamp */
+    linear-gradient(var(--tail), var(--tail)),
+    /* the windscreen */
+    linear-gradient(var(--ink-hot), var(--ink-hot)),
+    /* the door */
+    linear-gradient(var(--door), var(--door)),
+    /* lit windows, two lit and one post */
     repeating-linear-gradient(90deg,
-      transparent 0 var(--up),
-      var(--tyre) var(--up) calc(var(--up) * 2),
+      var(--ink-hot) 0 calc(var(--up) * 2),
       transparent calc(var(--up) * 2) calc(var(--up) * 3)),
-    /* row 0 */
-    linear-gradient(var(--panel), var(--panel)),
-    /* rows 1-3 */
-    linear-gradient(var(--panel), var(--panel)),
-    /* row 4 */
+    /* wheel, rear */
+    linear-gradient(var(--tyre), var(--tyre)),
+    /* wheel, front */
+    linear-gradient(var(--tyre), var(--tyre)),
+    /* the bumper */
+    linear-gradient(var(--skirt), var(--skirt)),
+    /* the skirt */
+    linear-gradient(var(--skirt), var(--skirt)),
+    /* the roof */
+    linear-gradient(var(--roof), var(--roof)),
+    /* and its edge */
+    linear-gradient(var(--roof), var(--roof)),
+    /* the body */
     linear-gradient(var(--panel), var(--panel));
   background-size:
-    calc(var(--up) * 18) var(--up),            /* lit windows                */
-    var(--up) var(--up),                       /* the headlamp               */
-    calc(var(--up) * 20) var(--up),            /* the wheels                 */
-    calc(var(--up) * 18) var(--up),            /* row 0                      */
-    calc(var(--up) * 22) calc(var(--up) * 3),  /* rows 1-3                   */
-    calc(var(--up) * 20) var(--up);            /* row 4                      */
+    var(--up) var(--up),                        /* the headlamp               */
+    var(--up) var(--up),                        /* the tail lamp              */
+    calc(var(--up) * 3) calc(var(--up) * 2),    /* the windscreen             */
+    calc(var(--up) * 3) calc(var(--up) * 5),    /* the door                   */
+    calc(var(--up) * 14) calc(var(--up) * 2),   /* lit windows                */
+    calc(var(--up) * 3) calc(var(--up) * 2),    /* wheel, rear                */
+    calc(var(--up) * 3) calc(var(--up) * 2),    /* wheel, front               */
+    calc(var(--up) * 22) var(--up),             /* the bumper                 */
+    calc(var(--up) * 24) var(--up),             /* the skirt                  */
+    calc(var(--up) * 20) var(--up),             /* the roof                   */
+    calc(var(--up) * 22) var(--up),             /* and its edge               */
+    calc(var(--up) * 24) calc(var(--up) * 6);   /* the body                   */
   background-position:
-    top var(--up) left calc(var(--up) * 2),  /* lit windows                */
-    top calc(var(--up) * 2) right 0,         /* the headlamp               */
-    top calc(var(--up) * 5) left var(--up),  /* the wheels                 */
-    top 0 left calc(var(--up) * 2),          /* row 0                      */
-    top var(--up) left 0,                    /* rows 1-3                   */
-    top calc(var(--up) * 4) left var(--up);  /* row 4                      */
+    top calc(var(--up) * 5) right 0,                     /* the headlamp     */
+    top calc(var(--up) * 5) left 0,                      /* the tail lamp    */
+    top calc(var(--up) * 2) left calc(var(--up) * 20),   /* the windscreen   */
+    top calc(var(--up) * 2) left calc(var(--up) * 17),   /* the door         */
+    top calc(var(--up) * 2) left var(--up),              /* lit windows      */
+    top calc(var(--up) * 7) left calc(var(--up) * 3),    /* wheel, rear      */
+    top calc(var(--up) * 7) left calc(var(--up) * 16),   /* wheel, front     */
+    top calc(var(--up) * 7) left var(--up),              /* the bumper       */
+    top calc(var(--up) * 6) left 0,                      /* the skirt        */
+    top 0 left calc(var(--up) * 2),                      /* the roof         */
+    top var(--up) left var(--up),                        /* and its edge     */
+    top calc(var(--up) * 2) left 0;                      /* the body         */
+}
+
+/* Two hubs, one pseudo-element and a shadow thirteen pixels along. */
+.stop .bus::after {
+  content: ""; position: absolute;
+  left: calc(var(--up) * 4); top: calc(var(--up) * 7);
+  width: var(--up); height: var(--up); background: var(--hub);
+  box-shadow: calc(var(--up) * 13) 0 0 var(--hub);
 }
 
 /* ── the stop, moving ─────────────────────────────────────────────────────── */
