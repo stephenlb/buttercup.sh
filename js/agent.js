@@ -22,16 +22,9 @@ You are writing into a terminal transcript. Be brief and concrete; lead with wha
      specialist, with the conversation intact. Every mode carries this section,
      because the mode the user is in is rarely the mode the request needs. */
   const SWITCH = `# Modes
-This harness has one mode per kind of work; the mode you are in is a system prompt and nothing more. \`set_mode\` swaps it, keeps the conversation, and takes effect on your next step — so switching costs one tool call, not a restart.
+This harness has one mode per kind of work; the mode you are in is a system prompt and nothing more. \`set_mode\` swaps it, keeps the conversation, and takes effect on your next step — so switching costs one tool call, not a restart. Its own description lists the modes.
 
-Switch as your *first* action, before reading or writing anything, when the request belongs to a mode other than this one:
-- \`agent-builder\` — building an AI agent of any kind: an agent loop, tool definitions for a model, an MCP server or client, a provider adapter, or anything on Blocks.AI / Blocks Network (\`@blocks-network/sdk\`, \`@blocks-network/cli\`). A request that names Blocks.AI, or asks for "an agent" that calls a model and runs tools, is this mode's job.
-- \`slides\` — a deck, a presentation, speaker notes, something to present from.
-- \`game-dev\` — a game or a playable toy.
-- \`data-viz\` — charts, dashboards, or a data file the user wants read and plotted.
-- \`general\` — everything else, and where to return when the work stops being any of the above.
-
-Say nothing about the switch beyond the one line the tool gives you; the user can see it. Do not switch on a passing mention of another domain, do not switch twice in one turn, and never switch to escape a hard part of the current job.`;
+Switch as your *first* action, before reading or writing anything, when the request belongs to a mode other than this one. Say nothing about the switch beyond the one line the tool gives you; the user can see it. Do not switch on a passing mention of another domain, do not switch twice in one turn, and never switch to escape a hard part of the current job.`;
 
   const AGENT_BUILDER = `You are buttercup.sh — a coding agent that builds *other* AI agents, running entirely inside a browser tab.
 
@@ -191,7 +184,21 @@ ${VOICE}`;
   }
 
   function systemFor(settings) {
-    return (MODES[settings.mode] || MODES[DEFAULT_MODE]).system + rulesPrompt();
+    const system = (MODES[settings.mode] || MODES[DEFAULT_MODE]).system + rulesPrompt();
+    // Lean toolsets advertise a subset, and the mode prompts name tools that
+    // are not among them. One honest line beats a model dialing phantom calls.
+    if (!(LLM.providers[settings.provider] || {}).leanTools) return system;
+    return system +
+      `\n\n# Lean toolset` +
+      `\nOnly the tools in the tool list above exist right now; this prompt may name` +
+      `\nothers (npm_info, npm_file, run_agent, navigate, screenshot, scaffold,` +
+      `\nframework_docs, export_zip) that are unavailable here. Work with the list` +
+      `\nyou have, and say plainly when a task needs a tool you do not have.` +
+      `\n\n# Pace` +
+      `\nReason briefly: a few short sentences of deliberation at most before acting,` +
+      `\nnone at all for trivial steps (reads, deletes, single edits). Every thinking` +
+      `\ntoken costs the user a second of wall clock. Never guess at paths — list or` +
+      `\nglob first, and prefer edit over write for files that already exist.`;
   }
 
   /* ── compaction ───────────────────────────────────────────────────────────
@@ -224,6 +231,18 @@ The exact next step, and anything the next agent must not redo.
 Facts only. Keep every path, package name and API name verbatim. No preamble, no closing summary.`;
 
   const COMPACT_FLOOR = 8000;
+
+  /* Vendor phrasings for "this request will not fit" — matches WebLLM's
+     "Prompt tokens exceed context window size" and the cloud vendors' own. */
+  const OVERFLOW = /prompt tokens exceed|context window|context length|too many tokens|maximum context|context overflow/i;
+
+  /* One wall clock for every trace line, shared with the `[webllm]` logs —
+     optimization is timing, and timing needs a common reference. */
+  const stamp = () => {
+    const d = new Date();
+    return `${d.toTimeString().slice(0, 8)}.${String(d.getMilliseconds()).padStart(3, "0")}`;
+  };
+  const log = (...args) => console.log(`[${stamp()} agent]`, ...args);
 
   /** What to report when something throws: its message, or the thing itself. */
   const errText = (err) => String(err && err.message ? err.message : err);
@@ -311,7 +330,10 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
 
   function persist() {
     try {
-      localStorage.setItem(sessionKey(), JSON.stringify(state.messages));
+      // `raw` is wire-only — it exists so the next request can repeat the
+      // engine's own words. Saving it would double every session's storage
+      // for a benefit one full prefill after a reload provides anyway.
+      localStorage.setItem(sessionKey(), JSON.stringify(state.messages, (k, v) => (k === "raw" ? undefined : v)));
       localStorage.setItem(ctxKey(), String(state.context));
     } catch (_) {
       if (!saidQuota) {
@@ -345,6 +367,7 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
   function apply(snap) {
     state.messages = snap.messages.slice();
     state.context = snap.context || 0;
+    state.wireTrail = null;   // history changed under the trail; rebuild once
     VFS.restore(snap.files);
     persist();
   }
@@ -391,7 +414,11 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
   }
 
   function compactAt(settings) {
-    return Math.max(COMPACT_FLOOR, Number(settings && settings.compactAt) || 120000);
+    const user = Math.max(COMPACT_FLOOR, Number(settings && settings.compactAt) || 120000);
+    // In-tab engines allocate a fixed window; compaction must fire well before
+    // it fills, or the request dies on the allocation instead of summarizing.
+    const window = LLM.contextWindow(settings && settings.provider, settings && settings.model);
+    return window ? Math.min(user, Math.floor(window * 0.6)) : user;
   }
 
   /**
@@ -407,6 +434,7 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
     if (source.length < 2) throw new Error(`nothing worth compacting (${source.length} message(s) of context)`);
 
     const before = { turns: state.messages.length, context: state.context };
+    log(`compacting (${reason}) — ${before.turns} message(s), context ~${before.context} tok`);
     // `/compact` runs outside a turn, so it has to claim the busy flag itself —
     // otherwise a request typed while the summary is streaming would race it.
     const standalone = !state.busy;
@@ -457,6 +485,7 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
     if (pending) parts.push({ type: "text", text: `# The request you are working on, verbatim\n\n${pending}` });
     state.messages = [{ role: "user", parts }];
     state.context = reply.usage.output;
+    state.wireTrail = null;   // the trail no longer prefixes history
     persist();
 
     const info = {
@@ -472,6 +501,7 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
       `compacted (${reason}) — ${info.turns} message(s) → 1 handover note of ${info.note} chars, ` +
       `context ~${info.before} → ~${info.after} tok, ${info.cost} tok spent summarizing. /undo restores the full context.`
     );
+    log(`compaction done — note ${info.note} chars · ~${info.before} → ~${info.after} tok · cost ${info.cost} tok`);
     return info;
   }
 
@@ -508,6 +538,7 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
       for (let step = 0; step < maxSteps; step++) {
         state.steps = step + 1;
         hooks.onStatus("busy", { step: state.steps });
+        log(`step ${state.steps} — context ~${state.context} tok`);
 
         // Compact *before* spending a request we know is too big, not after the
         // vendor rejects it. The estimate is the last reply's own token count.
@@ -516,6 +547,7 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
             await compact({ reason: `auto at ${compactAt(settings)} tok` });
           } catch (err) {
             if (err && err.name === "AbortError") throw err;
+            log(`auto-compaction failed — ${String((err && err.message) || err).slice(0, 120)}`);
             hooks.onError(`auto-compaction failed (${err.message}) — continuing with the full context`);
             state.context = 0;   // do not retry on every step of this turn
           }
@@ -523,20 +555,92 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
 
         const view = hooks.onAssistantStart();
         let reply;
-        try {
-          reply = await LLM.complete({
+        const lean = !!(LLM.providers[settings.provider] || {}).leanTools;
+        let nudges = 0;
+        const attempt = () => {
+          // Append-only wire for lean engines: already-sent history is frozen
+          // in state.wireTrail (KV reuse dies on any byte difference), each
+          // step sends trail + elision of new messages only.
+          let base;
+          if (lean) {
+            const trail = (state.wireTrail && state.wireTrail.length <= state.messages.length)
+              ? state.wireTrail
+              : null;
+            if (trail) {
+              const fresh = state.messages.slice(trail.length);
+              base = trail.concat(fresh.length ? elideResults(fresh) : fresh);
+              if (fresh.length) log(`wire: ${trail.length} held + ${fresh.length} new message(s)`);
+            } else {
+              base = elideResults(state.messages);
+              log(`wire: full rebuild — ${base.length} message(s), KV re-prefills`);
+            }
+            state.wireTrail = base;
+          } else {
+            base = state.messages;
+          }
+          // A blank stream is answered with a wire-only push to speak, not an
+          // end-of-turn error: the nudge rides on the last user message, so
+          // the model reads it as part of the turn it just went silent in.
+          const messages = nudges
+            ? base.map((m, i) => i === base.length - 1 && m.role === "user"
+                ? { ...m, parts: [...m.parts, { type: "text", text: BLANK_NUDGE }] }
+                : m)
+            : base;
+          return LLM.complete({
             ...creds(settings),
             effort: settings.effort,
             system: systemFor(settings),
-            messages: forProvider(state.messages, settings.provider),
-            tools: Tools.schemas(),
+            messages: forProvider(messages, settings.provider),
+            tools: Tools.schemas(lean),
             signal: state.controller.signal,
             on: {
               text: (d) => hooks.onText(view, d),
               thinking: (d) => settings.showThinking && hooks.onThinking(view, d),
               toolStart: () => {},
+              // Freeform progress from slow backends (WebLLM's weight fetch).
+              status: (note, progress) => hooks.onStatus("busy", {
+                step: state.steps, note: String(note).slice(0, 56), progress,
+              }),
             },
           });
+        };
+        try {
+          try {
+            reply = await attempt();
+            // One free retry — degenerate empty streams are transient.
+            if (isBlankReply(reply)) {
+              log("blank reply (no text, no calls) — retrying the step once");
+              reply = await attempt();
+            }
+          } catch (err) {
+            // Backstop for a request that slipped past the size estimate — a
+            // big tool result can outrun the last reply's token count. One
+            // compact-and-retry, then the error stands (opencode's rule).
+            const msg = String((err && err.message) || err);
+            if (!settings.autoCompact || !OVERFLOW.test(msg)) throw err;
+            hooks.onNote(`context overflow (${msg.length > 80 ? msg.slice(0, 80) + "…" : msg}) — compacting and retrying this step once`);
+            try {
+              await compact({ reason: "overflow" });
+            } catch (cerr) {
+              if (cerr && cerr.name === "AbortError") throw cerr;
+              throw err;
+            }
+            reply = await attempt();
+          }
+          // Every path above funnels here: a still-blank reply is answered
+          // with a wire-only nudge (an append, not a rebuild) rather than an
+          // end-of-turn error — including the reply that follows a
+          // compact-and-retry.
+          if (isBlankReply(reply)) {
+            if (nudges >= 1) {
+              throw new Error("the model returned empty replies after a nudge — ask again, or pick a different model");
+            }
+            nudges++;
+            log("still blank — nudging the model to speak on the next step");
+            hooks.onNote("the model went quiet — nudging it to continue");
+            continue;
+          }
+          nudges = 0;
         } finally {
           hooks.onAssistantEnd(view);
         }
@@ -545,7 +649,22 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
         // What this request cost is the best measure of the context the next one
         // will carry — the tab cannot tokenize, and every vendor counts its own.
         state.context = reply.usage.input + reply.usage.output;
-        state.messages.push({ role: "assistant", parts: reply.parts });
+        const tally = {};
+        for (const p of reply.parts) {
+          const t = (tally[p.type] = tally[p.type] || { n: 0, chars: 0 });
+          t.n++;
+          t.chars += p.type === "tool_use" ? JSON.stringify(p.input || {}).length : (p.text || "").length;
+        }
+        log(`reply ${reply.usage.input} in / ${reply.usage.output} out tok · ` +
+            Object.entries(tally).map(([k, v]) => `${k}×${v.n} (${v.chars}c)`).join(" · ") +
+            (reply.usage.think ? ` · think ≈${reply.usage.think} tok` : ""));
+        // `raw` rides along: web-llm's KV reuse needs the resent assistant
+        // turn to byte-match what the engine stored.
+        state.messages.push({
+          role: "assistant",
+          parts: reply.parts,
+          ...(reply.raw ? { raw: reply.raw } : {}),
+        });
         persist();
 
         const calls = reply.parts.filter((p) => p.type === "tool_use");
@@ -554,6 +673,7 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
         const results = [];
         for (const call of calls) {
           const handle = hooks.onToolStart(call.name, call.input);
+          log(`→ ${call.name} ${JSON.stringify(call.input).slice(0, 100)}`);
 
           if (!approveAll && Tools.needsApproval(call.name)) {
             const verdict = await hooks.approve(call.name, call.input, handle);
@@ -566,14 +686,18 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
             }
           }
 
+          const t0 = performance.now();
           try {
             // A tool may hand back pictures as well as words — `screenshot`
             // does — and they ride on the result part into the next request.
             const { output, shots } = await Tools.run(call.name, call.input);
+            log(`← ${call.name} ${output.length} chars ≈${Math.round(output.length / 4)} tok` +
+                `${shots.length ? ` +${shots.length} img` : ""} in ${(performance.now() - t0).toFixed(0)}ms`);
             hooks.onToolEnd(handle, { ok: true, output, shots });
             results.push({ type: "tool_result", id: call.id, name: call.name, output, ...(shots.length ? { shots } : {}) });
           } catch (err) {
             const output = errText(err);
+            log(`← ${call.name} FAILED in ${(performance.now() - t0).toFixed(0)}ms — ${output.slice(0, 120)}`);
             hooks.onToolEnd(handle, { ok: false, output });
             results.push({ type: "tool_result", id: call.id, name: call.name, output, error: true });
           }
@@ -587,14 +711,104 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
 
       hooks.onError(`stopped after ${maxSteps} steps (the max-steps setting). Ask it to continue if that was too soon.`);
     } catch (err) {
-      if (err && err.name === "AbortError") hooks.onError("stopped by user");
-      else hooks.onError(errText(err));
+      if (err && err.name === "AbortError") {
+        log("turn aborted — stopped by user");
+        hooks.onError("stopped by user");
+      } else {
+        log(`turn failed — ${errText(err).slice(0, 120)}`);
+        hooks.onError(errText(err));
+      }
     } finally {
       state.busy = false;
       state.controller = null;
       hooks.onStatus("idle");
       hooks.onDone({ steps: state.steps });
+      log(`turn done — ${state.steps} step(s)`);
     }
+  }
+
+  /** Wire-only push appended to the last user message after a blank stream —
+      never stored, so /undo and compaction never see it. */
+  const BLANK_NUDGE =
+    "Your previous reply arrived empty. Continue the task now: say what you are doing or run a tool.";
+
+  /** Degenerate stream: no text, no calls — the small MLC builds do this
+      now and then, and ending the turn silently on it teaches the user. */
+  function isBlankReply(r) {
+    return !r.parts.some((p) => p.type === "tool_use") &&
+           !r.parts.some((p) => p.type === "text" && (p.text || "").trim());
+  }
+
+  /**
+   * The per-request view of history for lean engines: newest tool results stay
+   * verbatim up to a char budget (3000 chars ≈ 750 tokens), the result that
+   * crosses it is clipped, older ones shrink to a stub, exact duplicates
+   * collapse to a stub, and big write/edit payloads become "re-read the file".
+   * Canonical history is untouched; on the wire, elision runs once as a
+   * message first enters the trail, so this only ever sees new messages.
+   */
+  function elideResults(messages, budget = 3000) {
+    let before = 0, after = 0, touched = 0, total = 0, stubs = 0;
+    const seen = new Set();
+    // The newest assistant message holds the calls in flight — never touched.
+    const newestAssistant = messages.map((m) => m.role).lastIndexOf("assistant");
+    const out = [];
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i];
+      let parts = null;
+      const swap = (j, output) => {
+        if (!parts) parts = m.parts.slice();
+        parts[j] = { ...m.parts[j], output };
+      };
+      for (let j = m.parts.length - 1; j >= 0; j--) {
+        const p = m.parts[j];
+        // Old write/edit payloads are dead weight — the file on disk is the
+        // source of truth and the model can re-read it.
+        if (p.type === "tool_use" && (p.name === "write" || p.name === "edit") && i !== newestAssistant) {
+          const payload = JSON.stringify(p.input || {});
+          if (payload.length > 400) {
+            const input = { path: (p.input && p.input.path) || "", applied: true, elided: `${payload.length} chars — re-read the file` };
+            if (!parts) parts = m.parts.slice();
+            parts[j] = { ...p, input };
+            before += payload.length;
+            after += JSON.stringify(input).length;
+            stubs++;
+          }
+          continue;
+        }
+        if (p.type !== "tool_result" || typeof p.output !== "string" || (p.shots && p.shots.length)) continue;
+        total++;
+        before += p.output.length;
+        const key = `${p.name}\u0000${p.output}`;
+        if (seen.has(key)) {
+          swap(j, `[${p.name} result elided — identical to an earlier result; re-run the tool if you need it again]`);
+          after += parts[j].output.length;
+          touched++;
+          continue;
+        }
+        seen.add(key);
+        if (budget > 0) {
+          if (p.output.length <= budget) { budget -= p.output.length; after += p.output.length; continue; }
+          swap(j, p.output.slice(0, budget) +
+            `\n…[${p.name} result truncated here (${p.output.length} chars total) — re-run the tool for the rest]`);
+          after += parts[j].output.length;
+          touched++;
+          budget = 0;
+          continue;
+        }
+        if (p.output.length <= 400) { after += p.output.length; continue; }
+        swap(j, `[${p.name} result elided (${p.output.length} chars) — re-run the tool if you need it]`);
+        after += parts[j].output.length;
+        touched++;
+      }
+      out.unshift(parts ? { role: m.role, parts, ...(m.raw ? { raw: m.raw } : {}) } : m);
+    }
+    if (touched || stubs) {
+      log(`elision: ${touched}/${total} result(s) trimmed` +
+          (stubs ? ` · ${stubs} write payload(s) stubbed` : "") +
+          ` — ${before} → ${after} chars (≈${Math.round((before - after) / 4)} tok saved)`);
+    }
+    return out;
   }
 
   /**
@@ -602,11 +816,28 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
    * only Anthropic accepts them back at all. Everyone else gets them dropped.
    */
   function forProvider(messages, provider) {
-    if (provider === "anthropic") return messages;
-    return messages.map((m) => ({
-      role: m.role,
-      parts: m.parts.filter((p) => p.type !== "thinking"),
-    })).filter((m) => m.parts.length);
+    if (provider !== "anthropic") {
+      // `raw` must ride along — web-llm's KV reuse dies if the assistant turn
+      // is re-rendered from parts instead of byte-matching what it stored.
+      return messages.map((m) => ({
+        role: m.role,
+        parts: m.parts.filter((p) => p.type !== "thinking"),
+        ...(m.raw ? { raw: m.raw } : {}),
+      })).filter((m) => m.parts.length);
+    }
+    // Anthropic keeps thinking blocks only for the current tool cycle — the
+    // turns since the last real user message; older ones are billed dead
+    // weight. state.messages is untouched.
+    let cut = 0;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (m.role === "user" && m.parts.some((p) => p.type !== "tool_result")) { cut = i; break; }
+    }
+    return messages.map((m, i) => {
+      if (i >= cut) return m;
+      const parts = m.parts.filter((p) => p.type !== "thinking");
+      return parts.length === m.parts.length ? m : { role: m.role, parts, ...(m.raw ? { raw: m.raw } : {}) };
+    }).filter((m) => m.parts.length);
   }
 
   return {
