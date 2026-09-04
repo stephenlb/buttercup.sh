@@ -873,6 +873,7 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
       state.context = loadContext();
       state.usage = { input: 0, output: 0 };
       state.steps = 0;
+      state.wireTrail = null;
       return state.messages.length;
     },
 
@@ -880,6 +881,7 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
       state.messages = [];
       state.usage = { input: 0, output: 0 };
       state.context = 0;
+      state.wireTrail = null;
       localStorage.removeItem(sessionKey());
       localStorage.removeItem(ctxKey());
     },

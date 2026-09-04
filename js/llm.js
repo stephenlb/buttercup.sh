@@ -542,7 +542,14 @@ window.LLM = (function () {
       }
       if (!engine) {
         console.warn(`[${tstamp()} webllm] Cache API keeps failing — falling back to IndexedDB cache`);
-        engine = await webllm.CreateMLCEngine(model, config, opts, { useIndexedDBCache: true });
+        // Cache backend belongs to the engine's appConfig; CreateMLCEngine only
+        // accepts (model, engineConfig, chatOpts), so a fourth argument would be
+        // silently ignored.
+        const indexedConfig = {
+          ...config,
+          appConfig: { ...webllm.prebuiltAppConfig, cacheBackend: "indexeddb" },
+        };
+        engine = await webllm.CreateMLCEngine(model, indexedConfig, opts);
       }
     }
     console.log(`[${tstamp()} webllm] engine load: ${model}: ${(performance.now() - loadT0).toFixed(0)}ms`);
