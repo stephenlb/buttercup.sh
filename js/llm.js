@@ -517,8 +517,10 @@ window.LLM = (function () {
     };
     let engine;
     // Shard fetches over the HF CDN drop mid-download now and then
-    // ("Cache.add() encountered a network error"); one retry usually lands,
-    // and already-cached shards are kept.
+    // ("Cache.add() encountered a network error"). Already-cached shards are
+    // kept, so a bounded retry loop walks the download to completion; if the
+    // Cache API itself is refusing (often an extension), IndexedDB is the
+    // last resort.
     const errText = (err) => String(err?.message ?? err ?? "unknown error");
     try {
       const worker = webllmWorker();
@@ -531,11 +533,16 @@ window.LLM = (function () {
       console.log(`[${tstamp()} webllm] engine lives in a web worker — main thread stays free`);
     } catch (err) {
       console.warn(`[${tstamp()} webllm] worker engine unavailable (${errText(err)}) — falling back to the main thread`);
-      try {
-        engine = await webllm.CreateMLCEngine(model, config, opts);
-      } catch (err2) {
-        console.warn(`[${tstamp()} webllm] engine load failed (${errText(err2)}) — retrying once`);
-        engine = await webllm.CreateMLCEngine(model, config, opts);
+      for (let attempt = 1; attempt <= 3 && !engine; attempt++) {
+        try {
+          engine = await webllm.CreateMLCEngine(model, config, opts);
+        } catch (e) {
+          console.warn(`[${tstamp()} webllm] engine load failed (attempt ${attempt}/3) — ${errText(e)}`);
+        }
+      }
+      if (!engine) {
+        console.warn(`[${tstamp()} webllm] Cache API keeps failing — falling back to IndexedDB cache`);
+        engine = await webllm.CreateMLCEngine(model, config, opts, { useIndexedDBCache: true });
       }
     }
     console.log(`[${tstamp()} webllm] engine load: ${model}: ${(performance.now() - loadT0).toFixed(0)}ms`);
