@@ -516,6 +516,10 @@ window.LLM = (function () {
       prefill_chunk_size: 2048,
     };
     let engine;
+    // Shard fetches over the HF CDN drop mid-download now and then
+    // ("Cache.add() encountered a network error"); one retry usually lands,
+    // and already-cached shards are kept.
+    const errText = (err) => String(err?.message ?? err ?? "unknown error");
     try {
       const worker = webllmWorker();
       try {
@@ -526,8 +530,13 @@ window.LLM = (function () {
       }
       console.log(`[${tstamp()} webllm] engine lives in a web worker — main thread stays free`);
     } catch (err) {
-      console.warn(`[${tstamp()} webllm] worker engine unavailable (${err.message}) — falling back to the main thread`);
-      engine = await webllm.CreateMLCEngine(model, config, opts);
+      console.warn(`[${tstamp()} webllm] worker engine unavailable (${errText(err)}) — falling back to the main thread`);
+      try {
+        engine = await webllm.CreateMLCEngine(model, config, opts);
+      } catch (err2) {
+        console.warn(`[${tstamp()} webllm] engine load failed (${errText(err2)}) — retrying once`);
+        engine = await webllm.CreateMLCEngine(model, config, opts);
+      }
     }
     console.log(`[${tstamp()} webllm] engine load: ${model}: ${(performance.now() - loadT0).toFixed(0)}ms`);
     engines.set(model, engine);
