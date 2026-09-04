@@ -264,6 +264,14 @@ window.UI = (function () {
     return row;
   }
 
+  /* The header counts what the model is actually handed, not what exists: with
+     tools switched off, "18 of 21 tools" is the honest line. */
+  function paintToolCount() {
+    const on = Tools.enabledDefs().length;
+    const all = Tools.defs.length;
+    $("tool-count").textContent = on === all ? `${all} tools` : `${on} of ${all} tools`;
+  }
+
   /* Which workspace file the preview frame is showing — a screenshot of it is
      worth more to the model with the path attached to it. */
   let mounted = null;
@@ -503,11 +511,29 @@ window.UI = (function () {
       });
     },
 
+    /** Rebuild the tool catalogue. Also the paint after ALL / NONE. */
     renderTools() {
       const list = $("tools");
       list.replaceChildren();
       for (const def of Tools.defs) {
         const li = el("li");
+        // The switch sits outside the <details> on purpose: a checkbox inside a
+        // <summary> toggles the disclosure along with itself.
+        const sw = el("label", "tswitch");
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.checked = Tools.enabled(def.name);
+        cb.title = `hand ${def.name} to the model`;
+        cb.addEventListener("change", () => {
+          Tools.setEnabled(def.name, cb.checked);
+          // Repaint in place rather than rebuild: an open definition stays open.
+          if (cb.checked) delete li.dataset.off; else li.dataset.off = "1";
+          paintToolCount();
+        });
+        sw.appendChild(cb);
+        li.appendChild(sw);
+        if (!cb.checked) li.dataset.off = "1";
+
         const box = el("details");
         const head = el("summary");
         head.appendChild(el("span", "tname", def.name));
@@ -532,7 +558,7 @@ window.UI = (function () {
         li.appendChild(box);
         list.appendChild(li);
       }
-      $("tool-count").textContent = `${Tools.defs.length} tools`;
+      paintToolCount();
     },
 
     /**

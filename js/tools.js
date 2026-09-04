@@ -527,6 +527,27 @@ window.Tools = (function () {
     },
   ];
 
+  /* ── which tools the model is handed ──────────────────────────────────────
+     A tool can be switched off in the TOOLS panel. Off means the declaration
+     never reaches the model, so the model cannot call it at all — this is a
+     smaller harness for that turn, not a refusal after the fact. The choice is
+     the user's, so it outlives a reload; the list stored is the *off* set, so a
+     tool added to DEFS later arrives switched on. */
+  const OFF_KEY = "buttercup.tools.off.v1";
+
+  function loadOff() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(OFF_KEY));
+      return new Set(Array.isArray(saved) ? saved.filter((n) => typeof n === "string") : []);
+    } catch (_) { return new Set(); }
+  }
+
+  const off = loadOff();
+
+  function saveOff() {
+    try { localStorage.setItem(OFF_KEY, JSON.stringify([...off])); } catch (_) {}
+  }
+
   /** Format a Sandbox result for the model: logs first, then value or error. */
   function report(r) {
     const logs = r.logs.length
@@ -550,18 +571,43 @@ window.Tools = (function () {
     hooks,
     defs: DEFS,
 
-    /** Tool declarations; `lean` drops the non-core tools and compresses the
-        rest to first-sentence descriptions with bare parameter types. */
+    /** True when this tool is switched on, i.e. offered to the model. */
+    enabled(name) {
+      return !off.has(name);
+    },
+
+    /** Switch one tool on or off and remember it. */
+    setEnabled(name, on) {
+      if (!byName[name]) return;
+      if (on) off.delete(name); else off.add(name);
+      saveOff();
+    },
+
+    /** Switch every tool on (or off) in one move — the panel's ALL / NONE. */
+    setAllEnabled(on) {
+      off.clear();
+      if (!on) for (const d of DEFS) off.add(d.name);
+      saveOff();
+    },
+
+    /** The tools the model actually gets, in declaration order. */
+    enabledDefs() {
+      return DEFS.filter((d) => !off.has(d.name));
+    },
+
+    /** Tool declarations; `lean` further drops the non-core tools and
+        compresses the rest to first-sentence descriptions with bare types. */
     schemas(lean = false) {
       leanMode = lean;
+      const pool = DEFS.filter((d) => !off.has(d.name) && (!lean || CORE.has(d.name)));
       if (!lean) {
-        return DEFS.map((d) => ({ name: d.name, description: d.description, input_schema: d.input_schema }));
+        return pool.map((d) => ({ name: d.name, description: d.description, input_schema: d.input_schema }));
       }
       const first = (s) => {
         const i = s.indexOf(". ");
         return i === -1 ? s : s.slice(0, i + 1);
       };
-      return DEFS.filter((d) => CORE.has(d.name)).map((d) => ({
+      return pool.map((d) => ({
         name: d.name,
         description: first(d.description),
         input_schema: {
@@ -598,10 +644,15 @@ window.Tools = (function () {
      */
     async run(name, input) {
       const def = byName[name];
-      if (!def) throw new Error(`unknown tool '${name}'. Available: ${DEFS.map((d) => d.name).join(", ")}`);
+      const available = () => DEFS.filter((d) => !off.has(d.name) && (!leanMode || CORE.has(d.name))).map((d) => d.name).join(", ");
+      if (!def) throw new Error(`unknown tool '${name}'. Available: ${available()}`);
+      // Reachable from an earlier turn: the model saw this tool before the
+      // user switched it off, or it was never offered in lean mode.
+      if (off.has(name)) {
+        throw new Error(`tool '${name}' is switched off in the TOOLS panel. Available: ${available()}`);
+      }
       if (leanMode && !CORE.has(name)) {
-        throw new Error(`tool '${name}' is not offered in this mode. ` +
-          `Available: ${[...CORE].join(", ")}`);
+        throw new Error(`tool '${name}' is not offered in this mode. Available: ${available()}`);
       }
       const out = await def.run(input || {});
       if (out && typeof out === "object" && !Array.isArray(out)) {

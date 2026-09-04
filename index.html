@@ -107,7 +107,7 @@
       </form>
 
       <!-- ══ the view out the window: only visible while the transcript is
-              short enough that the prompt has not reached the bottom. Seven
+              short enough that the prompt has not reached the bottom. Eleven
               scenes, one on screen per load — js/scenes.js picks it at random
               and writes it to data-scene, CSS shows that one. All pure CSS:
               gradients for the flat bands and the drifting rows, box-shadow
@@ -132,6 +132,17 @@
         <div class="scene volcano">
           <i class="cone"></i>
           <i class="ember"></i><i class="ember"></i><i class="ember"></i>
+        </div>
+        <div class="scene tower"><i class="spire"></i><i class="luck"></i></div>
+        <div class="scene rain">
+          <i class="zig"></i>
+          <i class="flare"></i><i class="flare"></i>
+          <i class="spinner"></i>
+        </div>
+        <div class="scene bathhouse"><i class="baths"></i><i class="tram"></i></div>
+        <div class="scene stop">
+          <i class="sign"></i><i class="spirit"></i>
+          <i class="child"></i><i class="bus"></i>
         </div>
       </div>
     </section>
@@ -183,9 +194,12 @@
 
       <div class="panel" id="panel-tools">
         <div class="panel-head"><h2>tool definitions</h2>
-          <span class="dim" id="tool-count"></span></div>
+          <span class="dim" id="tool-count"></span>
+          <button type="button" id="tools-all" class="mini">ALL</button>
+          <button type="button" id="tools-none" class="mini">NONE</button></div>
         <p class="note">Handed to the model verbatim on every turn. Each one is a
-           plain JS function in <code>js/tools.js</code> — no server touches them.</p>
+           plain JS function in <code>js/tools.js</code> — no server touches them.
+           Switch one off and the model never sees it.</p>
         <ul class="tools" id="tools"></ul>
       </div>
 

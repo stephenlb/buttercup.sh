@@ -396,6 +396,22 @@
     UI.system(`deleted ${path} — /undo restores it until this tab closes`);
   });
 
+  /* ── the tool catalogue ───────────────────────────────────────────────────
+     ALL / NONE are the two moves worth a button: a smaller harness usually
+     starts from nothing and adds back, and the way out of one is ALL. Every
+     individual switch is on the row itself and saves itself — see js/tools.js. */
+
+  function setAllTools(on) {
+    Tools.setAllEnabled(on);
+    UI.renderTools();
+    UI.system(on
+      ? `all ${Tools.defs.length} tools handed to the model`
+      : "every tool switched off — the model gets no tools until you switch some back on");
+  }
+
+  $("tools-all").addEventListener("click", () => setAllTools(true));
+  $("tools-none").addEventListener("click", () => setAllTools(false));
+
   /* ── workspace import ─────────────────────────────────────────────────────
      Files dragged into the tab — or picked with IMPORT — are written into the
      workspace exactly as a tool write would be, so the agent can read them on

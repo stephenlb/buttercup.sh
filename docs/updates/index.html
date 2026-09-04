@@ -45,6 +45,28 @@
     </li>
   </ul>
 
+  <!-- ══ subscribe: the same form the harness carries, posting to the same
+          list. Every page in the archive ends here. ═══════════════════════ -->
+  <section class="subscribe">
+    <h2>One lesson a week</h2>
+    <form class="signup" id="signup"
+          action="https://5487903a.sibforms.com/serve/MUIFAAPvkZdoviEts98XHd7P8K3TyLVS3MtyAoJy_sJMZ9DgAKwbaJqN4Lgn4NMQH3JL50ANiWCKfMJlE3Wj5aEiDLJ3sbnhtSTvh3z7Lgg2BOpAJjNZhMpN_BCn21Kz_o-buc-NY7aFM5JXPRkd-GW0iihg0KEvSJQiAgmUYcB_8D6DmR8Xb4bEFUzTJmlYFti6yJBG7K33hsR_MQ=="
+          method="POST" target="signup-sink" autocomplete="on">
+      <label class="sigil" for="signup-email" aria-hidden="true">&gt;</label>
+      <label class="slabel" for="signup-email">EMAIL</label>
+      <input id="signup-email" name="EMAIL" type="email" required
+             spellcheck="false" placeholder="you@example.com">
+      <input type="text" name="email_address_check" value="" class="trap"
+             tabindex="-1" aria-hidden="true" autocomplete="off">
+      <input type="hidden" name="locale" value="en">
+      <button type="submit">SUBSCRIBE</button>
+      <p class="note">one AI Agent training lesson, weekly</p>
+      <p class="note">starting mid-September 2026</p>
+      <p class="thanks" role="status">subscribed — thank you!</p>
+    </form>
+    <iframe name="signup-sink" title="subscription result" hidden></iframe>
+  </section>
+
   <footer class="foot">
     <p><a href="/">← the harness</a> &middot;
        <a href="https://github.com/stephenlb/buttercup.sh">source</a> &middot;
@@ -53,5 +75,6 @@
 
 </div>
 
+<script src="signup.js"></script>
 </body>
 </html>
