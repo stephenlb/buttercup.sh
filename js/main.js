@@ -205,9 +205,13 @@
 
   $("model").addEventListener("input", fillModelList);
 
-  // The webllm select writes into the hidden input and re-paints the note.
+  // The webllm select writes into the hidden input and re-paints the note. It
+  // saves too: the note it paints describes the picked model, and a menu that
+  // says one thing while the next turn loads another (5 GB of another) is a lie.
   $("model-select").addEventListener("change", () => {
     $("model").value = $("model-select").value;
+    settings.model = $("model-select").value;
+    saveSettings();
     fillModelList();
   });
 
