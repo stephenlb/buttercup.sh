@@ -284,6 +284,12 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
     usage: { input: 0, output: 0 },
     context: loadContext(),   // tokens the last request actually cost, in + out
     settings: null,           // assigned by main.js
+    /* The lean-engine wire: the frozen prefix already sent, plus the verbatim
+       char budget and duplicate set spent building it. Null trail = rebuild,
+       which reinitialises the other two. */
+    wireTrail: null,
+    wireBudget: 0,
+    wireSeen: null,
   };
 
   function load() {
@@ -347,8 +353,11 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
         localStorage.setItem(sessionKey(), JSON.stringify(textOnly(state.messages)));
         localStorage.setItem(ctxKey(), String(state.context));
       } catch (__) {
-        // Still too large: keep the tail, which is what matters.
+        // Still too large: keep the tail, which is what matters. The wire trail
+        // prefixes history by position, so dropping messages from the front
+        // invalidates it — rebuild it on the next step.
         state.messages = state.messages.slice(-20);
+        state.wireTrail = null;
         try { localStorage.setItem(sessionKey(), JSON.stringify(textOnly(state.messages))); } catch (___) {}
       }
     }
@@ -450,7 +459,10 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
         ...creds(settings),
         effort: "low",
         system: COMPACT_SYSTEM,
-        messages: forProvider([...source, { role: "user", parts: [{ type: "text", text: COMPACT_ASK }] }], settings.provider),
+        messages: forProvider(
+          forCompaction([...source, { role: "user", parts: [{ type: "text", text: COMPACT_ASK }] }], settings),
+          settings.provider,
+        ),
         tools: [],
         signal: signal || (state.controller && state.controller.signal),
       });
@@ -534,6 +546,10 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
 
     try {
       const maxSteps = Math.max(1, Number(settings.maxSteps) || 40);
+      // Lives across steps on purpose: the nudge is appended on the step after
+      // the blank reply, so a counter scoped to one step would reset before it
+      // was ever read.
+      let nudges = 0;
 
       for (let step = 0; step < maxSteps; step++) {
         state.steps = step + 1;
@@ -556,22 +572,46 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
         const view = hooks.onAssistantStart();
         let reply;
         const lean = !!(LLM.providers[settings.provider] || {}).leanTools;
-        let nudges = 0;
+        // Lean gating is a property of this turn's provider, not of whichever
+        // call last asked for schemas — `compact` never asks for any.
+        Tools.setLean(lean);
         const attempt = () => {
           // Append-only wire for lean engines: already-sent history is frozen
           // in state.wireTrail (KV reuse dies on any byte difference), each
-          // step sends trail + elision of new messages only.
+          // step sends trail + elision of new messages only. The verbatim
+          // budget and the duplicate set travel with the trail, so the whole
+          // wire shares one budget — a per-batch budget would keep every
+          // step's newest results whole and then freeze them, which is how an
+          // 8k window fills. When the budget can no longer cover the newest
+          // results, the trail is thrown away and re-elided newest-first: one
+          // re-prefill, but the model still sees the output it just asked for.
           let base;
           if (lean) {
-            const trail = (state.wireTrail && state.wireTrail.length <= state.messages.length)
+            let trail = (state.wireTrail && state.wireTrail.length <= state.messages.length)
               ? state.wireTrail
               : null;
+            let fresh = trail ? state.messages.slice(trail.length) : null;
+            // Only worth a re-prefill when the new results are big enough to be
+            // stubbed; anything under the stub threshold travels whole anyway.
+            if (trail && resultChars(fresh) > MIN_VERBATIM && state.wireBudget < MIN_VERBATIM) {
+              log(`wire: verbatim budget spent — re-eliding the whole wire newest-first`);
+              trail = null;
+              fresh = null;
+            }
             if (trail) {
-              const fresh = state.messages.slice(trail.length);
-              base = trail.concat(fresh.length ? elideResults(fresh) : fresh);
-              if (fresh.length) log(`wire: ${trail.length} held + ${fresh.length} new message(s)`);
+              if (fresh.length) {
+                const e = elideResults(fresh, state.wireBudget, state.wireSeen);
+                state.wireBudget = e.budget;
+                base = trail.concat(e.out);
+                log(`wire: ${trail.length} held + ${fresh.length} new message(s) · budget ${e.budget}c left`);
+              } else {
+                base = trail;
+              }
             } else {
-              base = elideResults(state.messages);
+              state.wireSeen = new Set();
+              const e = elideResults(state.messages, ELIDE_BUDGET, state.wireSeen);
+              state.wireBudget = e.budget;
+              base = e.out;
               log(`wire: full rebuild — ${base.length} message(s), KV re-prefills`);
             }
             state.wireTrail = base;
@@ -739,19 +779,22 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
            !r.parts.some((p) => p.type === "text" && (p.text || "").trim());
   }
 
+  /** How many chars of tool output a lean session may carry verbatim
+      (3000 chars ≈ 750 tokens), spent once across the whole wire. */
+  const ELIDE_BUDGET = 3000;
+
   /**
-   * The per-request view of history for lean engines: newest tool results stay
-   * verbatim up to a char budget (3000 chars ≈ 750 tokens), the result that
-   * crosses it is clipped, older ones shrink to a stub, exact duplicates
-   * collapse to a stub, and big write/edit payloads become "re-read the file".
+   * The per-request view of history for lean engines: tool results stay
+   * verbatim while the shared char budget lasts, the result that crosses it is
+   * clipped, everything after it shrinks to a stub, exact duplicates collapse
+   * to a stub, and big write/edit payloads become "re-read the file".
    * Canonical history is untouched; on the wire, elision runs once as a
-   * message first enters the trail, so this only ever sees new messages.
+   * message first enters the trail, so this only ever sees new messages —
+   * which is why `budget` and `seen` are passed in and handed back.
+   * @returns {{out: object[], budget: number}}
    */
-  function elideResults(messages, budget = 3000) {
+  function elideResults(messages, budget = ELIDE_BUDGET, seen = new Set()) {
     let before = 0, after = 0, touched = 0, total = 0, stubs = 0;
-    const seen = new Set();
-    // The newest assistant message holds the calls in flight — never touched.
-    const newestAssistant = messages.map((m) => m.role).lastIndexOf("assistant");
     const out = [];
     for (let i = messages.length - 1; i >= 0; i--) {
       const m = messages[i];
@@ -762,9 +805,9 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
       };
       for (let j = m.parts.length - 1; j >= 0; j--) {
         const p = m.parts[j];
-        // Old write/edit payloads are dead weight — the file on disk is the
-        // source of truth and the model can re-read it.
-        if (p.type === "tool_use" && (p.name === "write" || p.name === "edit") && i !== newestAssistant) {
+        // A write/edit payload is dead weight once it is on the wire — the file
+        // on disk is the source of truth and the model can re-read it.
+        if (p.type === "tool_use" && (p.name === "write" || p.name === "edit")) {
           const payload = JSON.stringify(p.input || {});
           if (payload.length > 400) {
             const input = { path: (p.input && p.input.path) || "", applied: true, elided: `${payload.length} chars — re-read the file` };
@@ -801,14 +844,61 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
         after += parts[j].output.length;
         touched++;
       }
-      out.unshift(parts ? { role: m.role, parts, ...(m.raw ? { raw: m.raw } : {}) } : m);
+      // `raw` is the engine's own text and takes precedence on the wire, so a
+      // message whose parts were elided must give it up — otherwise the stub
+      // is built and then ignored. Costs one re-prefill from this turn on;
+      // the trail freezes the result, so it is paid once.
+      out.unshift(parts ? { role: m.role, parts } : m);
     }
     if (touched || stubs) {
       log(`elision: ${touched}/${total} result(s) trimmed` +
           (stubs ? ` · ${stubs} write payload(s) stubbed` : "") +
           ` — ${before} → ${after} chars (≈${Math.round((before - after) / 4)} tok saved)`);
     }
-    return out;
+    return { out, budget };
+  }
+
+  /** Chars of tool output a batch of messages carries — what elision spends. */
+  function resultChars(messages) {
+    let n = 0;
+    for (const m of messages || []) {
+      for (const p of m.parts) {
+        if (p.type === "tool_result" && typeof p.output === "string") n += p.output.length;
+      }
+    }
+    return n;
+  }
+
+  /** Below this the remaining budget cannot say anything useful about a new
+      result, so re-eliding the whole wire beats stubbing it. */
+  const MIN_VERBATIM = 400;
+
+  /**
+   * The compaction request for a lean engine. Compaction is triggered by an
+   * estimate taken from the *elided* wire, so sending un-elided history here is
+   * how compaction itself overflows the window — and then there is no way back.
+   * `raw` goes too: this request carries a different system prompt, so there is
+   * no KV prefix to match, and keeping it would hide the elision.
+   */
+  function forCompaction(messages, settings) {
+    if (!(LLM.providers[settings.provider] || {}).leanTools) return messages;
+    const window = LLM.contextWindow(settings.provider, settings.model) || 8192;
+    const cap = Math.floor(window * 0.5) * 4;   // chars, at ≈4 chars/token
+    const { out } = elideResults(messages.map((m) => ({ role: m.role, parts: m.parts })), 1200);
+    // Newest first, because the oldest turns are the ones the note can afford
+    // to lose — and the ask itself is last, so it is never the message dropped.
+    const kept = [];
+    let total = 0;
+    for (let i = out.length - 1; i >= 0; i--) {
+      const size = JSON.stringify(out[i]).length;
+      if (kept.length && total + size > cap) {
+        log(`compaction wire: dropped the oldest ${i + 1} message(s) to fit ${cap} chars`);
+        break;
+      }
+      total += size;
+      kept.unshift(out[i]);
+    }
+    return kept;
   }
 
   /**

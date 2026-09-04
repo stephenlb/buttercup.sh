@@ -25,13 +25,13 @@ window.LLM = (function () {
     return `${d.toTimeString().slice(0, 8)}.${String(d.getMilliseconds()).padStart(3, "0")}`;
   };
 
-  /* WebLLM windows are a per-model GPU memory budget (the KV cache is sized
-     by them), not a capability claim. */
+  /* WebLLM windows are a per-model GPU memory budget, not a capability claim:
+     web-llm sizes the paged KV cache to this number, so raising it past what a
+     build's own `vram_required_MB` assumed is how a mid-range GPU ends up with
+     a lost device mid-load. Everything therefore runs at the shared default; a
+     per-model entry belongs here only with a measured VRAM figure behind it. */
   const WEBLLM_CTX = 8192;
-  const WEBLLM_WINDOWS = {
-    "Qwen3.5-4B-q4f16_1-MLC": 32768,
-    "Qwen3.5-2B-q4f16_1-MLC": 32768,
-  };
+  const WEBLLM_WINDOWS = {};
   const webllmWindow = (model) => WEBLLM_WINDOWS[model] || WEBLLM_CTX;
 
   /* `api` selects the wire format; `url` is the base a chat-completions vendor
@@ -346,9 +346,16 @@ window.LLM = (function () {
      accepted (some vendors 400 on it for models that always reason).
      ------------------------------------------------------------------------- */
 
-  /** The OpenAI chat-completions wire form of the internal message shape —
-      shared by the gateways and the in-tab WebLLM engine. */
-  function toWire(system, messages) {
+  /**
+   * The OpenAI chat-completions wire form of the internal message shape —
+   * shared by the gateways and the in-tab WebLLM engine.
+   * `useRaw` replays an assistant turn as the engine's own text instead of
+   * re-rendering it from parts (WebLLM's KV reuse needs the bytes to match).
+   * Only the bridge understands that shape: a gateway needs the `tool_calls`
+   * array that raw text does not carry, or it rejects the tool results that
+   * follow — which is what a mid-session provider switch would otherwise send.
+   */
+  function toWire(system, messages, useRaw = false) {
     const wire = [];
     if (system) wire.push({ role: "system", content: system });
     for (const m of messages) {
@@ -386,7 +393,7 @@ window.LLM = (function () {
         } else if (text) {
           wire.push({ role: "user", content: text });
         }
-      } else if (typeof m.raw === "string" && m.raw) {
+      } else if (useRaw && typeof m.raw === "string" && m.raw) {
         // Byte-exact replay of the engine's own reply — web-llm's KV reuse
         // dies if this turn is re-rendered from parts.
         wire.push({ role: "assistant", content: m.raw });
@@ -479,6 +486,10 @@ window.LLM = (function () {
   // a Node `createRequire` import that dies in the browser.
   const WEBLLM_SRC = "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.84/lib/index.js";
   const engines = new Map();   // model id -> loaded engine, kept for the tab's life
+  /* A load is minutes of downloading, and STOP abandons the turn without
+     cancelling it (the bytes are worth keeping). The in-flight promise is
+     shared, so the next send joins that load instead of starting a second one. */
+  const loading = new Map();   // model id -> in-flight load promise
 
   function webllmWorker() {
     const src =
@@ -488,7 +499,21 @@ window.LLM = (function () {
     return new Worker(URL.createObjectURL(new Blob([src], { type: "text/javascript" })), { type: "module" });
   }
 
-  async function webllmEngine(model, on) {
+  function webllmEngine(model, on) {
+    const inFlight = loading.get(model);
+    if (inFlight) {
+      console.log(`[${tstamp()} webllm] ${model} is already loading — joining that load`);
+      return inFlight;
+    }
+    const load = loadEngine(model, on);
+    loading.set(model, load);
+    // Nobody may be listening if the turn was abandoned; keep the rejection
+    // from surfacing as an unhandled one, the caller still gets it.
+    load.catch(() => {}).then(() => loading.delete(model));
+    return load;
+  }
+
+  async function loadEngine(model, on) {
     const loaded = engines.get(model);
     if (loaded) {
       console.log(`[${tstamp()} webllm] ${model} already in memory this session — no load, no download`);
@@ -511,47 +536,63 @@ window.LLM = (function () {
     const config = {
       initProgressCallback: (report) => on.status?.(report.text, report.progress),
     };
-    const opts = {
-      context_window_size: webllmWindow(model),
-      prefill_chunk_size: 2048,
-    };
-    let engine;
-    // Shard fetches over the HF CDN drop mid-download now and then
-    // ("Cache.add() encountered a network error"). Already-cached shards are
-    // kept, so a bounded retry loop walks the download to completion; if the
-    // Cache API itself is refusing (often an extension), IndexedDB is the
-    // last resort.
+    // `prefill_chunk_size` is not a knob here: web-llm reads it from the
+    // compiled model lib's metadata (every prebuilt lib below is `_cs1k-`).
+    const opts = { context_window_size: webllmWindow(model) };
+
+    /* Shard fetches over the HF CDN drop mid-download now and then
+       ("Cache.add() encountered a network error"), and already-cached shards
+       are kept — so a dropped fetch is worth retrying, on either path. Nothing
+       else is: a missing model lib, a WebGPU OOM or a lost device fails the
+       same way every time, and retrying it four times only means the user
+       stares at a stale progress line before hearing the real reason. */
     const errText = (err) => String(err?.message ?? err ?? "unknown error");
-    try {
-      const worker = webllmWorker();
-      try {
-        engine = await webllm.CreateWebWorkerMLCEngine(worker, model, config, opts);
-      } catch (err) {
-        worker.terminate();
-        throw err;
-      }
-      console.log(`[${tstamp()} webllm] engine lives in a web worker — main thread stays free`);
-    } catch (err) {
-      console.warn(`[${tstamp()} webllm] worker engine unavailable (${errText(err)}) — falling back to the main thread`);
-      for (let attempt = 1; attempt <= 3 && !engine; attempt++) {
-        try {
-          engine = await webllm.CreateMLCEngine(model, config, opts);
-        } catch (e) {
-          console.warn(`[${tstamp()} webllm] engine load failed (attempt ${attempt}/3) — ${errText(e)}`);
+    const TRANSIENT = /cache\.add|network error|networkerror|failed to fetch|load failed|err_(network|connection)|\b(429|500|502|503|504)\b/i;
+    const paths = [
+      {
+        name: "web worker",
+        async make() {
+          const worker = webllmWorker();
+          try { return await webllm.CreateWebWorkerMLCEngine(worker, model, config, opts); }
+          catch (err) { worker.terminate(); throw err; }
+        },
+      },
+      { name: "main thread", make: () => webllm.CreateMLCEngine(model, config, opts) },
+    ];
+
+    let engine = null;
+    let lastErr = null;
+    for (const { name, make } of paths) {
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try { engine = await make(); break; }
+        catch (err) {
+          lastErr = err;
+          console.warn(`[${tstamp()} webllm] ${name} load failed (attempt ${attempt}/3) — ${errText(err)}`);
+          if (!TRANSIENT.test(errText(err))) break;
+          on.status?.(`weight fetch dropped — retry ${attempt} of 3`);
         }
       }
-      if (!engine) {
-        console.warn(`[${tstamp()} webllm] Cache API keeps failing — falling back to IndexedDB cache`);
-        // Cache backend belongs to the engine's appConfig; CreateMLCEngine only
-        // accepts (model, engineConfig, chatOpts), so a fourth argument would be
-        // silently ignored.
-        const indexedConfig = {
-          ...config,
-          appConfig: { ...webllm.prebuiltAppConfig, cacheBackend: "indexeddb" },
-        };
-        engine = await webllm.CreateMLCEngine(model, indexedConfig, opts);
+      if (engine) {
+        console.log(`[${tstamp()} webllm] engine on the ${name}` +
+          (name === "web worker" ? " — main thread stays free" : " — the tab freezes while it decodes"));
+        break;
       }
+      console.warn(`[${tstamp()} webllm] ${name} path gave up — ${errText(lastErr)}`);
     }
+    // Only a cache refusal (often an extension) is worth another whole load:
+    // the backend belongs to the engine's appConfig, since CreateMLCEngine
+    // takes (model, engineConfig, chatOpts) and ignores anything after that.
+    if (!engine && /cache/i.test(errText(lastErr))) {
+      on.status?.("cache refused the weights — trying IndexedDB");
+      console.warn(`[${tstamp()} webllm] Cache API keeps failing — falling back to IndexedDB cache`);
+      const indexedConfig = {
+        ...config,
+        appConfig: { ...webllm.prebuiltAppConfig, cacheBackend: "indexeddb" },
+      };
+      try { engine = await webllm.CreateMLCEngine(model, indexedConfig, opts); }
+      catch (err) { console.warn(`[${tstamp()} webllm] IndexedDB cache failed too — ${errText(err)}`); }
+    }
+    if (!engine) throw new Error(`WebLLM could not load ${model} — ${errText(lastErr)}`);
     console.log(`[${tstamp()} webllm] engine load: ${model}: ${(performance.now() - loadT0).toFixed(0)}ms`);
     engines.set(model, engine);
     return engine;
@@ -726,8 +767,21 @@ window.LLM = (function () {
     };
   }
 
+  /** `promise`, but STOP rejects the wait immediately. The work carries on —
+      a weight download cannot be cancelled and its bytes are worth keeping —
+      so the turn ends now and the next send joins the load in progress. */
+  function abortable(promise, signal) {
+    if (!signal) return promise;
+    if (signal.aborted) return Promise.reject(new DOMException("aborted", "AbortError"));
+    return new Promise((resolve, reject) => {
+      const onAbort = () => reject(new DOMException("aborted", "AbortError"));
+      signal.addEventListener("abort", onAbort, { once: true });
+      promise.then(resolve, reject).finally(() => signal.removeEventListener("abort", onAbort));
+    });
+  }
+
   async function webllm({ model, system, messages, tools, signal, on }) {
-    const engine = await webllmEngine(model, on);
+    const engine = await abortable(webllmEngine(model, on), signal);
     on.status?.("generating");   // clears the load bar once the engine is up
     if (signal?.aborted) throw new DOMException("aborted", "AbortError");
     const bridged = tools.length > 0;
@@ -736,7 +790,7 @@ window.LLM = (function () {
     if (protocol) {
       console.log(`[${tstamp()} webllm] protocol ≈ ${(protocol.length / 1024).toFixed(1)} KB · ${tools.length} tool(s)`);
     }
-    const wire = bridgeWire(flattenImages(toWire(systemText, messages)));
+    const wire = bridgeWire(flattenImages(toWire(systemText, messages, true)));
     const body = {
       messages: wire,
       stream: true,

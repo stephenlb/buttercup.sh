@@ -33,6 +33,12 @@ window.Tools = (function () {
   const clip = (text, max) =>
     text.length <= max ? text : text.slice(0, max) + `\n… truncated at ${max} chars (${text.length} total)`;
 
+  /* How much of a file or a search a single result may carry. An in-tab engine
+     works in an 8k window, where 40k chars is the whole conversation — but a
+     cloud model has room for the file, and clipping it there only means the
+     model reads the same file twice. So the cap follows the provider. */
+  const readCap = () => (leanMode ? 12000 : 40000);
+
   const numbered = (text, from = 1) =>
     text.split("\n").map((line, i) => `${String(from + i).padStart(5)}\t${line}`).join("\n");
 
@@ -68,7 +74,7 @@ window.Tools = (function () {
         if (!slice.length) return `(${path} has ${lines.length} lines; offset ${start} is past the end)`;
         const tail = start - 1 + slice.length < lines.length
           ? `\n… ${lines.length - (start - 1 + slice.length)} more lines` : "";
-        return clip(numbered(slice.join("\n"), start), 12000) + tail;
+        return clip(numbered(slice.join("\n"), start), readCap()) + tail;
       },
     },
     {
@@ -112,7 +118,7 @@ window.Tools = (function () {
         if (!hits.length) return `no match for /${pattern}/`;
         const shown = hits.slice(0, 200)
           .map((h) => `${h.path}:${h.line}: ${h.text.trim().slice(0, 200)}`).join("\n");
-        return clip(shown, 12000) + (hits.length > 200 ? `\n… ${hits.length - 200} more matches` : "");
+        return clip(shown, readCap()) + (hits.length > 200 ? `\n… ${hits.length - 200} more matches` : "");
       },
     },
 
@@ -138,6 +144,11 @@ window.Tools = (function () {
       kind: "write",
       description:
         "Replace an exact substring in a workspace file. `old_string` must appear " +
+        "exactly once unless replace_all is set. Preferred over `write` for small changes.",
+      // The uniqueness rule is the second sentence, which lean mode would drop —
+      // and it is the one thing a small model gets wrong about this tool.
+      lean:
+        "Replace an exact substring in a workspace file; `old_string` must appear " +
         "exactly once unless replace_all is set. Preferred over `write` for small changes.",
       input_schema: schema({
         path: str("Workspace-relative path."),
@@ -218,6 +229,13 @@ window.Tools = (function () {
         "lands on your next step of this same turn: the conversation, the workspace and " +
         "the user's approvals all survive it. Call it before you start the work, not after. " +
         "Modes: " +
+        Object.entries(Agent.modes).map(([id, m]) => `${id} — ${m.blurb}`).join("; ") + ".",
+      // Lean mode keeps only a description's first sentence, and this tool's
+      // is useless without the list of modes — so it carries its own short form.
+      lean:
+        "Switch which specialist prompt you are running under, before you start " +
+        "work that belongs to another mode. Takes effect on your next step; the " +
+        "conversation and workspace survive it. Modes: " +
         Object.entries(Agent.modes).map(([id, m]) => `${id} — ${m.blurb}`).join("; ") + ".",
       input_schema: schema({
         mode: str("Mode to switch to.", { enum: Object.keys(Agent.modes) }),
@@ -595,10 +613,16 @@ window.Tools = (function () {
       return DEFS.filter((d) => !off.has(d.name));
     },
 
+    /** Whether this session's provider gets the lean toolset — set by the
+        agent from the provider spec, not inferred from the last `schemas`
+        call, because `compact` completes with no tools at all. */
+    setLean(on) {
+      leanMode = !!on;
+    },
+
     /** Tool declarations; `lean` further drops the non-core tools and
         compresses the rest to first-sentence descriptions with bare types. */
     schemas(lean = false) {
-      leanMode = lean;
       const pool = DEFS.filter((d) => !off.has(d.name) && (!lean || CORE.has(d.name)));
       if (!lean) {
         return pool.map((d) => ({ name: d.name, description: d.description, input_schema: d.input_schema }));
@@ -607,22 +631,32 @@ window.Tools = (function () {
         const i = s.indexOf(". ");
         return i === -1 ? s : s.slice(0, i + 1);
       };
-      return pool.map((d) => ({
-        name: d.name,
-        description: first(d.description),
-        input_schema: {
-          type: "object",
-          properties: Object.fromEntries(Object.entries(d.input_schema.properties).map(([k, v]) => [
-            k,
-            {
-              type: v.type,
-              ...(v.enum ? { enum: v.enum } : {}),
-              ...(v.items ? { items: v.items } : {}),
-            },
-          ])),
-          required: d.input_schema.required,
-        },
-      }));
+      return pool.map((d) => {
+        // A required parameter keeps its description: the contract a small
+        // model gets wrong (`old_string` must be unique, indentation included)
+        // lives there, and a failed call costs a whole step to find out.
+        const required = new Set(d.input_schema.required || []);
+        return {
+          name: d.name,
+          // `lean` on the def is the hand-written short form, for the tools
+          // whose first sentence leaves out something the model cannot work
+          // without (set_mode's list of modes).
+          description: d.lean || first(d.description),
+          input_schema: {
+            type: "object",
+            properties: Object.fromEntries(Object.entries(d.input_schema.properties).map(([k, v]) => [
+              k,
+              {
+                type: v.type,
+                ...(required.has(k) && v.description ? { description: v.description } : {}),
+                ...(v.enum ? { enum: v.enum } : {}),
+                ...(v.items ? { items: v.items } : {}),
+              },
+            ])),
+            required: d.input_schema.required,
+          },
+        };
+      });
     },
 
     /** True when a call should pause for the user unless auto-approve is on. */
