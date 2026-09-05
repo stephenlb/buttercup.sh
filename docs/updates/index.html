@@ -23,10 +23,56 @@
   <h1>Updates</h1>
   <p class="kicker">the weekly agent lessons, and what changed</p>
 
+  <!-- top and bottom, on every page in this directory — the archive included.
+       Same list and same sink frame as the copy in the foot. -->
+  <form class="signup lede" id="signup-lede"
+        action="https://5487903a.sibforms.com/serve/MUIFAAPvkZdoviEts98XHd7P8K3TyLVS3MtyAoJy_sJMZ9DgAKwbaJqN4Lgn4NMQH3JL50ANiWCKfMJlE3Wj5aEiDLJ3sbnhtSTvh3z7Lgg2BOpAJjNZhMpN_BCn21Kz_o-buc-NY7aFM5JXPRkd-GW0iihg0KEvSJQiAgmUYcB_8D6DmR8Xb4bEFUzTJmlYFti6yJBG7K33hsR_MQ=="
+        method="POST" target="signup-sink" autocomplete="on">
+    <label class="sigil" for="signup-lede-email" aria-hidden="true">&gt;</label>
+    <label class="slabel" for="signup-lede-email">EMAIL</label>
+    <input id="signup-lede-email" name="EMAIL" type="email" required
+           spellcheck="false" placeholder="you@example.com">
+    <input type="text" name="email_address_check" value="" class="trap"
+           tabindex="-1" aria-hidden="true" autocomplete="off">
+    <input type="hidden" name="locale" value="en">
+    <button type="submit">SUBSCRIBE</button>
+    <p class="note">one lesson a week &middot; unsubscribe whenever</p>
+    <p class="thanks" role="status">subscribed — thank you!</p>
+  </form>
+
   <hr>
 
   <!-- Newest first. One entry per article file in this directory. -->
   <ul class="log">
+    <!--
+    <li>
+      <time datetime="2026-09-15">15 September 2026</time>
+      <a href="2026-09-15-lesson-2-tool-calling.html">Unit 2 — tool calling: how a chat model gets hands</a>
+      <p>For beginners: the four-station loop that turns a chat model into an
+         agent, written out by hand in JavaScript and in Python. Why the model
+         never runs anything, why tool descriptions are prompts, and the four
+         rules that save you a weekend — then an exercise you run in the
+         tab.</p>
+    </li>
+    <li>
+      <time datetime="2026-09-08">8 September 2026</time>
+      <a href="2026-09-08-lesson-1-webllm.html">Unit 1 — a model in the tab: no key, no server, no bill</a>
+      <p>A real language model running on your own GPU, inside the browser, with
+         the network off. What a model actually receives and sends back, a
+         complete single-file WebLLM example, what &ldquo;free&rdquo; costs you in
+         download and VRAM instead of money — and why a weak model is the right
+         one to learn on.</p>
+    </li>
+    <li>
+      <time datetime="2026-09-04">4 September 2026</time>
+      <a href="2026-09-04-the-syllabus.html">The syllabus — six units, the loop first</a>
+      <p>The course has a shape: tool calling, loops and goals, agents hiring
+         other agents over Blocks.ai, then a model in the tab with WebLLM,
+         vision and evals. The loop that makes an agent an agent comes first,
+         with what you build and what you need for each — and an argument for
+         why that order and not another.</p>
+    </li>
+    -->
     <li>
       <time datetime="2026-09-02">2 September 2026</time>
       <a href="2026-09-02-weekly-agent-training.html">A new agent lesson every week</a>

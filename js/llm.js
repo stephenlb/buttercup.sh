@@ -54,7 +54,13 @@ window.LLM = (function () {
     },
     webllm: {
       // Weights download once into the browser cache; tools go through the
-      // text bridge, not the native `tools` path (see the adapter).
+      // text bridge, not the native `tools` path (see the adapter). web-llm does
+      // have that path, and it is unusable here on all three counts: it accepts
+      // five Hermes ids only (anything else throws), it rejects a request that
+      // carries our system prompt because it needs that slot for its own, and it
+      // grammar-locks the whole reply to a JSON array of calls — so a turn could
+      // never be a sentence and then a call. `tool_choice` is ignored, not
+      // rejected. Checked against 0.2.84.
       label: "WebLLM — in this tab", api: "webllm", keyHint: "no key needed", keyless: true,
       effortKnob: false, contextWindow: WEBLLM_CTX, windows: WEBLLM_WINDOWS, leanTools: true,
       // The 9B leads: the only size that ran the full tool loop cleanly.

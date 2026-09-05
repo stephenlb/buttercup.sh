@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>unit 2: tool calling — free AI Agent training from buttercup.sh</title>
+<meta name="description" content="Unit 2 of the free buttercup.sh agent course: what tool calling actually is, the twenty-line loop that turns a chat model into an agent, working JavaScript and Python, and an exercise you run in the browser.">
+<link rel="stylesheet" href="updates.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23191204'/%3E%3Ctext x='2' y='12' font-family='monospace' font-size='11' fill='%23ffd873'%3E%26gt;%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+
+<div class="crt" aria-hidden="true"></div>
+
+<div class="sheet">
+
+  <header class="titlebar">
+    <span class="lamps" aria-hidden="true"><i></i><i></i><i></i></span>
+    <a class="home" href="/">buttercup.sh</a>
+    <a href="./">updates</a>
+    <span class="where">unit 2</span>
+  </header>
+
+  <article>
+    <header>
+      <time datetime="2026-09-15">15 September 2026</time>
+      <h1>Unit 2 — tool calling: how a chat model gets hands</h1>
+      <p>A language model cannot check the weather, read a file or send an
+         email. It can only write text. <strong>Tool calling is the agreement
+         that turns some of that text into an instruction you agree to
+         carry out.</strong> That agreement is the whole of agents; everything
+         later in this course is a refinement of it. This lesson is for
+         beginners — no prior agent code assumed, working JavaScript and Python
+         below, and an exercise you can run in the browser tab next to this
+         one.</p>
+      <!-- the form itself rather than a link down to it: one field, one
+           button, no jump. Same list, same sink frame as the foot. -->
+      <form class="signup lede" id="signup-lede"
+            action="https://5487903a.sibforms.com/serve/MUIFAAPvkZdoviEts98XHd7P8K3TyLVS3MtyAoJy_sJMZ9DgAKwbaJqN4Lgn4NMQH3JL50ANiWCKfMJlE3Wj5aEiDLJ3sbnhtSTvh3z7Lgg2BOpAJjNZhMpN_BCn21Kz_o-buc-NY7aFM5JXPRkd-GW0iihg0KEvSJQiAgmUYcB_8D6DmR8Xb4bEFUzTJmlYFti6yJBG7K33hsR_MQ=="
+            method="POST" target="signup-sink" autocomplete="on">
+        <label class="sigil" for="signup-lede-email" aria-hidden="true">&gt;</label>
+        <label class="slabel" for="signup-lede-email">EMAIL</label>
+        <input id="signup-lede-email" name="EMAIL" type="email" required
+               spellcheck="false" placeholder="you@example.com">
+        <input type="text" name="email_address_check" value="" class="trap"
+               tabindex="-1" aria-hidden="true" autocomplete="off">
+        <input type="hidden" name="locale" value="en">
+        <button type="submit">SUBSCRIBE</button>
+        <p class="note">one lesson a week &middot; unsubscribe whenever</p>
+        <p class="thanks" role="status">subscribed — thank you!</p>
+      </form>
+    </header>
+
+    <h2>The one idea</h2>
+
+    <p>Every beginner arrives expecting something clever, and the truth is
+       flatter than that: <em>the model never runs anything</em>. You hand it a
+       list of functions it is allowed to ask for. When it wants one, it stops
+       generating prose and emits a small structured block — a name and some
+       JSON arguments. Your program reads that block, calls your own ordinary
+       function, and pastes the return value back into the conversation. Then
+       you ask the model again.</p>
+
+    <p>That is it. That is the loop. Four stations, going round:</p>
+
+    <figure class="diag">
+      <div class="ring">
+        <div class="node n1"><b>1 · messages</b>the conversation so far,
+          plus your list of tools</div>
+        <div class="wire h w1"><i>request</i></div>
+        <div class="node n2"><b>2 · model</b>replies with text
+          <em>or</em> a <code>tool_use</code> block</div>
+
+        <div class="wire v w4"><i>append</i></div>
+        <div class="gap"></div>
+        <div class="wire v w2"><i>tool_use</i></div>
+
+        <div class="node n4"><b>4 · result</b>a <code>tool_result</code>
+          carrying the same id</div>
+        <div class="wire h w3"><i>tool_result</i></div>
+        <div class="node n3"><b>3 · your code</b>runs the real function —
+          fetch, disk, database</div>
+      </div>
+      <figcaption>The agent loop. Station 3 is the only place anything
+        actually happens, and it is <b>your</b> code, not the model's. Keep
+        going round until the model answers with plain text instead of a tool
+        call — that condition, and nothing more, is what &ldquo;the agent
+        finished&rdquo; means.</figcaption>
+    </figure>
+
+    <p>Notice what is <em>not</em> in that picture. There is no memory, no
+       planning module, no framework. The conversation array is the state; the
+       loop is the program. A model with no tools is a writer. A model with
+       tools and this loop is an agent.</p>
+
+    <h2>What the model actually sends back</h2>
+
+    <p>You describe a tool once, in JSON Schema — a name, a sentence of prose,
+       and the shape of its arguments. The model reads that description the way
+       it reads everything else, and produces arguments that fit the shape:</p>
+
+    <figure class="diag">
+      <div class="pair">
+        <div class="side">
+          <b>you write, once</b>
+<pre><code>{
+  name: "get_weather",
+  description:
+    "Current weather for one city.",
+  input_schema: {
+    type: "object",
+    properties: {
+      city: { type: "string" }
+    },
+    required: ["city"]
+  }
+}</code></pre>
+        </div>
+        <!-- the crossing. Decorative: the two headings already say which way
+             this reads, so it is hidden from the reading order. -->
+        <div class="cross" aria-hidden="true">&rarr;</div>
+        <div class="side">
+          <b>the model writes, per call</b>
+<pre class="out"><code>{"city": "Paris"}</code></pre>
+        </div>
+      </div>
+      <figcaption>The right-hand side is <b>generated text</b> — the same
+        machinery that writes sentences, aimed at a schema. Which is why the
+        description on the left is a prompt, not documentation, and why you will
+        spend more time editing that one sentence than editing the loop.</figcaption>
+    </figure>
+
+    <p>Two consequences worth carrying with you. First, arguments arrive as
+       JSON, so <strong>parse them</strong> — never match on the raw string.
+       Second, because the description is a prompt, a tool the model keeps
+       misusing is usually a tool you described badly. Writing descriptions the
+       model reads the way you meant is the follow-on lesson in this unit.</p>
+
+    <h2>The code — JavaScript</h2>
+
+    <p>Complete and runnable. <code>npm i @anthropic-ai/sdk</code>, set
+       <code>ANTHROPIC_API_KEY</code>, and run it with Node. Three parts: the
+       function, the description, the loop.</p>
+
+<pre><code>import Anthropic from "@anthropic-ai/sdk";
+
+const client = new Anthropic();   // reads ANTHROPIC_API_KEY
+
+// ── 1. the tool. A plain function. Nothing about it is special. ──────────
+function getWeather({ city }) {
+  const readings = { Paris: "18°C, light rain", Tokyo: "27°C, clear" };
+  return readings[city] ?? `no reading for ${city}`;
+}
+
+// ── 2. the description. This is what the model reads — it is a prompt. ───
+const tools = [{
+  name: "get_weather",
+  description: "Current weather for one city. Use this for any question " +
+               "about temperature, rain, or conditions right now.",
+  input_schema: {
+    type: "object",
+    properties: {
+      city: { type: "string", description: "City name, e.g. Paris" },
+    },
+    required: ["city"],
+  },
+}];
+
+// ── 3. the loop. The entire agent, right here. ───────────────────────────
+const messages = [
+  { role: "user", content: "Do I need an umbrella in Paris?" },
+];
+
+while (true) {
+  const reply = await client.messages.create({
+    model: "claude-opus-5",
+    max_tokens: 4096,
+    tools,
+    messages,
+  });
+
+  // Append the reply *unchanged* and in full. Do not rebuild it from the
+  // text — the blocks you drop are the ones the next turn needs.
+  messages.push({ role: "assistant", content: reply.content });
+
+  // No tool wanted? The model is answering. We are done.
+  if (reply.stop_reason !== "tool_use") {
+    console.log(reply.content.filter(b =&gt; b.type === "text")
+                             .map(b =&gt; b.text).join(""));
+    break;
+  }
+
+  // It asked. Run every request, and answer every request.
+  const results = reply.content
+    .filter(b =&gt; b.type === "tool_use")
+    .map(b =&gt; ({
+      type: "tool_result",
+      tool_use_id: b.id,                        // the id is the whole contract
+      content: String(getWeather(b.input)),
+    }));
+
+  messages.push({ role: "user", content: results });
+}</code></pre>
+
+    <p>The odd-looking part is that the tool results go back with
+       <code>role: "user"</code>. They are not from a user, and it still reads
+       strangely after the hundredth time. It is simply where the protocol puts
+       them: the model's turn, then the turn that answers it.</p>
+
+    <h2>The code — Python</h2>
+
+    <p>The same program, line for line. <code>pip install anthropic</code>.</p>
+
+<pre><code>import anthropic
+
+client = anthropic.Anthropic()          # reads ANTHROPIC_API_KEY
+
+# ── 1. the tool ──────────────────────────────────────────────────────────
+def get_weather(city):
+    readings = {"Paris": "18°C, light rain", "Tokyo": "27°C, clear"}
+    return readings.get(city, f"no reading for {city}")
+
+# ── 2. the description ───────────────────────────────────────────────────
+tools = [{
+    "name": "get_weather",
+    "description": "Current weather for one city. Use this for any question "
+                   "about temperature, rain, or conditions right now.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "city": {"type": "string", "description": "City name, e.g. Paris"},
+        },
+        "required": ["city"],
+    },
+}]
+
+# ── 3. the loop ──────────────────────────────────────────────────────────
+messages = [
+    {"role": "user", "content": "Do I need an umbrella in Paris?"},
+]
+
+while True:
+    reply = client.messages.create(
+        model="claude-opus-5",
+        max_tokens=4096,
+        tools=tools,
+        messages=messages,
+    )
+
+    # Append the reply unchanged and in full, blocks and all.
+    messages.append({"role": "assistant", "content": reply.content})
+
+    if reply.stop_reason != "tool_use":
+        print("".join(b.text for b in reply.content if b.type == "text"))
+        break
+
+    results = [
+        {
+            "type": "tool_result",
+            "tool_use_id": block.id,            # the id is the whole contract
+            "content": str(get_weather(**block.input)),
+        }
+        for block in reply.content if block.type == "tool_use"
+    ]
+
+    messages.append({"role": "user", "content": results})</code></pre>
+
+    <p><code>get_weather(**block.input)</code> is the Python spelling of the
+       JavaScript <code>{ city }</code> destructure: the schema's property names
+       become the function's parameter names, so the arguments unpack straight
+       into the call.</p>
+
+    <h2>What the conversation looks like afterwards</h2>
+
+    <p>One question, one tool call, and the array has four entries. Watch it
+       fill:</p>
+
+    <figure class="diag">
+      <ol class="tape">
+        <li><b>user</b> — Do I need an umbrella in Paris?</li>
+        <li><b>assistant</b> — <span class="k">tool_use</span>
+            <code class="id">id: toolu_01A</code> · <code>get_weather</code> ·
+            <code>{"city": "Paris"}</code></li>
+        <li><b>user</b> — <span class="k">tool_result</span>
+            <code class="id">tool_use_id: toolu_01A</code> · 18°C, light rain</li>
+        <li><b>assistant</b> — Yes — light rain in Paris at 18°C. Take one.</li>
+      </ol>
+      <figcaption>Turn 3 is the one people get wrong. Its
+        <code>tool_use_id</code> must be the <b>exact id</b> from turn 2, and
+        every <code>tool_use</code> needs a matching result before you may send
+        the array again. Mismatch the ids or skip one and the request is
+        rejected — which, of the errors you will hit this week, is the kind you
+        should hope for.</figcaption>
+    </figure>
+
+    <p>You send that whole array again on every turn. The model has no memory
+       between requests; the array <em>is</em> the memory. A ten-step agent's
+       last request contains all ten steps. That is why lesson 5 is about
+       context, and why the bill grows the way it does.</p>
+
+    <h2>Four rules that will save you a weekend</h2>
+
+    <ul>
+      <li><strong>Answer every call, including the failures.</strong> If your
+          function throws, do not drop the result — send it back as a
+          <code>tool_result</code> with <code>is_error: true</code> and the
+          message in the content. The model reads errors and retries
+          sensibly. A missing result is a protocol violation; a returned error
+          is just information.</li>
+      <li><strong>Return all results in one message.</strong> The model may ask
+          for three tools at once. Run them, then send all three
+          <code>tool_result</code> blocks in a <em>single</em> user message.
+          Splitting them across messages quietly teaches the model to stop
+          asking in parallel, and your agent gets slower for no visible
+          reason.</li>
+      <li><strong>Append the reply whole.</strong> Push
+          <code>reply.content</code>, not a string you rebuilt from it. On
+          current models the reply carries blocks besides text, and dropping
+          them costs you quality on the next turn with no error to point
+          at.</li>
+      <li><strong>Cap the loop.</strong> <code>while (true)</code> is fine in a
+          lesson. In anything real, count the turns and stop at twenty — a
+          model that has misread a tool description will happily call it
+          forty times, and you would rather find that out from a counter than
+          from an invoice.</li>
+    </ul>
+
+    <figure class="diag">
+      <div class="fan">
+        <span class="cap">one assistant turn · three tool_use blocks</span>
+        <ul class="calls">
+          <li><code>read_file</code></li>
+          <li><code>list_dir</code></li>
+          <li><code>grep</code></li>
+        </ul>
+        <div class="funnel" aria-hidden="true"><i></i><i></i><i></i></div>
+        <div class="bundle">
+          <b>one user message</b>
+          <ul>
+            <li><span class="k">tool_result</span> · toolu_01A · 412 bytes</li>
+            <li><span class="k">tool_result</span> · toolu_01B · 9 entries</li>
+            <li><span class="k">tool_result</span> · toolu_01C · 2 matches</li>
+          </ul>
+        </div>
+      </div>
+      <figcaption>Three calls out, <b>one</b> message back. The shape to avoid
+        is three user messages carrying one result each: it is legal, it works,
+        and it quietly trains the model out of asking in parallel — so your
+        agent takes three round trips where it used to take one, with nothing
+        in the logs to blame.</figcaption>
+    </figure>
+
+    <p>One shortcut, now that you have written the loop by hand: both SDKs will
+       run it for you — <code>client.beta.messages.tool_runner()</code> in
+       Python with the <code>@beta_tool</code> decorator,
+       <code>client.beta.messages.toolRunner()</code> in TypeScript with
+       <code>betaZodTool</code>. Use them in real projects. Write the loop
+       yourself exactly once, which is now, so that when the runner does
+       something surprising you know what it is doing.</p>
+
+    <h2>The exercise</h2>
+
+    <p>Do this in <a href="/">the harness</a> — it is the same loop, already
+       running, with twenty-one tools wired to a virtual filesystem. Open
+       <em>KEYS</em>, paste a key or point it at Ollama, then:</p>
+
+<pre><code>make notes/paris.md with three lines about the weather, then read it back</code></pre>
+
+    <p>Watch the transcript rather than the answer. You are looking for the
+       shape from the diagram: a <code>tool_use</code> for the write, a
+       <code>tool_result</code> confirming it, a second
+       <code>tool_use</code> for the read. Two trips round the ring, then
+       prose.</p>
+
+    <p>Then break it on purpose, which is the half people skip:</p>
+
+    <ul>
+      <li>Turn a tool off in <em>TOOLS</em> and ask for it anyway. The model
+          does not error — it improvises, and watching it improvise badly
+          teaches you more about tool descriptions than any amount of
+          reading.</li>
+      <li>Ask for something no tool covers. See whether it says so or invents a
+          plausible answer.</li>
+      <li>In your own script, misspell <code>tool_use_id</code>. Read the error
+          text. You will meet it again.</li>
+    </ul>
+
+    <h2>Next week</h2>
+
+    <p>A follow-on lesson in this unit gets to the part that actually decides
+       whether your agent is any good: writing tool descriptions the model reads
+       the way you meant. Then <strong>unit 3 — loops and goals</strong> takes
+       this loop apart properly, and asks the question this lesson dodged. Here
+       we stopped when the model stopped calling tools. What if it never
+       stops?</p>
+
+    <p>Where this sits in the whole course, and what comes after:
+       <a href="2026-09-04-the-syllabus.html">the syllabus</a>.</p>
+
+    <p>If someone forwarded you this, the lessons are free and weekly and the
+       archive keeps the ones you missed:</p>
+
+    <p><a class="cta" href="/">open the harness</a></p>
+
+  </article>
+
+  <!-- ══ subscribe: the same form the harness carries, posting to the same
+          list. Every page in the archive ends here. ═══════════════════════ -->
+  <section class="subscribe">
+    <h2>One lesson a week</h2>
+    <form class="signup" id="signup"
+          action="https://5487903a.sibforms.com/serve/MUIFAAPvkZdoviEts98XHd7P8K3TyLVS3MtyAoJy_sJMZ9DgAKwbaJqN4Lgn4NMQH3JL50ANiWCKfMJlE3Wj5aEiDLJ3sbnhtSTvh3z7Lgg2BOpAJjNZhMpN_BCn21Kz_o-buc-NY7aFM5JXPRkd-GW0iihg0KEvSJQiAgmUYcB_8D6DmR8Xb4bEFUzTJmlYFti6yJBG7K33hsR_MQ=="
+          method="POST" target="signup-sink" autocomplete="on">
+      <label class="sigil" for="signup-email" aria-hidden="true">&gt;</label>
+      <label class="slabel" for="signup-email">EMAIL</label>
+      <input id="signup-email" name="EMAIL" type="email" required
+             spellcheck="false" placeholder="you@example.com">
+      <input type="text" name="email_address_check" value="" class="trap"
+             tabindex="-1" aria-hidden="true" autocomplete="off">
+      <input type="hidden" name="locale" value="en">
+      <button type="submit">SUBSCRIBE</button>
+      <p class="note">one AI Agent training lesson, weekly</p>
+      <p class="note">starting mid-September 2026</p>
+      <p class="thanks" role="status">subscribed — thank you!</p>
+    </form>
+    <iframe name="signup-sink" title="subscription result" hidden></iframe>
+  </section>
+
+  <footer class="foot">
+    <p><a href="./">← all updates</a> &middot;
+       <a href="https://github.com/stephenlb/buttercup.sh">source</a> &middot;
+       <a href="https://github.com/stephenlb/buttercup.sh/issues/new">feedback</a></p>
+  </footer>
+
+</div>
+
+<script src="signup.js"></script>
+</body>
+</html>

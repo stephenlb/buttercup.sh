@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>unit 1: a model in the tab — free AI Agent training from buttercup.sh</title>
+<meta name="description" content="Unit 1 of the free buttercup.sh agent course: run a language model inside the browser on WebGPU with WebLLM. Messages in, tokens out — no key, no server, no bill. A complete single-file example, what it costs instead of money, and an exercise you run in the tab.">
+<link rel="stylesheet" href="updates.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23191204'/%3E%3Ctext x='2' y='12' font-family='monospace' font-size='11' fill='%23ffd873'%3E%26gt;%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+
+<div class="crt" aria-hidden="true"></div>
+
+<div class="sheet">
+
+  <header class="titlebar">
+    <span class="lamps" aria-hidden="true"><i></i><i></i><i></i></span>
+    <a class="home" href="/">buttercup.sh</a>
+    <a href="./">updates</a>
+    <span class="where">unit 1</span>
+  </header>
+
+  <article>
+    <header>
+      <time datetime="2026-09-08">8 September 2026</time>
+      <h1>Unit 1 — a model in the tab: no key, no server, no bill</h1>
+      <p>Before an agent can do anything it has to talk to a model, and every
+         tutorial starts by asking you for a credit card. This one does not.
+         <strong>WebLLM runs a real language model inside the browser, on your
+         own GPU, with the network off.</strong> No account, no key, no server,
+         nothing installed. The point of this unit is to get you to the one
+         exchange the whole course is built on — messages in, tokens out — with
+         every obstacle removed and nothing at stake.</p>
+      <!-- the form itself rather than a link down to it: one field, one
+           button, no jump. Same list, same sink frame as the foot. -->
+      <form class="signup lede" id="signup-lede"
+            action="https://5487903a.sibforms.com/serve/MUIFAAPvkZdoviEts98XHd7P8K3TyLVS3MtyAoJy_sJMZ9DgAKwbaJqN4Lgn4NMQH3JL50ANiWCKfMJlE3Wj5aEiDLJ3sbnhtSTvh3z7Lgg2BOpAJjNZhMpN_BCn21Kz_o-buc-NY7aFM5JXPRkd-GW0iihg0KEvSJQiAgmUYcB_8D6DmR8Xb4bEFUzTJmlYFti6yJBG7K33hsR_MQ=="
+            method="POST" target="signup-sink" autocomplete="on">
+        <label class="sigil" for="signup-lede-email" aria-hidden="true">&gt;</label>
+        <label class="slabel" for="signup-lede-email">EMAIL</label>
+        <input id="signup-lede-email" name="EMAIL" type="email" required
+               spellcheck="false" placeholder="you@example.com">
+        <input type="text" name="email_address_check" value="" class="trap"
+               tabindex="-1" aria-hidden="true" autocomplete="off">
+        <input type="hidden" name="locale" value="en">
+        <button type="submit">SUBSCRIBE</button>
+        <p class="note">one lesson a week &middot; unsubscribe whenever</p>
+        <p class="thanks" role="status">subscribed — thank you!</p>
+      </form>
+    </header>
+
+    <h2>The one idea</h2>
+
+    <p>A language model is a function. It takes an array of messages and returns
+       text, one token at a time. That is the entire interface, and it does not
+       change when the model gets cleverer, when you put it behind an API, or
+       when you wrap it in an agent. <em>Everything</em> in the five units after
+       this one is a wrapper around this single call.</p>
+
+    <p>So the useful first question is not &ldquo;which model&rdquo; or
+       &ldquo;which framework.&rdquo; It is: what exactly do I send, and what
+       exactly comes back?</p>
+
+    <figure class="diag">
+      <div class="pair">
+        <div class="side">
+          <b>you send — an array</b>
+<pre><code>[
+  { role: "system",
+    content: "Answer in one sentence." },
+  { role: "user",
+    content: "Why is the sky blue?" }
+]</code></pre>
+        </div>
+        <!-- the crossing. Decorative: the two headings already say which way
+             this reads, so it is hidden from the reading order. -->
+        <div class="cross" aria-hidden="true">&rarr;</div>
+        <div class="side">
+          <b>you get back — text, in pieces</b>
+<pre><code>"Blue"  " light"  " scatters"
+" more"  " than"  " red"  "."</code></pre>
+        </div>
+      </div>
+      <figcaption>There is no session, no memory and no connection. Each call is
+        the whole conversation, sent again. Keeping that array is <b>your</b>
+        job, and by unit 3 it will be the only state your agent has.</figcaption>
+    </figure>
+
+    <p>Normally seeing that costs you a signup, a key, a billing page and a
+       nagging worry about a loop you left running. Running the model in the tab
+       deletes all four at once, which is why it goes first.</p>
+
+    <h2>What &ldquo;in the tab&rdquo; actually means</h2>
+
+    <p>Not a proxy, and not a small server you forgot you started.
+       <strong>WebLLM</strong> compiles model weights to run on
+       <strong>WebGPU</strong> — the browser's access to your graphics card. The
+       weights are ordinary files, fetched once over HTTP and kept in the
+       browser's cache. After that first fetch you can turn off your wifi and
+       keep talking.</p>
+
+    <figure class="diag">
+      <ol class="ladder">
+        <li><span class="t">The runtime arrives</span>
+            <span class="m">a couple of MB of JavaScript and WebAssembly, from a CDN</span></li>
+        <li><span class="t">The weights arrive — once</span>
+            <span class="m">a gigabyte or several, in shards, into the browser cache</span></li>
+        <li><span class="t">The GPU is loaded</span>
+            <span class="m">weights to VRAM, plus a paged cache for the conversation</span></li>
+        <li><span class="t">Tokens come out</span>
+            <span class="m">from here on, nothing touches the network at all</span></li>
+      </ol>
+      <figcaption>Step 2 is the one you feel: minutes, once per model. Step 3 is
+        the one that fails on a small GPU. Steps 1–3 happen on the first send and
+        never again for that model on that origin — so the second question you
+        ask is fast, and the tenth costs nothing.</figcaption>
+    </figure>
+
+    <h2>The code — one file, no build step</h2>
+
+    <p>Complete and runnable. Save it as <code>index.html</code> and serve it —
+       <code>python3 -m http.server</code>, then open
+       <code>localhost:8000</code>. It must be served rather than opened as a
+       <code>file://</code> path: module imports and the cache both need a real
+       origin.</p>
+
+<pre><code>&lt;!DOCTYPE html&gt;
+&lt;meta charset="utf-8"&gt;
+&lt;title&gt;a model in this tab&lt;/title&gt;
+&lt;button id="go"&gt;LOAD AND ASK&lt;/button&gt;
+&lt;pre id="out"&gt;press the button.&lt;/pre&gt;
+
+&lt;script type="module"&gt;
+import { CreateMLCEngine } from
+  "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.84/lib/index.js";
+
+const out = document.getElementById("out");
+const say = (t) =&gt; { out.textContent = t; };
+
+document.getElementById("go").onclick = async () =&gt; {
+
+  // ── 1. the engine. The first call downloads the weights; every call
+  //       after this one reads them straight out of the cache. ──────────
+  const engine = await CreateMLCEngine(
+    "Qwen3.5-2B-q4f16_1-MLC",
+    { initProgressCallback: (r) =&gt; say(r.text) },   // the load messages
+    { context_window_size: 8192 },
+  );
+
+  // ── 2. the request. The same shape as an OpenAI chat completion,
+  //       because that is the shape this engine speaks. ────────────────
+  const stream = await engine.chat.completions.create({
+    messages: [
+      { role: "system", content: "Answer in one sentence." },
+      { role: "user", content: "Why is the sky blue?" },
+    ],
+    stream: true,
+    max_tokens: 512,
+    // Qwen will otherwise deliberate for a page before answering, and on a
+    // 2B in a tab you feel every token of it.
+    extra_body: { enable_thinking: false },
+  });
+
+  // ── 3. the tokens, as they arrive. Nothing here touches the network. ─
+  let text = "";
+  for await (const chunk of stream) {
+    text += chunk.choices[0]?.delta?.content || "";
+    say(text);
+  }
+};
+&lt;/script&gt;</code></pre>
+
+    <p>Three things worth noticing. The <code>messages</code> array is exactly
+       the shape from the diagram. <code>initProgressCallback</code> is not
+       decoration — without it a five-minute download looks like a hung page, and
+       you will assume you broke something. And the request body is the
+       chat-completions shape, so the code you write here is nearly the code you
+       will write against a hosted model in unit 2.</p>
+
+    <h2>Keep the tab responsive</h2>
+
+    <p>Run that and the page freezes in bursts, because decoding tokens is real
+       work happening on the main thread. Move the engine to a worker and the
+       freezing stops. It is one extra file, and no change at all to the code
+       that does the asking:</p>
+
+<pre><code>// ── worker.js — the whole file. It hands every message to web-llm's
+//    own handler, which does the work off the main thread. ────────────
+import { WebWorkerMLCEngineHandler } from
+  "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.84/lib/index.js";
+
+const handler = new WebWorkerMLCEngineHandler();
+self.onmessage = (msg) =&gt; handler.onmessage(msg);
+
+
+// ── in the page — one line different from before. ────────────────────
+import { CreateWebWorkerMLCEngine } from
+  "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.84/lib/index.js";
+
+const worker = new Worker(new URL("./worker.js", import.meta.url),
+                          { type: "module" });
+
+const engine = await CreateWebWorkerMLCEngine(
+  worker,
+  "Qwen3.5-2B-q4f16_1-MLC",
+  { initProgressCallback: (r) =&gt; say(r.text) },
+  { context_window_size: 8192 },
+);
+// …and engine.chat.completions.create is unchanged. The worker engine
+//    is a proxy with the identical interface.</code></pre>
+
+    <p>Do this early rather than as a polish pass. On the main thread the tab
+       stops painting while it decodes, so every judgement you make about the
+       model's speed — and about whether it has hung — is wrong.</p>
+
+    <p>Keep the engine in a variable and reuse it. Creating a second one for the
+       same model reloads the GPU for no reason, and a model you have finished
+       with should be <code>unload()</code>ed before you load another — VRAM is
+       the resource you will run out of first, and only one model at a time
+       really fits.</p>
+
+    <h2>What it costs you instead of money</h2>
+
+    <p>Free is not the same as free. The bill is paid in other currencies, and
+       being surprised by them later is worse than reading them now:</p>
+
+    <ul>
+      <li><strong>The download.</strong> Roughly half a byte per parameter at
+          4-bit, so about a gigabyte for a 2B model and five or so for a 9B.
+          Once per model per origin, and slow the first time.</li>
+      <li><strong>VRAM.</strong> The weights plus the conversation cache have to
+          fit on the card. Ask for more than fits and you do not get a polite
+          error — you get a lost GPU device, sometimes minutes into a load. Start
+          with the 2B, move up when it works.</li>
+      <li><strong>Context.</strong> 8192 tokens here, against hundreds of
+          thousands on a hosted model. A long conversation is a wall you will
+          hit, and this is why compaction exists.</li>
+      <li><strong>Text only.</strong> These builds cannot see images. Attach a
+          screenshot and it is simply not there — which is unit 5's whole
+          subject, and a reason that unit wants a different model.</li>
+      <li><strong>Cleverness.</strong> A model small enough to run in a tab is
+          not a clever model. It repeats itself, loses the thread, and will
+          confidently mangle a format.</li>
+    </ul>
+
+    <p>That last one is a feature <em>here</em>, and only here. You are learning
+       what the exchange looks like, and a weak model fails visibly, instantly
+       and for free. The same failures behind a hosted key cost money and hide
+       inside plausible prose.</p>
+
+    <h2>Two ways to give it tools</h2>
+
+    <p>Ask this model to check the weather and it will make the weather up. It
+       has no tools yet — and giving it some is where the in-tab runtime gets
+       interesting, because it has <em>two</em> ways to do it and the obvious one
+       is the wrong one.</p>
+
+    <p>The obvious one is native: web-llm really does accept a
+       <code>tools</code> parameter, in the same chat-completions shape a hosted
+       vendor uses, and hands back a parsed <code>tool_calls</code> array.</p>
+
+<pre><code>// the native path. Runs, and worth knowing — read the three
+// conditions under it before you build on it.
+const engine = await CreateMLCEngine("Hermes-3-Llama-3.1-8B-q4f16_1-MLC");
+
+const reply = await engine.chat.completions.create({
+  messages: [{ role: "user", content: "do I need an umbrella in Paris?" }],
+  tools: [{
+    type: "function",
+    function: {
+      name: "get_weather",
+      description: "current weather for a city",
+      parameters: {
+        type: "object",
+        properties: { city: { type: "string" } },
+        required: ["city"],
+      },
+    },
+  }],
+});
+
+// → [ { function: { name: "get_weather", arguments: '{"city":"Paris"}' } } ]
+reply.choices[0].message.tool_calls;</code></pre>
+
+    <p>The three conditions. It works on <strong>five model builds</strong> — the
+       Hermes-2-Pro and Hermes-3 ones, which were fine-tuned for a specific tool
+       prompt; pass <code>tools</code> with any other id and the request throws
+       rather than degrades. It <strong>refuses your own system prompt</strong>,
+       because it needs that slot for the tool prompt it writes itself — so a
+       request with a <code>system</code> message and <code>tools</code> together
+       is an error. And it <strong>constrains the entire reply</strong> to a JSON
+       array of calls: a turn is calls or prose, never a sentence and then a call.
+       (<code>tool_choice</code> is accepted and then ignored, which is worse than
+       rejecting it — check what you got back rather than trusting it.)</p>
+
+    <p>An agent needs all three of the things that path takes away: any model,
+       its own system prompt, and a turn that can say something and then act. So the
+       second way is the one you actually use — and it needs nothing from the
+       runtime at all, because tool calling is a convention, not a capability.
+       Describe the convention in the system prompt — <em>to run a tool, reply
+       with a <code>&lt;tool_call&gt;</code> block and end your turn</em> — then
+       find the tags in the stream yourself and act on them:</p>
+
+    <figure class="diag">
+      <ol class="tape">
+        <li><b>user</b> — do I need an umbrella in Paris?</li>
+        <li><b>assistant</b> — <span class="k">text</span>
+            <code>&lt;tool_call&gt;{"name": "get_weather", "arguments": {"city": "Paris"}}&lt;/tool_call&gt;</code></li>
+        <li><b>user</b> — <span class="k">text</span>
+            <code>&lt;tool_response&gt;{"output": "18°C, light rain"}&lt;/tool_response&gt;</code></li>
+        <li><b>assistant</b> — Yes — light rain in Paris at 18°C. Take one.</li>
+      </ol>
+      <figcaption>A tool call with the structure taken away: just tags in a
+        string, which your code finds and acts on. This is how the harness drives
+        an in-tab model — any build, its own system prompt intact, prose and calls
+        in one turn — and it is worth seeing once, because when unit 2 hands you a
+        real <code>tool_use</code> block, you will recognise it as the same
+        agreement with the parsing done for you.</figcaption>
+    </figure>
+
+    <p>The cost of doing it yourself is that nothing is enforced any more. The
+       native path could not return malformed JSON if it tried — the grammar
+       forbids it — whereas here the model is merely <em>asked</em> to keep the
+       shape, and small models keep this bargain badly. They invent parameter
+       names, narrate the call instead of making it, or write the
+       <code>&lt;tool_response&gt;</code> themselves and answer their own
+       question. So the parser is yours to make suspicious: match the tags, parse
+       what is between them, and treat a failure as a message back to the model
+       rather than a crash. Watch it go wrong once and you will understand why
+       unit 2 asks for a capable model.</p>
+
+    <h2>The exercise</h2>
+
+    <p>Run the file above, with the console open. Then, before you change
+       anything, three questions you can answer by looking:</p>
+
+    <ul>
+      <li>How long did the load take, and how long does it take the
+          <em>second</em> time you press the button? The gap between those two
+          numbers is the cache doing its job.</li>
+      <li>Delete <code>{ role: "system", … }</code> and ask the same question.
+          The answer gets longer and vaguer. That one line was doing real
+          work — and it is the cheapest control you have over any model.</li>
+      <li>Ask it something it cannot know: today's date, or the contents of a
+          file on your disk. Watch it answer anyway. That confident wrongness is
+          the exact hole tools are for, and it is where unit 2 starts.</li>
+    </ul>
+
+    <p>Then break it on purpose, which is the half people skip:</p>
+
+    <ul>
+      <li>Ask for a model name that does not exist. Read the error — you will see
+          it again the first time you typo a model id against a paid API, where
+          it costs more than a minute.</li>
+      <li>Drop <code>max_tokens</code> to <code>20</code>. The reply stops
+          mid-word. Nothing errors. <strong>A truncated answer is not an
+          error</strong> — the stream just ends — and an agent that treats
+          truncation as success is a bug you will meet for real in unit 3.</li>
+      <li>Load the 9B instead of the 2B. Either it is meaningfully better, or
+          your GPU tells you the honest truth about its memory.</li>
+    </ul>
+
+    <p>You can also do all of this in <a href="/">the harness</a> without writing
+       a file: the completion backend panel has <em>WebLLM — in this tab</em>
+       alongside Ollama, vLLM and the hosted vendors, and the console logs each
+       step of the load, the cached shard count and the tokens per second.</p>
+
+    <h2>Next week</h2>
+
+    <p><strong>Unit 2 — tool calling</strong> gives the model hands. You hand it
+       a list of functions, it asks for one by name, your code runs the real
+       thing and passes the answer back. That loop is the whole of agents, it is
+       about twenty lines, and it
+       <a href="2026-09-15-lesson-2-tool-calling.html">arrives next
+       Tuesday</a>.</p>
+
+    <p>Where this sits in the whole course, and what comes after:
+       <a href="2026-09-04-the-syllabus.html">the syllabus</a>.</p>
+
+    <p>If someone forwarded you this, the lessons are free and weekly and the
+       archive keeps the ones you missed:</p>
+
+    <p><a class="cta" href="/">open the harness</a></p>
+
+  </article>
+
+  <!-- ══ subscribe: the same form the harness carries, posting to the same
+          list. Every page in the archive ends here. ═══════════════════════ -->
+  <section class="subscribe">
+    <h2>One lesson a week</h2>
+    <form class="signup" id="signup"
+          action="https://5487903a.sibforms.com/serve/MUIFAAPvkZdoviEts98XHd7P8K3TyLVS3MtyAoJy_sJMZ9DgAKwbaJqN4Lgn4NMQH3JL50ANiWCKfMJlE3Wj5aEiDLJ3sbnhtSTvh3z7Lgg2BOpAJjNZhMpN_BCn21Kz_o-buc-NY7aFM5JXPRkd-GW0iihg0KEvSJQiAgmUYcB_8D6DmR8Xb4bEFUzTJmlYFti6yJBG7K33hsR_MQ=="
+          method="POST" target="signup-sink" autocomplete="on">
+      <label class="sigil" for="signup-email" aria-hidden="true">&gt;</label>
+      <label class="slabel" for="signup-email">EMAIL</label>
+      <input id="signup-email" name="EMAIL" type="email" required
+             spellcheck="false" placeholder="you@example.com">
+      <input type="text" name="email_address_check" value="" class="trap"
+             tabindex="-1" aria-hidden="true" autocomplete="off">
+      <input type="hidden" name="locale" value="en">
+      <button type="submit">SUBSCRIBE</button>
+      <p class="note">one AI Agent training lesson, weekly</p>
+      <p class="note">starting mid-September 2026</p>
+      <p class="thanks" role="status">subscribed — thank you!</p>
+    </form>
+    <iframe name="signup-sink" title="subscription result" hidden></iframe>
+  </section>
+
+  <footer class="foot">
+    <p><a href="./">← all updates</a> &middot;
+       <a href="https://github.com/stephenlb/buttercup.sh">source</a> &middot;
+       <a href="https://github.com/stephenlb/buttercup.sh/issues/new">feedback</a></p>
+  </footer>
+
+</div>
+
+<script src="signup.js"></script>
+</body>
+</html>

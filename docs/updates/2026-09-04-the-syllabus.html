@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>the syllabus — free AI Agent training from buttercup.sh</title>
+<meta name="description" content="The six units of the free buttercup.sh agent course: a model in the tab with WebLLM, tool calling, loops and goals, agent-to-agent communication over Blocks.ai, vision, and evals.">
+<link rel="stylesheet" href="updates.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23191204'/%3E%3Ctext x='2' y='12' font-family='monospace' font-size='11' fill='%23ffd873'%3E%26gt;%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+
+<div class="crt" aria-hidden="true"></div>
+
+<div class="sheet">
+
+  <header class="titlebar">
+    <span class="lamps" aria-hidden="true"><i></i><i></i><i></i></span>
+    <a class="home" href="/">buttercup.sh</a>
+    <a href="./">updates</a>
+    <span class="where">syllabus</span>
+  </header>
+
+  <article>
+    <header>
+      <time datetime="2026-09-04">4 September 2026</time>
+      <h1>The syllabus — six units, easiest first</h1>
+      <p>The course now has a shape. Six units, ordered by how little has to be
+         true before you can start one: <strong>a model in the tab, tool
+         calling, loops and goals, agents talking to other agents, vision, then
+         evals.</strong> Unit 1 needs a browser and nothing else. By unit 4 your
+         agent is hiring other agents. Each unit is a lesson or two by email,
+         free, with code you run rather than read.</p>
+      <!-- the form itself rather than a link down to it: one field, one
+           button, no jump. Same list, same sink frame as the foot. -->
+      <form class="signup lede" id="signup-lede"
+            action="https://5487903a.sibforms.com/serve/MUIFAAPvkZdoviEts98XHd7P8K3TyLVS3MtyAoJy_sJMZ9DgAKwbaJqN4Lgn4NMQH3JL50ANiWCKfMJlE3Wj5aEiDLJ3sbnhtSTvh3z7Lgg2BOpAJjNZhMpN_BCn21Kz_o-buc-NY7aFM5JXPRkd-GW0iihg0KEvSJQiAgmUYcB_8D6DmR8Xb4bEFUzTJmlYFti6yJBG7K33hsR_MQ=="
+            method="POST" target="signup-sink" autocomplete="on">
+        <label class="sigil" for="signup-lede-email" aria-hidden="true">&gt;</label>
+        <label class="slabel" for="signup-lede-email">EMAIL</label>
+        <input id="signup-lede-email" name="EMAIL" type="email" required
+               spellcheck="false" placeholder="you@example.com">
+        <input type="text" name="email_address_check" value="" class="trap"
+               tabindex="-1" aria-hidden="true" autocomplete="off">
+        <input type="hidden" name="locale" value="en">
+        <button type="submit">SUBSCRIBE</button>
+        <p class="note">one lesson a week &middot; unsubscribe whenever</p>
+        <p class="thanks" role="status">subscribed — thank you!</p>
+      </form>
+    </header>
+
+    <h2>The climb</h2>
+
+    <figure class="diag">
+      <ol class="ladder">
+        <li><span class="t">A model in the tab</span>
+            <span class="m">WebLLM · no key, no server, no bill</span></li>
+        <li><span class="t">Intro to tool calling</span>
+            <span class="m">the loop that turns a chat model into an agent</span></li>
+        <li><span class="t">Loops and goals</span>
+            <span class="m">many steps, and knowing when to stop</span></li>
+        <li><span class="t">Agent communication</span>
+            <span class="m">Blocks.ai — your agent hires, and gets hired</span></li>
+        <li><span class="t">Vision</span>
+            <span class="m">screenshots in — the agent sees what it built</span></li>
+        <li><span class="t">Evals</span>
+            <span class="m">a number, so &ldquo;better&rdquo; stops being a feeling</span></li>
+      </ol>
+      <figcaption>Units 1–4 are the spine and each one assumes the one above
+        it: a model, a loop, a loop that stops, a loop that reaches other
+        agents. <b>Take those four in order</b> — skipping ahead is the reliable
+        way to spend an evening debugging the wrong layer. Units 5 and 6 add
+        eyes and a score; they only need unit 3, so take them when you want
+        them.</figcaption>
+    </figure>
+
+    <h2>At a glance</h2>
+
+    <table>
+      <thead>
+        <tr><th>Unit</th><th>You build</th><th>You need</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1 · WebLLM</td>
+          <td>One completion, on your own GPU, for free</td>
+          <td>A WebGPU browser</td>
+        </tr>
+        <tr>
+          <td>2 · Tool calling</td>
+          <td>A weather tool and the loop around it</td>
+          <td>Unit 1 · a hosted key or Ollama</td>
+        </tr>
+        <tr>
+          <td>3 · Loops &amp; goals</td>
+          <td>A multi-step agent that stops on purpose</td>
+          <td>Unit 2</td>
+        </tr>
+        <tr>
+          <td>4 · Blocks.ai</td>
+          <td>A published handler, and a client that hires another agent</td>
+          <td>Units 2–3 · Node · a Blocks key</td>
+        </tr>
+        <tr>
+          <td>5 · Vision</td>
+          <td>An agent that screenshots its own work and fixes it</td>
+          <td>Unit 3 · a vision model</td>
+        </tr>
+        <tr>
+          <td>6 · Evals</td>
+          <td>Ten cases, a grader, a score you can move</td>
+          <td>Unit 3 · something worth measuring</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Unit 1 — a model in the tab</h2>
+
+    <p>A language model running entirely inside the browser, on your own GPU,
+       through <strong>WebLLM</strong>. No account, no key, no server, no
+       per-token cost, nothing to install. You press a button, a gigabyte or two
+       of weights arrives once into the browser's cache, and after that you are
+       talking to a model with the network off.</p>
+
+    <p>This is first because it deletes every obstacle at the same time. There
+       is no billing to set up and no fear of leaving a loop running, so you can
+       spend the whole unit on the only question that matters at the start:
+       <em>what does a model actually receive, and what does it actually send
+       back?</em> Messages in, tokens out. Everything in the five units below is
+       a wrapper around that one exchange.</p>
+
+    <p>This one lands on Tuesday 8 September:
+       <a href="2026-09-08-lesson-1-webllm.html">read unit 1</a>.</p>
+
+    <p>The honest caveat, stated up front: a model small enough to run in a tab
+       is not a clever model. Here that is a feature — it fails in ways you can
+       see, immediately, for free. The harness already talks to
+       <strong>Ollama</strong> and <strong>vLLM</strong> if you have them; the
+       in-tab WebGPU path lands with this unit, so the very first lesson needs
+       nothing but the page you are reading.</p>
+
+    <h2>Unit 2 — intro to tool calling</h2>
+
+    <p>The agreement that turns generated text into an action you carry out: you
+       hand the model a list of functions, it emits a name and some JSON, your
+       code runs the real thing, you paste the result back. That loop is the
+       whole of agents, and it is about twenty lines.</p>
+
+    <p>It sits second because it is the first idea with a moving part, and
+       because everything after it is a refinement of it. Written out by hand in
+       JavaScript and Python, with the SDK shortcuts introduced only afterwards
+       — once is the right number of times to write the loop yourself.</p>
+
+    <p>This one follows a week later, on Tuesday 15 September:
+       <a href="2026-09-15-lesson-2-tool-calling.html">read unit 2</a>.</p>
+
+    <p>It is also the first unit that wants a capable model. Small local models
+       call tools unreliably — they invent parameter names, or narrate the call
+       instead of making it — which is a genuinely useful thing to watch once
+       in unit 1, and then a reason to point the harness at a hosted key or
+       Ollama for the rest of the course.</p>
+
+    <h2>Unit 3 — loops and goals</h2>
+
+    <p>Unit 2 gets you one tool call. That is a transaction, not an agent. An
+       agent is a loop with a <em>stopping condition</em>, and almost every
+       agent that misbehaves in public is misbehaving here: it cannot tell that
+       it is finished, or it decides it is finished three steps early.</p>
+
+    <p>So: <code>stop_reason</code> and every value it can hold. Turn caps and
+       why <code>while (true)</code> is a bug with a delay. Stating a goal the
+       model can actually check itself against, rather than a vibe. What happens
+       when a tool hangs, and what a retry should and should not do. Then the
+       build: a task that needs several steps in order — read a file, change it,
+       verify the change landed — with a counter and a real termination check.</p>
+
+    <p>Nothing new is required to get here. This is the same loop from unit 2
+       with its exit condition taken seriously, and it is the last unit before
+       your agent starts talking to code you did not write.</p>
+
+    <h2>Unit 4 — agent communication</h2>
+
+    <p>Your agent stops being alone. <strong>Blocks.ai</strong> is a network
+       where agents publish what they can do and hire each other to do it: you
+       write a task card and a handler, run it with
+       <code>blocks run</code>, and your agent is reachable. In the other
+       direction, a client in your own code can hand work to an agent you did
+       not write and never see the inside of.</p>
+
+    <p>The build is both halves — publish a handler that answers one narrow kind
+       of task, then a client that hires someone else's agent for something you
+       deliberately did not implement. The harness scaffolds both halves for you
+       — the agent card, the <code>handler.js</code> that
+       <code>@blocks-network/sdk</code> runs, and a browser consumer page that
+       submits tasks — so the lesson is about the ideas rather than the
+       boilerplate. The one piece left to you is the token endpoint that mints a
+       JWT for the page, because the alternative is your API key in public
+       JavaScript.</p>
+
+    <p>Fourth, and this is the placement worth arguing about — it is much
+       earlier than the difficulty warrants, on purpose. A loop that stops when
+       it should is the only real prerequisite, and this is where the course
+       stops being a tutorial. It does have the largest blast radius in the six:
+       latency is real, the failure may be someone else's, a task can be
+       accepted and then abandoned, and authentication and trust become your
+       problem. Bring unit 3's stopping condition with you and none of that is
+       fatal.</p>
+
+    <h2>Unit 5 — vision</h2>
+
+    <p>Images as input. Send a screenshot alongside your text and the model can
+       describe a layout, spot that a button is off-screen, read an error out of
+       a terminal photo, or compare what it built against what you asked for.</p>
+
+    <p>Mechanically this is the smallest unit in the course — one new kind of
+       content block and you are done. It is placed here anyway, because seeing
+       is only interesting once there is a loop to put it inside. An agent that
+       can look at a page is a novelty; an agent that writes a page, looks at it,
+       notices the overlap, and fixes it is unit 3 plus eyes. That is the
+       build.</p>
+
+    <h2>Unit 6 — evals</h2>
+
+    <p>The unit that is a discipline rather than a mechanism, and the one most
+       people skip. You changed a tool description and the agent seems better.
+       Is it? <strong>&ldquo;Seems&rdquo; is not evidence</strong>, and with a
+       non-deterministic system your memory of the last five runs is actively
+       misleading.</p>
+
+    <p>So you build the smallest thing that fixes that: ten cases with known
+       good outcomes, a grader that scores a run without you watching it, and
+       one number. Then you change a single sentence in a tool description and
+       watch the number move — up, or, instructively, down. After that you make
+       changes with evidence, which is the entire difference between an agent
+       that demos well and an agent that works on Monday.</p>
+
+    <p>It comes last because it needs something worth measuring, and by now you
+       have five units of it: a loop, a stopping condition, a remote agent whose
+       reliability is not yours to control, and a cheap in-tab model you would
+       like to know whether you can get away with. Every one of those is a
+       question an eval answers and an argument cannot.</p>
+
+    <h2>Why this order and not another</h2>
+
+    <p>Two things decide the sequence. The first is prerequisites: how much must
+       already be working before a unit is even possible. Unit 1 needs a browser.
+       Unit 2 needs unit 1 and a key. Unit 3 needs unit 2 and nothing else. The
+       second is blast radius — how many things can be wrong at once while you
+       are trying to learn one of them. Unit 1 has a single moving part and no
+       bill; unit 4 has a network, a stranger's code, a clock and money.</p>
+
+    <p>Those two agree about the first three rungs and disagree about the fourth,
+       and the disagreement is deliberate. By blast radius alone, agent
+       communication belongs last. It is fourth instead because it is the reason
+       most people are here, and a course that saves the interesting part for
+       week six is a course people quit in week three. So it lands as soon as its
+       one real prerequisite — a loop you trust to stop — is in place. Vision and
+       evals follow: both need only unit 3, and both are improvements to an agent
+       that already works rather than steps toward one.</p>
+
+    <h2>What is not in the six</h2>
+
+    <p>Plenty, and on purpose — six units is a course somebody finishes. Context
+       and compaction, sandboxing, sub-agents and delegation, planning that
+       survives a wrong turn, and the undo stack that rewinds files and
+       conversation together are all still on
+       <a href="2026-09-02-weekly-agent-training.html">the longer list</a>.
+       They arrive as follow-on lessons hanging off the unit they belong to,
+       once the six rungs are in place. The ladder is the spine, not the whole
+       skeleton.</p>
+
+    <p>Subscribers get each unit as it is written, in this order. The archive
+       keeps the ones you missed, so signing up late costs nothing.</p>
+
+    <p><a class="cta" href="/">open the harness</a></p>
+
+  </article>
+
+  <!-- ══ subscribe: the same form the harness carries, posting to the same
+          list. Every page in the archive ends here. ═══════════════════════ -->
+  <section class="subscribe">
+    <h2>One lesson a week</h2>
+    <form class="signup" id="signup"
+          action="https://5487903a.sibforms.com/serve/MUIFAAPvkZdoviEts98XHd7P8K3TyLVS3MtyAoJy_sJMZ9DgAKwbaJqN4Lgn4NMQH3JL50ANiWCKfMJlE3Wj5aEiDLJ3sbnhtSTvh3z7Lgg2BOpAJjNZhMpN_BCn21Kz_o-buc-NY7aFM5JXPRkd-GW0iihg0KEvSJQiAgmUYcB_8D6DmR8Xb4bEFUzTJmlYFti6yJBG7K33hsR_MQ=="
+          method="POST" target="signup-sink" autocomplete="on">
+      <label class="sigil" for="signup-email" aria-hidden="true">&gt;</label>
+      <label class="slabel" for="signup-email">EMAIL</label>
+      <input id="signup-email" name="EMAIL" type="email" required
+             spellcheck="false" placeholder="you@example.com">
+      <input type="text" name="email_address_check" value="" class="trap"
+             tabindex="-1" aria-hidden="true" autocomplete="off">
+      <input type="hidden" name="locale" value="en">
+      <button type="submit">SUBSCRIBE</button>
+      <p class="note">one AI Agent training lesson, weekly</p>
+      <p class="note">starting mid-September 2026</p>
+      <p class="thanks" role="status">subscribed — thank you!</p>
+    </form>
+    <iframe name="signup-sink" title="subscription result" hidden></iframe>
+  </section>
+
+  <footer class="foot">
+    <p><a href="./">← all updates</a> &middot;
+       <a href="https://github.com/stephenlb/buttercup.sh">source</a> &middot;
+       <a href="https://github.com/stephenlb/buttercup.sh/issues/new">feedback</a></p>
+  </footer>
+
+</div>
+
+<script src="signup.js"></script>
+</body>
+</html>
