@@ -14,9 +14,25 @@
 
    Raw fetch rather than an SDK: this page has no bundler, and shipping a CDN
    import for three vendors would trade a readable ~250 lines for a runtime
-   dependency on someone else's uptime.
+   dependency on someone else's uptime. The one exception is WebLLM, where the
+   runtime is the point — its in-tab inference engine is imported lazily, and
+   only when that provider is picked.
    ═══════════════════════════════════════════════════════════════════════════ */
 window.LLM = (function () {
+
+  const tstamp = () => {
+    const d = new Date();
+    return `${d.toTimeString().slice(0, 8)}.${String(d.getMilliseconds()).padStart(3, "0")}`;
+  };
+
+  /* WebLLM windows are a per-model GPU memory budget (the KV cache is sized
+     by them), not a capability claim. */
+  const WEBLLM_CTX = 8192;
+  const WEBLLM_WINDOWS = {
+    "Qwen3.5-4B-q4f16_1-MLC": 32768,
+    "Qwen3.5-2B-q4f16_1-MLC": 32768,
+  };
+  const webllmWindow = (model) => WEBLLM_WINDOWS[model] || WEBLLM_CTX;
 
   /* `api` selects the wire format; `url` is the base a chat-completions vendor
      hangs /chat/completions and /models off, and the user can override it in the
@@ -35,6 +51,20 @@ window.LLM = (function () {
       // repo id, so leave the field to whatever the server was started with.
       label: "vLLM — local server", api: "chat", keyHint: "no key needed", keyless: true,
       url: "http://localhost:8000/v1", effortKnob: false, models: [],
+    },
+    webllm: {
+      // Weights download once into the browser cache; tools go through the
+      // text bridge, not the native `tools` path (see the adapter).
+      label: "WebLLM — in this tab", api: "webllm", keyHint: "no key needed", keyless: true,
+      effortKnob: false, contextWindow: WEBLLM_CTX, windows: WEBLLM_WINDOWS, leanTools: true,
+      // The 9B leads: the only size that ran the full tool loop cleanly.
+      models: [
+        "Qwen3.5-9B-q4f16_1-MLC", "Qwen3.5-4B-q4f16_1-MLC", "Qwen3.5-2B-q4f16_1-MLC",
+        "Qwen3-8B-q4f16_1-MLC",
+        "Hermes-3-Llama-3.1-8B-q4f16_1-MLC", "Hermes-3-Llama-3.1-8B-q4f32_1-MLC",
+        "Hermes-2-Pro-Llama-3-8B-q4f16_1-MLC", "Hermes-2-Pro-Llama-3-8B-q4f32_1-MLC",
+        "Hermes-2-Pro-Mistral-7B-q4f16_1-MLC",
+      ],
     },
     anthropic: {
       label: "Anthropic — Claude", api: "anthropic", keyHint: "sk-ant-…",
@@ -317,8 +347,9 @@ window.LLM = (function () {
      accepted (some vendors 400 on it for models that always reason).
      ------------------------------------------------------------------------- */
 
-  async function chat({ provider, baseUrl, model, apiKey, system, messages, tools, effort, signal, on }) {
-    const effortKnob = MODELS[provider]?.effortKnob;
+  /** The OpenAI chat-completions wire form of the internal message shape —
+      shared by the gateways and the in-tab WebLLM engine. */
+  function toWire(system, messages) {
     const wire = [];
     if (system) wire.push({ role: "system", content: system });
     for (const m of messages) {
@@ -332,7 +363,7 @@ window.LLM = (function () {
         // reject it — so they follow as a user turn that says where they came from.
         const fromTools = [];
         for (const r of results) {
-          wire.push({ role: "tool", tool_call_id: r.id, content: r.error ? `error: ${r.output}` : r.output });
+          wire.push({ role: "tool", tool_call_id: r.id, name: r.name, content: r.error ? `error: ${r.output}` : r.output });
           for (const s of r.shots || []) fromTools.push({ name: r.name, shot: s });
         }
         if (fromTools.length) {
@@ -356,6 +387,10 @@ window.LLM = (function () {
         } else if (text) {
           wire.push({ role: "user", content: text });
         }
+      } else if (typeof m.raw === "string" && m.raw) {
+        // Byte-exact replay of the engine's own reply — web-llm's KV reuse
+        // dies if this turn is re-rendered from parts.
+        wire.push({ role: "assistant", content: m.raw });
       } else {
         const text = m.parts.filter((p) => p.type === "text").map((p) => p.text).join("");
         const calls = m.parts.filter((p) => p.type === "tool_use").map((p) => ({
@@ -367,6 +402,12 @@ window.LLM = (function () {
         wire.push(msg);
       }
     }
+    return wire;
+  }
+
+  async function chat({ provider, baseUrl, model, apiKey, system, messages, tools, effort, signal, on }) {
+    const effortKnob = MODELS[provider]?.effortKnob;
+    const wire = toWire(system, messages);
 
     const body = {
       model,
@@ -426,6 +467,390 @@ window.LLM = (function () {
     const ready = calls.filter(Boolean).map((c) => ({ id: c.id, name: c.name, input: safeJson(c.json) }));
     return { parts: flatParts(text, ready), stopReason, usage };
   };
+
+  /* ── WebLLM — the model runs in this tab on WebGPU ──────────────────────────
+     Nothing in here touches the network: the one dynamic import below fetches
+     the inference runtime (a couple of MB, pinned), and the weights arrive
+     from Hugging Face straight into the browser's HTTP cache on first use.
+     The engine consumes the same OpenAI chat-completions shape as the
+     gateways, so the wire builder is shared.
+     ------------------------------------------------------------------------- */
+
+  // jsDelivr's prebuilt lib bundle, not esm.sh: the latter's CJS interop leaks
+  // a Node `createRequire` import that dies in the browser.
+  const WEBLLM_SRC = "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.84/lib/index.js";
+  const engines = new Map();   // model id -> loaded engine, kept for the tab's life
+
+  function webllmWorker() {
+    const src =
+      `import { WebWorkerMLCEngineHandler } from ${JSON.stringify(WEBLLM_SRC)};` +
+      `const handler = new WebWorkerMLCEngineHandler();` +
+      `self.onmessage = (msg) => handler.onmessage(msg);`;
+    return new Worker(URL.createObjectURL(new Blob([src], { type: "text/javascript" })), { type: "module" });
+  }
+
+  async function webllmEngine(model, on) {
+    const loaded = engines.get(model);
+    if (loaded) {
+      console.log(`[${tstamp()} webllm] ${model} already in memory this session — no load, no download`);
+      on.status?.("generating");
+      return loaded;
+    }
+    // One engine resident at a time.
+    for (const [id, engine] of engines) {
+      engines.delete(id);
+      console.log(`[${tstamp()} webllm] ${id} unloaded — one engine resident at a time`);
+      try { await engine.unload(); } catch (_) { /* already gone */ }
+    }
+    const cachedShards = await webllmCacheReport(model);
+    try { console.log(`[${tstamp()} webllm] storage.persist() → ${await navigator.storage.persist()}`); }
+    catch (_) { console.log(`[${tstamp()} webllm] storage.persist() unavailable`); }
+
+    on.status?.(cachedShards > 0 ? "loading weights from disk cache" : "fetching weights — a few GB, once per model");
+    const loadT0 = performance.now();
+    const webllm = await import(WEBLLM_SRC);
+    const config = {
+      initProgressCallback: (report) => on.status?.(report.text, report.progress),
+    };
+    const opts = {
+      context_window_size: webllmWindow(model),
+      prefill_chunk_size: 2048,
+    };
+    let engine;
+    // Shard fetches over the HF CDN drop mid-download now and then
+    // ("Cache.add() encountered a network error"). Already-cached shards are
+    // kept, so a bounded retry loop walks the download to completion; if the
+    // Cache API itself is refusing (often an extension), IndexedDB is the
+    // last resort.
+    const errText = (err) => String(err?.message ?? err ?? "unknown error");
+    try {
+      const worker = webllmWorker();
+      try {
+        engine = await webllm.CreateWebWorkerMLCEngine(worker, model, config, opts);
+      } catch (err) {
+        worker.terminate();
+        throw err;
+      }
+      console.log(`[${tstamp()} webllm] engine lives in a web worker — main thread stays free`);
+    } catch (err) {
+      console.warn(`[${tstamp()} webllm] worker engine unavailable (${errText(err)}) — falling back to the main thread`);
+      for (let attempt = 1; attempt <= 3 && !engine; attempt++) {
+        try {
+          engine = await webllm.CreateMLCEngine(model, config, opts);
+        } catch (e) {
+          console.warn(`[${tstamp()} webllm] engine load failed (attempt ${attempt}/3) — ${errText(e)}`);
+        }
+      }
+      if (!engine) {
+        console.warn(`[${tstamp()} webllm] Cache API keeps failing — falling back to IndexedDB cache`);
+        // Cache backend belongs to the engine's appConfig; CreateMLCEngine only
+        // accepts (model, engineConfig, chatOpts), so a fourth argument would be
+        // silently ignored.
+        const indexedConfig = {
+          ...config,
+          appConfig: { ...webllm.prebuiltAppConfig, cacheBackend: "indexeddb" },
+        };
+        engine = await webllm.CreateMLCEngine(model, indexedConfig, opts);
+      }
+    }
+    console.log(`[${tstamp()} webllm] engine load: ${model}: ${(performance.now() - loadT0).toFixed(0)}ms`);
+    engines.set(model, engine);
+    return engine;
+  }
+
+  /** Console report on WebLLM's cache stores; returns how many of the model's
+      weight shards are already cached (-1 if uninspectable). Never throws. */
+  async function webllmCacheReport(model) {
+    try {
+      const est = (await navigator.storage?.estimate?.()) || {};
+      const persisted = await navigator.storage?.persisted?.().catch(() => "?");
+      console.log(
+        `[${tstamp()} webllm] origin ${location.origin} · storage: ${((est.usage || 0) / 1e9).toFixed(2)} GB used ` +
+        `of ${((est.quota || 0) / 1e9).toFixed(1)} GB quota · persisted: ${persisted}`,
+      );
+      const stores = (await caches.keys()).filter((s) => s.startsWith("webllm/"));
+      console.log(`[${tstamp()} webllm] cache stores: ${stores.join(", ") || "(none yet)"}`);
+      let shards = 0;
+      for (const name of stores) {
+        const entries = await (await caches.open(name)).keys();
+        const mine = name === "webllm/model" ? entries.filter((r) => r.url.includes(model)) : [];
+        shards += mine.length;
+        console.log(`[${tstamp()} webllm] ${name}: ${entries.length} entr${entries.length === 1 ? "y" : "ies"}${mine.length ? ` (${mine.length} for ${model})` : ""}`);
+      }
+      console.log(shards
+        ? `[${tstamp()} webllm] ${model}: ${shards} shard(s) cached — load should read from disk, not the network`
+        : `[${tstamp()} webllm] ${model}: nothing cached on this origin — this load downloads`);
+      return shards;
+    } catch (err) {
+      console.warn(`[${tstamp()} webllm] cache inspection failed: ${err.message}`);
+      return -1;
+    }
+  }
+
+  // MLC builds are text-only; images collapse to a note.
+  function flattenImages(wire) {
+    const NOTE = "[a picture was attached here; this local model cannot see images]";
+    for (const m of wire) {
+      if (!Array.isArray(m.content)) continue;
+      const text = m.content.filter((c) => c.type === "text").map((c) => c.text).join("\n");
+      const hadImage = m.content.some((c) => c.type === "image_url");
+      m.content = hadImage ? (text ? `${text}\n${NOTE}` : NOTE) : text;
+    }
+    return wire;
+  }
+
+  const CALL_OPEN = "<tool_call>", CALL_CLOSE = "</tool_call>";
+  const THINK_OPEN = "<think>", THINK_CLOSE = "</think>";
+
+  function toolProtocol(tools) {
+    return [
+      "## Tools",
+      "",
+      "You run tools. Schemas:",
+      "",
+      "<tools>",
+      JSON.stringify(tools.map((t) => ({
+        name: t.name, description: t.description, parameters: t.input_schema,
+      }))),
+      "</tools>",
+      "",
+      "To run tools, reply with exactly this shape — one JSON object per block — and",
+      "then end your turn. Never write a <tool_response> yourself; never guess a result:",
+      "",
+      "<tool_call>",
+      '{"name": "tool_name", "arguments": {"param": "value"}}',
+      "</tool_call>",
+      "",
+      "Every result arrives in the next user message, wrapped:",
+      "",
+      "<tool_response>",
+      '{"id": "...", "name": "...", "output": "..."}',
+      "</tool_response>",
+      "",
+      "No tool needed? Answer in plain prose with no blocks. Several independent calls",
+      "belong in one turn, each in its own <tool_call> block. Reason briefly — long",
+      "deliberation costs the user real time on a small in-tab model.",
+    ].join("\n");
+  }
+
+  /** Re-expresses the shared wire form for the bridge: results as
+      <tool_response> user turns, calls as <tool_call> blocks, strict
+      role alternation. */
+  function bridgeWire(wire) {
+    const flat = [];
+    for (const m of wire) {
+      if (m.role === "tool") {
+        flat.push({ role: "user", content: [
+          "<tool_response>",
+          JSON.stringify({ id: m.tool_call_id, name: m.name, output: m.content }),
+          "</tool_response>",
+        ].join("\n") });
+      } else if (m.role === "assistant" && m.tool_calls?.length) {
+        const blocks = m.tool_calls.map((c) =>
+          `<tool_call>\n{"name": ${JSON.stringify(c.function.name)}, "arguments": ${c.function.arguments}}\n</tool_call>`
+        ).join("\n");
+        flat.push({ role: "assistant", content: [m.content, blocks].filter(Boolean).join("\n") });
+      } else {
+        flat.push(m);
+      }
+    }
+    // Results and any follow-up text can land in adjacent user turns; the chat
+    // template wants strict alternation, so fold them together.
+    const out = [];
+    for (const m of flat) {
+      const last = out[out.length - 1];
+      if (m.role === "user" && last && last.role === "user") last.content += `\n\n${m.content}`;
+      else out.push(m);
+    }
+    return out;
+  }
+
+  /** Splits the raw stream live: <think> → on.thinking, <tool_call> blocks
+      collected, prose → on.text; tag tails are held back until resolved. */
+  function toolStreamFilter(on) {
+    let mode = "text";             // text | think | call
+    let buf = "";
+    let callJson = "";
+    let clean = "";
+    const calls = [];
+    const TAGS = [THINK_OPEN, THINK_CLOSE, CALL_OPEN, CALL_CLOSE];
+
+    function spill(final) {
+      while (buf) {
+        let at = -1, tag = null;
+        for (const t of TAGS) {
+          const i = buf.indexOf(t);
+          if (i !== -1 && (at === -1 || i < at)) { at = i; tag = t; }
+        }
+        if (at === -1) {
+          let keep = 0;
+          if (!final) {
+            for (let len = Math.min(buf.length, CALL_CLOSE.length - 1); len > 0; len--) {
+              if (TAGS.some((t) => t.startsWith(buf.slice(-len)))) { keep = len; break; }
+            }
+          }
+          if (!final && keep >= buf.length) return;   // it may yet become a tag
+          const out = final ? buf : buf.slice(0, buf.length - keep);
+          buf = final ? "" : buf.slice(out.length);
+          if (mode === "text") { clean += out; on.text?.(out); }
+          else if (mode === "think") on.thinking?.(out);
+          else { callJson += out; on.thinking?.(out); }   // visible while it builds
+          return;
+        }
+        const before = buf.slice(0, at);
+        if (mode === "text") { clean += before; on.text?.(before); }
+        else if (mode === "think") on.thinking?.(before);
+        else { callJson += before; on.thinking?.(before); }
+        buf = buf.slice(at + tag.length);
+        if (tag === CALL_OPEN) { mode = "call"; callJson = ""; on.status?.("receiving a tool call"); }
+        else if (tag === CALL_CLOSE) { calls.push(callJson.trim()); mode = "text"; callJson = ""; }
+        else if (tag === THINK_OPEN) mode = "think";
+        else mode = "text";
+      }
+    }
+
+    return {
+      push(chunk) { buf += chunk; spill(false); },
+      end() {
+        spill(true);
+        // Cut off mid-call: hand back the fragment anyway — the tool fails
+        // loudly, and the error teaches the next turn.
+        if (mode === "call" && callJson.trim()) calls.push(callJson.trim());
+        return {
+          clean,
+          calls: calls.map((raw) => {
+            const parsed = safeJson(raw);
+            return { name: parsed.name || "", input: parsed.arguments ?? parsed.parameters ?? {} };
+          }).filter((c) => c.name),
+        };
+      },
+    };
+  }
+
+  async function webllm({ model, system, messages, tools, signal, on }) {
+    const engine = await webllmEngine(model, on);
+    on.status?.("generating");   // clears the load bar once the engine is up
+    if (signal?.aborted) throw new DOMException("aborted", "AbortError");
+    const bridged = tools.length > 0;
+    const protocol = bridged ? toolProtocol(tools) : "";
+    const systemText = [system, protocol].filter(Boolean).join("\n\n");
+    if (protocol) {
+      console.log(`[${tstamp()} webllm] protocol ≈ ${(protocol.length / 1024).toFixed(1)} KB · ${tools.length} tool(s)`);
+    }
+    const wire = bridgeWire(flattenImages(toWire(systemText, messages)));
+    const body = {
+      messages: wire,
+      stream: true,
+      stream_options: { include_usage: true },
+      max_tokens: Math.min(4096, Math.floor(webllmWindow(model) / 2)),
+      extra_body: { enable_thinking: false },
+    };
+
+    console.log(`[${tstamp()} webllm] prompt ≈ ${(JSON.stringify(wire).length / 1024).toFixed(0)} KB over ${wire.length} message(s)`);
+    on.status?.("prefilling the prompt — first token may take a moment");
+
+    // interruptGenerate is the engine's stop button.
+    const abort = () => engine.interruptGenerate();
+    signal?.addEventListener("abort", abort, { once: true });
+
+    let text = "";
+    let rawContent = "";
+    const usage = { input: 0, output: 0 };
+    let lastUsage = null;
+    let stopReason = null;
+    const filter = bridged ? toolStreamFilter(on) : null;
+    let firstToken = 0, chunkCount = 0, thinkTok = 0;
+    const t0 = performance.now();
+    // Heartbeat for silent stretches (prefill, stalls).
+    const beat = setInterval(() => {
+      console.log(`[${tstamp()} webllm] …alive: ${chunkCount} chunk(s), ${((performance.now() - t0) / 1000).toFixed(0)}s${firstToken ? "" : " — still prefilling"}`);
+    }, 5000);
+    try {
+      const stream = await engine.chat.completions.create(body);
+      for await (const chunk of stream) {
+        chunkCount++;
+        if (chunk.usage) {
+          usage.input = chunk.usage.prompt_tokens || usage.input;
+          usage.output = chunk.usage.completion_tokens || usage.output;
+          lastUsage = chunk.usage;
+        }
+        const choice = chunk.choices?.[0];
+        const delta = choice?.delta || {};
+        if ((delta.content || delta.reasoning_content) && !firstToken) {
+          firstToken = performance.now();
+          console.log(`[${tstamp()} webllm] first token after ${((firstToken - t0) / 1000).toFixed(1)}s`);
+        }
+        if (delta.reasoning_content) {
+          thinkTok++;
+          if (thinkTok === 300) console.log(`[${tstamp()} webllm] thinking past 300 tok — the pace prompt is being ignored`);
+          on.thinking?.(delta.reasoning_content);
+        }
+        if (delta.content) {
+          rawContent += delta.content;
+          if (filter) filter.push(delta.content);
+          else { text += delta.content; on.text?.(delta.content); }
+        }
+        if (choice?.finish_reason) stopReason = choice.finish_reason;
+      }
+    } finally {
+      clearInterval(beat);
+      signal?.removeEventListener("abort", abort);
+    }
+
+    if (firstToken) {
+      console.log(`[${tstamp()} webllm] stream done: ${chunkCount} chunk(s), ${((performance.now() - t0) / 1000).toFixed(1)}s total` +
+        `, decode ≈ ${chunkCount / ((performance.now() - firstToken) / 1000 || 1)} chunk/s`);
+    }
+
+    // An abort mid-stream ends the iteration cleanly, so the truncated text
+    // would otherwise look like a finished reply — and agent.js would commit
+    // it and run its tool calls. Refuse it here instead.
+    if (signal?.aborted) throw new DOMException("aborted", "AbortError");
+
+    // KV-reuse probe, second half: what we will store as `raw` is exactly what
+    // the next request resends as the assistant turn, so it must byte-match
+    // what the engine stored. A mismatch here is a full re-prefill next step.
+    try {
+      const stored = await engine.getMessage();
+      if (rawContent === stored) {
+        console.log(`[${tstamp()} webllm] PROBE ✓ raw byte-equals getMessage() (${rawContent.length} chars)`);
+      } else {
+        let i = 0;
+        while (i < Math.min(rawContent.length, stored.length) && rawContent[i] === stored[i]) i++;
+        console.log(`[${tstamp()} webllm] PROBE ✗ raw ≠ getMessage() — raw ${rawContent.length} ch, stored ${stored.length} ch, first diff at ${i}`);
+        console.log(`[${tstamp()} webllm]   raw    = ${JSON.stringify(rawContent.slice(Math.max(0, i - 20), i + 40))}`);
+        console.log(`[${tstamp()} webllm]   stored = ${JSON.stringify(stored.slice(Math.max(0, i - 20), i + 40))}`);
+      }
+    } catch (_) { /* getMessage unavailable — probe only */ }
+
+    // Speed from the final chunk's usage block — `extra` carries the engine's
+    // own measured rates. (runtimeStatsText() is deprecated; never call it.)
+    const speed = lastUsage?.extra || {};
+    const rate = (v) => (typeof v === "number" ? v.toFixed(1) : "?");
+    console.log(
+      `[${tstamp()} webllm] ${model} · prefill ${rate(speed.prefill_tokens_per_s)} tok/s · ` +
+      `decode ${rate(speed.decode_tokens_per_s)} tok/s · ` +
+      `${usage.input} tok in / ${usage.output} tok out` + (thinkTok ? ` · think ≈${thinkTok} tok` : ""),
+    );
+
+    let parts;
+    if (filter) {
+      const done = filter.end();
+      parts = done.clean ? [{ type: "text", text: done.clean }] : [];
+      // Call order is meaningful; ids only need to survive the round trip.
+      done.calls.forEach((c, i) => {
+        parts.push({ type: "tool_use", id: `call_${Date.now()}_${i}`, name: c.name, input: c.input });
+      });
+    } else {
+      parts = text ? [{ type: "text", text }] : [];
+    }
+
+    usage.think = thinkTok;
+    // What the engine generated, byte for byte: with thinking disabled the
+    // stored conversation holds exactly this string, so sending it back
+    // verbatim (see toWire) is what lets the KV cache be reused across steps.
+    return { parts, stopReason, usage, raw: rawContent || undefined };
+  }
 
   /* ── Google ─────────────────────────────────────────────────────────────── */
 
@@ -512,7 +937,7 @@ window.LLM = (function () {
     try { return JSON.parse(raw); } catch (_) { return { __unparsed: raw }; }
   }
 
-  const ADAPTERS = { anthropic, google, chat };
+  const ADAPTERS = { anthropic, google, chat, webllm };
 
   /* ── key validation ─────────────────────────────────────────────────────────
      Each vendor has a model-listing endpoint that costs no tokens, so the KEYS
@@ -543,6 +968,33 @@ window.LLM = (function () {
     let spec, key, base;
     try { ({ spec, key, base } = resolve({ provider, apiKey, baseUrl })); }
     catch (err) { return { ok: false, error: err.message }; }
+    // WebLLM's "server" is this tab — validate the GPU, not a network.
+    if (spec.api === "webllm") {
+      if (!navigator.gpu) {
+        console.log(`[${tstamp()} webllm] validate: no navigator.gpu on this browser`);
+        return {
+          ok: false,
+          error: "this browser has no WebGPU — WebLLM needs Chrome, Edge, Safari 26+, " +
+                 "or Firefox with WebGPU, and a machine that can run the model",
+        };
+      }
+      try {
+        const adapter = await navigator.gpu.requestAdapter();
+        if (!adapter) {
+          console.log(`[${tstamp()} webllm] validate: WebGPU present but requestAdapter() → null`);
+          return {
+            ok: false,
+            error: "WebGPU is present but no GPU adapter is available — check chrome://gpu, " +
+                   "the GPU may be blocklisted or the drivers too old",
+          };
+        }
+        const info = adapter.info || {};
+        console.log(`[${tstamp()} webllm] validate: WebGPU ok — GPU ${info.vendor || "?"} ${info.architecture || ""} ${info.device || ""} (maxBuffer ${adapter.limits?.maxBufferSize / 1e9 || "?"} GB)`);
+        return { ok: true };
+      } catch (err) {
+        return { ok: false, error: `WebGPU probe failed: ${err.message || err}` };
+      }
+    }
     const [url, headers] = PROBES[spec.api](key, base, spec);
     try {
       const res = await fetch(url, { headers, signal });
@@ -570,6 +1022,12 @@ window.LLM = (function () {
     defaultModel: (provider) => MODELS[provider]?.models[0] || "",
     /** Endpoint base for the providers that have one; "" for the rest. */
     defaultUrl: (provider) => MODELS[provider]?.url || "",
+    /** Fixed engine window for in-tab models; 0 = bounded by the vendor. */
+    contextWindow: (provider, model) => {
+      const spec = MODELS[provider] || {};
+      if (model && spec.windows && spec.windows[model]) return spec.windows[model];
+      return spec.contextWindow || 0;
+    },
     cleanKey,
     validate,
 

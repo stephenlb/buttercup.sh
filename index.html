@@ -13,6 +13,8 @@
 
 <!-- ══ CRT overlay: decoration only, pure CSS ══════════════════════════════ -->
 <div class="crt" aria-hidden="true"></div>
+<!-- hairline load bar: shown while a WebLLM engine fetches its weights -->
+<div id="load-bar" aria-hidden="true" hidden><i></i></div>
 
 <main class="machine">
 
@@ -214,7 +216,7 @@
            <code>SEND TO MODEL</code> attaches a picture of it to your next
            prompt. The page cannot read inside the sandbox, so the frame
            photographs and operates itself and posts the result back out.</p>
-        <iframe id="preview" title="Agent preview" allow="fullscreen" allowfullscreen
+        <iframe id="preview" title="Agent preview" allow="fullscreen"
           sandbox="allow-scripts allow-forms allow-modals allow-popups" hidden></iframe>
       </div>
 
@@ -227,6 +229,7 @@
               <select name="provider" id="provider">
                 <option value="ollama">Ollama — local</option>
                 <option value="vllm">vLLM — local server</option>
+                <option value="webllm">WebLLM — in this tab</option>
                 <option value="anthropic">Anthropic — Claude</option>
                 <option value="openai">OpenAI — Codex / GPT</option>
                 <option value="xai">xAI — Grok</option>
@@ -234,8 +237,10 @@
                 <option value="openrouter">OpenRouter — any model</option>
                 <option value="freebuff">FreeBuff — OpenAI-compatible</option>
               </select></label>
-            <label class="row"><span>model</span>
+            <label class="row" id="row-model-input"><span>model</span>
               <input name="model" id="model" list="model-list" spellcheck="false"></label>
+            <label class="row" id="row-model-select" hidden><span>model</span>
+              <select name="model-select" id="model-select"></select></label>
             <datalist id="model-list"></datalist>
             <label class="row" id="row-base"><span>base url</span>
               <input name="baseUrl" id="baseUrl" spellcheck="false"
@@ -252,6 +257,15 @@
                 <option value="max">max</option>
               </select></label>
           </fieldset>
+          <p class="note" id="webllm-hint" hidden>No server and no key — the model runs in this
+             tab on WebGPU. Tuned per model: each declares its own engine window (the 2B and 4B builds get 32k, the
+             rest 8k), a lean core toolset, replies capped at 4,096
+             tokens, and context that compacts early to stay inside the window. Weights
+             download once into the browser's cache, then work offline. Roughly: Qwen3.5-2B
+             ≈ 1.4 GB · Qwen3.5-4B ≈ 2.3 GB · Qwen3.5-9B ≈ 5 GB (default — the only size
+             that runs the tool loop cleanly) · the Hermes 7–8B builds ≈ 4–5 GB.
+             A bar across the top of the page tracks the first download.</p>
+          <p class="note" id="webllm-model" hidden></p>
           <fieldset>
             <legend>harness</legend>
             <label class="row"><span>mode</span>

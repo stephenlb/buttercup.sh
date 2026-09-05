@@ -94,7 +94,9 @@
       if (!quiet) UI.error("no API key — paste one in the KEYS panel, then press SAVE");
       return false;
     }
-    if (!Agent.busy) UI.status("check", keyless ? "CHECKING SERVER" : "CHECKING KEY");
+    if (!Agent.busy) {
+      UI.status("check", settings.provider === "webllm" ? "CHECKING GPU" : keyless ? "CHECKING SERVER" : "CHECKING KEY");
+    }
     const verdict = await LLM.validate({
       provider: settings.provider, apiKey: settings.key, baseUrl: settings.baseUrl,
     });
@@ -102,7 +104,11 @@
     keyOk = verdict.ok;
     paintReady();
     if (verdict.ok) {
-      if (!quiet) UI.system(keyless ? `${settings.provider} answering at ${settings.baseUrl}` : `key accepted by ${settings.provider}`);
+      if (!quiet) {
+        UI.system(settings.provider === "webllm"
+          ? "WebGPU ready — the model loads into this tab on first use"
+          : keyless ? `${settings.provider} answering at ${settings.baseUrl}` : `key accepted by ${settings.provider}`);
+      }
     }
     else UI.error(verdict.error);
     return keyOk;
@@ -124,6 +130,37 @@
     // local server has nothing to authenticate with.
     $("row-base").hidden = spec.api !== "chat";
     $("row-key").hidden = !!spec.keyless;
+    // A fixed model menu gets a real select; the hidden input stays the
+    // single source of truth — the select writes into it on change.
+    const isMenu = spec.api === "webllm";
+    $("row-model-input").hidden = isMenu;
+    $("row-model-select").hidden = !isMenu;
+    const sel = $("model-select");
+    if (isMenu) {
+      const current = $("model").value.trim();
+      sel.replaceChildren();
+      for (const name of spec.models) {
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        sel.appendChild(opt);
+      }
+      sel.value = spec.models.includes(current) ? current : spec.models[0];
+      if ($("model").value !== sel.value) $("model").value = sel.value;
+    }
+    // Per-model window/cap note for the in-tab provider.
+    const onScreen = $("model").value.trim();
+    const win = settings.provider === "webllm" && onScreen
+      ? LLM.contextWindow("webllm", onScreen) : 0;
+    $("webllm-hint").hidden = settings.provider !== "webllm";
+    const note = $("webllm-model");
+    note.hidden = !win;
+    if (win) {
+      note.textContent =
+        `${onScreen}: engine window ${win.toLocaleString()} tok · ` +
+        `replies capped at ${Math.min(4096, Math.floor(win / 2)).toLocaleString()} tok · ` +
+        `auto-compacts at ~${Math.floor(win * 0.6).toLocaleString()} tok`;
+    }
   }
 
   function paintSettings() {
@@ -159,6 +196,20 @@
     settings = next;
     saveSettings();
   }
+
+  // Chromium only opens a datalist via the edge chevron or Down arrow;
+  // showPicker opens it on a plain click where supported.
+  $("model").addEventListener("click", () => {
+    try { $("model").showPicker(); } catch (_) { /* no picker on this engine */ }
+  });
+
+  $("model").addEventListener("input", fillModelList);
+
+  // The webllm select writes into the hidden input and re-paints the note.
+  $("model-select").addEventListener("change", () => {
+    $("model").value = $("model-select").value;
+    fillModelList();
+  });
 
   $("provider").addEventListener("change", () => {
     // Switching vendors invalidates the model name and the endpoint. The key in
@@ -817,6 +868,8 @@
       const note = extra && extra.note;
       if (state === "busy") UI.status("busy", note ? note.toUpperCase() : `WORKING · STEP ${step || 1}`);
       else paintReady();
+      // Show the bar only when a backend reports a real fraction.
+      UI.progress(extra && typeof extra.progress === "number" ? extra.progress : null);
       paintStats(step);
     },
     onDone: ({ steps }) => {

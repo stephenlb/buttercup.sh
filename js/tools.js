@@ -68,7 +68,7 @@ window.Tools = (function () {
         if (!slice.length) return `(${path} has ${lines.length} lines; offset ${start} is past the end)`;
         const tail = start - 1 + slice.length < lines.length
           ? `\n… ${lines.length - (start - 1 + slice.length)} more lines` : "";
-        return clip(numbered(slice.join("\n"), start), 40000) + tail;
+        return clip(numbered(slice.join("\n"), start), 12000) + tail;
       },
     },
     {
@@ -112,7 +112,7 @@ window.Tools = (function () {
         if (!hits.length) return `no match for /${pattern}/`;
         const shown = hits.slice(0, 200)
           .map((h) => `${h.path}:${h.line}: ${h.text.trim().slice(0, 200)}`).join("\n");
-        return shown + (hits.length > 200 ? `\n… ${hits.length - 200} more matches` : "");
+        return clip(shown, 12000) + (hits.length > 200 ? `\n… ${hits.length - 200} more matches` : "");
       },
     },
 
@@ -287,8 +287,7 @@ window.Tools = (function () {
       summary: (i) => i.path,
       async run({ path }) {
         await hooks.preview(path);
-        return `mounted ${VFS.norm(path)} in the PREVIEW pane — ` +
-               `\`screenshot\` to look at it, \`navigate\` to click and type in it`;
+        return `mounted ${VFS.norm(path)} in the PREVIEW pane`;
       },
     },
     {
@@ -560,6 +559,14 @@ window.Tools = (function () {
 
   const byName = Object.fromEntries(DEFS.map((d) => [d.name, d]));
 
+  // Lean mode: small-context engines see only the core set, and anything
+  // outside it is refused at run() time too.
+  let leanMode = false;
+  const CORE = new Set([
+    "read", "list", "glob", "grep", "write", "edit", "delete", "move",
+    "todo", "set_mode", "run_js", "preview", "http_get",
+  ]);
+
   return {
     hooks,
     defs: DEFS,
@@ -588,12 +595,33 @@ window.Tools = (function () {
       return DEFS.filter((d) => !off.has(d.name));
     },
 
-    /** Tool declarations in the shape every provider adapter starts from. */
-    schemas() {
-      return DEFS.filter((d) => !off.has(d.name)).map((d) => ({
+    /** Tool declarations; `lean` further drops the non-core tools and
+        compresses the rest to first-sentence descriptions with bare types. */
+    schemas(lean = false) {
+      leanMode = lean;
+      const pool = DEFS.filter((d) => !off.has(d.name) && (!lean || CORE.has(d.name)));
+      if (!lean) {
+        return pool.map((d) => ({ name: d.name, description: d.description, input_schema: d.input_schema }));
+      }
+      const first = (s) => {
+        const i = s.indexOf(". ");
+        return i === -1 ? s : s.slice(0, i + 1);
+      };
+      return pool.map((d) => ({
         name: d.name,
-        description: d.description,
-        input_schema: d.input_schema,
+        description: first(d.description),
+        input_schema: {
+          type: "object",
+          properties: Object.fromEntries(Object.entries(d.input_schema.properties).map(([k, v]) => [
+            k,
+            {
+              type: v.type,
+              ...(v.enum ? { enum: v.enum } : {}),
+              ...(v.items ? { items: v.items } : {}),
+            },
+          ])),
+          required: d.input_schema.required,
+        },
       }));
     },
 
@@ -616,12 +644,15 @@ window.Tools = (function () {
      */
     async run(name, input) {
       const def = byName[name];
-      const available = () => DEFS.filter((d) => !off.has(d.name)).map((d) => d.name).join(", ");
+      const available = () => DEFS.filter((d) => !off.has(d.name) && (!leanMode || CORE.has(d.name))).map((d) => d.name).join(", ");
       if (!def) throw new Error(`unknown tool '${name}'. Available: ${available()}`);
-      // Reachable from an earlier turn: the model saw this tool before the user
-      // switched it off. Say so plainly rather than running it anyway.
+      // Reachable from an earlier turn: the model saw this tool before the
+      // user switched it off, or it was never offered in lean mode.
       if (off.has(name)) {
         throw new Error(`tool '${name}' is switched off in the TOOLS panel. Available: ${available()}`);
+      }
+      if (leanMode && !CORE.has(name)) {
+        throw new Error(`tool '${name}' is not offered in this mode. Available: ${available()}`);
       }
       const out = await def.run(input || {});
       if (out && typeof out === "object" && !Array.isArray(out)) {

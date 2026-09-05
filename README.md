@@ -63,6 +63,7 @@ instead of halfway through a turn. No tokens are spent.
 | --- | --- | --- | --- |
 | Ollama | `qwen3-coder:30b` | none | Local: `http://localhost:11434/v1` |
 | vLLM | *(you type one)* | none | Local: `http://localhost:8000/v1` |
+| WebLLM | `Qwen3.5-4B-q4f16_1-MLC` | none | Runs in this tab on WebGPU; tools via the text bridge |
 | Anthropic | `claude-opus-5` | `sk-ant-…` | Adaptive thinking, effort control |
 | OpenAI | `gpt-5.6` | `sk-…` | Chat Completions + `reasoning_effort` |
 | xAI | `grok-4.1` | `xai-…` | `api.x.ai/v1` |
@@ -70,20 +71,39 @@ instead of halfway through a turn. No tokens are spent.
 | OpenRouter | `anthropic/claude-opus-4.5` | `sk-or-v1-…` | Any model the account can reach |
 | FreeBuff | *(you type one)* | gateway key | Any OpenAI-compatible gateway |
 
-Three wire formats cover all eight — Anthropic Messages, Google
-`generateContent`, and OpenAI-style `/chat/completions` (shared by six). That is
-why a **base url** field appears when you pick a chat-completions vendor: any
-gateway speaking that shape works without a code change.
+Three wire formats cover the eight network vendors — Anthropic Messages,
+Google `generateContent`, and OpenAI-style `/chat/completions` (shared by six).
+That is why a **base url** field appears when you pick a chat-completions
+vendor: any gateway speaking that shape works without a code change. The
+ninth, WebLLM, never touches the network — its engine eats the same OpenAI
+shape inside the tab.
 
 ### Running fully local
 
-The two local providers drop the **api key** row and the `Authorization` header
-entirely. Both need CORS permission to accept a call from the tab:
+All three local providers drop the **api key** row and the `Authorization`
+header entirely. The two server-backed ones need CORS permission to accept a
+call from the tab:
 
 ```
 OLLAMA_ORIGINS='https://buttercup.sh' ollama serve
 vllm serve <model> --allowed-origins '["https://buttercup.sh"]'
 ```
+
+WebLLM needs none of that — there is no server. The model runs in this tab on
+WebGPU, and the only fetch is the inference runtime from a CDN, loaded lazily
+when you pick that provider. The weights (a few GB per model) download
+straight from Hugging Face into the browser's cache on first use — a hairline
+bar across the top of the page tracks that download — and after that
+it works offline, and nothing but the model itself ever sees your keys or
+your code. Start with `Qwen3.5-4B-q4f16_1-MLC` (~2.3 GB). Tools travel over a
+text bridge: the schemas ride in the system prompt and the model's
+`<tool_call>` blocks are parsed back into calls — WebLLM's native `tools`
+path is Hermes-only and would discard the harness's system prompt. Requires
+a WebGPU browser (Chrome, Edge, Safari 26+, Firefox with WebGPU) and enough
+free memory. The engine opens an 8k-token window: tools go out as a lean
+core set, old tool results shrink to stubs in the wire view (the newest
+~6k chars of output stay verbatim), read and grep results are capped at
+12k chars, and compaction fires around 5k tokens — tuned for 16 GB machines.
 
 Use your own origin instead if you are serving the harness yourself. Chrome and
 Firefox exempt `http://localhost` from mixed-content blocking on an https page;

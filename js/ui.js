@@ -422,6 +422,15 @@ window.UI = (function () {
       if (state === "busy" && was !== "busy") rollBusyKit();
     },
 
+    /* A hairline bar across the very top of the page, for long loads with a
+       real fraction to report (WebLLM fetching its weights). `null` hides it. */
+    progress(frac) {
+      const bar = $("load-bar");
+      if (frac == null) { bar.hidden = true; return; }
+      bar.hidden = false;
+      bar.firstElementChild.style.width = `${Math.max(0, Math.min(1, frac)) * 100}%`;
+    },
+
     stats({ provider, model, mode, tokens, context, limit, steps }) {
       $("stat-provider").textContent = `${provider} · ${model}`;
       $("stat-mode").textContent = mode;

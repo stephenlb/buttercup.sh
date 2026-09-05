@@ -76,6 +76,20 @@ body {
   @keyframes sweep { from { transform: translateY(-120%); } to { transform: translateY(560%); } }
 }
 
+/* ── load bar ─────────────────────────────────────────────────────────────── */
+/* A hairline across the very top of the glass, above even the CRT dressing,
+   shown only while a WebLLM engine fetches its weights. */
+#load-bar {
+  position: fixed; top: 0; left: 0; right: 0; height: 2px;
+  z-index: 99; pointer-events: none; background: transparent;
+}
+#load-bar i {
+  display: block; height: 100%; width: 0%;
+  background: var(--ink);
+  box-shadow: 0 0 6px var(--ink);
+  transition: width .25s ease;
+}
+
 /* ── machine shell ────────────────────────────────────────────────────────── */
 .machine {
   position: relative; z-index: 1;
