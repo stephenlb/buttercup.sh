@@ -3411,7 +3411,11 @@ console.warn(`[${tstamp()} webllm] engine load failed (attempt ${attempt}/3) —
 }
 if (!engine) {
 console.warn(`[${tstamp()} webllm] Cache API keeps failing — falling back to IndexedDB cache`);
-engine = await webllm.CreateMLCEngine(model, config, opts, { useIndexedDBCache: true });
+const indexedConfig = {
+...config,
+appConfig: { ...webllm.prebuiltAppConfig, cacheBackend: "indexeddb" },
+};
+engine = await webllm.CreateMLCEngine(model, indexedConfig, opts);
 }
 }
 console.log(`[${tstamp()} webllm] engine load: ${model}: ${(performance.now() - loadT0).toFixed(0)}ms`);
@@ -4493,12 +4497,14 @@ state.messages = load();
 state.context = loadContext();
 state.usage = { input: 0, output: 0 };
 state.steps = 0;
+state.wireTrail = null;
 return state.messages.length;
 },
 reset() {
 state.messages = [];
 state.usage = { input: 0, output: 0 };
 state.context = 0;
+state.wireTrail = null;
 localStorage.removeItem(sessionKey());
 localStorage.removeItem(ctxKey());
 },
