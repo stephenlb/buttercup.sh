@@ -393,6 +393,63 @@ table.ref td { vertical-align: top; }
 @keyframes caret { 0%, 100% { border-right-color: var(--good) }
                    50% { border-right-color: transparent } }
 
+/* ‥ the same panel pair, both sides moving ‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥
+   Unit 1's figure 1, where the whole point is the exchange rather than one
+   generated string. The messages light in the order you assemble them, the
+   arrow ticks over on `shove`, and then the reply arrives as separate chips —
+   because that is what a stream hands you. Same 8s clock, so the beats read
+   left to right: 0.2s, 1.0s, arrow, 2.4s onwards. */
+
+/* the rule sits in the <pre>'s own left padding — negative margin against
+   matching padding — so lighting a message never shifts the code sideways or
+   pushes the longest line into the panel edge */
+.pair .msgs .msg {
+  display: block; opacity: .25;
+  border-left: 2px solid transparent;
+  margin-left: -.45rem; padding-left: calc(.45rem - 2px);
+  animation: msgin 8s linear infinite;
+}
+/* the hold runs long — both messages stay lit while the reply comes back,
+   because the array you sent is still the request that is being answered */
+@keyframes msgin {
+  0%        { opacity: .25; border-left-color: transparent }
+  6%, 74%   { opacity: 1;   border-left-color: var(--good) }
+  86%, 100% { opacity: .25; border-left-color: transparent }
+}
+.pair .msgs .msg:nth-of-type(1) { animation-delay: 0.2s; }
+.pair .msgs .msg:nth-of-type(2) { animation-delay: 1.0s; }
+
+/* a chip that *arrives* rather than fading up in place: same beats and same
+   border flare as `chip`, plus a fifth of a rem of travel. Used where the chips
+   are a stream — tokens handed to you one at a time — because the small
+   movement is what makes seven of them read as arrivals instead of a row
+   switching on. `chip` itself is left alone: figure 5's calls are simultaneous. */
+@keyframes chipin {
+  0%        { opacity: .2; border-color: var(--rule);
+              transform: translateY(-.2rem) }
+  6%, 74%   { opacity: 1;  border-color: var(--good); transform: none }
+  86%, 100% { opacity: .2; border-color: var(--rule);
+              transform: translateY(-.2rem) }
+}
+
+/* the reply, in pieces (`chipin`, the travelling form of figure 5's chip) */
+.pair .toks {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-wrap: wrap; gap: .3rem;
+}
+.pair .toks li {
+  border: 1px solid var(--rule); background: var(--paper);
+  padding: .18rem .38rem; font-size: .7rem; color: var(--ink); opacity: .2;
+  animation: chipin 8s cubic-bezier(.2,.9,.3,1) infinite;
+}
+.pair .toks li:nth-child(1) { animation-delay: 2.4s; }
+.pair .toks li:nth-child(2) { animation-delay: 2.7s; }
+.pair .toks li:nth-child(3) { animation-delay: 3.0s; }
+.pair .toks li:nth-child(4) { animation-delay: 3.3s; }
+.pair .toks li:nth-child(5) { animation-delay: 3.6s; }
+.pair .toks li:nth-child(6) { animation-delay: 3.9s; }
+.pair .toks li:nth-child(7) { animation-delay: 4.2s; }
+
 /* ‥ figure 4: the syllabus ladder ‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥
    Six rungs, easiest at the top. A green line climbs the track and each rung
    lights as it is passed, then the whole thing winks out top-down and refills —
@@ -436,6 +493,14 @@ table.ref td { vertical-align: top; }
 .ladder li:nth-child(4) { animation: lightup 8s linear infinite 3.7s; }
 .ladder li:nth-child(5) { animation: lightup 8s linear infinite 4.9s; }
 .ladder li:nth-child(6) { animation: lightup 8s linear infinite 6.1s; }
+/* a four-rung ladder — unit 1's load sequence — shares the clock but has to
+   spread over four beats instead of six, or the line goes on climbing past
+   rungs that are not there while the last one has been lit for two seconds.
+   Delays re-spaced to land the fourth rung where `climb` tops out (78%, 6.24s). */
+.ladder:has(> li:nth-child(4):last-child) li:nth-child(1) { animation-delay: 0.15s; }
+.ladder:has(> li:nth-child(4):last-child) li:nth-child(2) { animation-delay: 2.15s; }
+.ladder:has(> li:nth-child(4):last-child) li:nth-child(3) { animation-delay: 4.15s; }
+.ladder:has(> li:nth-child(4):last-child) li:nth-child(4) { animation-delay: 6.15s; }
 
 /* ‥ figure 5: three calls, one message ‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥
    The rule that costs people the most speed for the least reason. Three chips
@@ -533,7 +598,7 @@ table.ref td { vertical-align: top; }
 .stream .chunks li {
   border: 1px solid var(--rule); background: var(--paper);
   padding: .2rem .4rem; font-size: .7rem; color: var(--ink); opacity: .2;
-  animation: chip 8s linear infinite;
+  animation: chipin 8s cubic-bezier(.2,.9,.3,1) infinite;
 }
 .stream .chunks li:nth-child(1) { animation-delay: 0.3s; }
 .stream .chunks li:nth-child(2) { animation-delay: 0.9s; }
@@ -587,9 +652,17 @@ table.ref td { vertical-align: top; }
 .gauge .bar i.kv { background: var(--ink-faint); animation-delay: .5s; }
 @keyframes fillbar { 0% { flex-basis: 0 } 24%, 92% { flex-basis: var(--w) }
                      100% { flex-basis: 0 } }
+/* the verdict is the reading of the bar, so it waits for the bar: in at 30%,
+   just after the load and its cache have settled, out with everything else */
 .gauge .v {
   font-size: .62rem; letter-spacing: .1em; text-transform: uppercase;
   color: var(--ink-faint);
+  animation: verdict 8s linear infinite;
+}
+@keyframes verdict {
+  0%, 26%   { opacity: 0 }
+  32%, 90%  { opacity: 1 }
+  96%, 100% { opacity: 0 }
 }
 /* the failure row: the overspill is hatched rather than filled, and the
    verdict is the only hot text in the figure */
@@ -599,6 +672,25 @@ table.ref td { vertical-align: top; }
   color: var(--ink);
 }
 .gauge .row.over .v { color: var(--ink-hot); }
+/* the failure, put on the clock rather than left as a static label: the card's
+   own edge takes the flare at the instant the overspill reaches it, and the
+   verdict stutters once on the way in — a device that was lost, not a bar that
+   filled up. Same 8s cycle, no colour introduced, nothing that flashes twice. */
+.gauge .row.over .bar { animation: rim 8s linear infinite; }
+@keyframes rim {
+  0%, 26%   { border-color: var(--rule);   box-shadow: none }
+  32%, 90%  { border-color: var(--ink-hot);
+              box-shadow: inset 0 0 0 1px var(--ink-hot) }
+  96%, 100% { border-color: var(--rule);   box-shadow: none }
+}
+.gauge .row.over .v { animation: verdict-lost 8s steps(1, end) infinite; }
+@keyframes verdict-lost {
+  0%, 26%   { opacity: 0 }
+  32%       { opacity: 1 }
+  35%       { opacity: 0 }
+  38%, 90%  { opacity: 1 }
+  96%, 100% { opacity: 0 }
+}
 
 /* ‥ figure 8: the context wall ‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥
    Drawn to scale on purpose. The whole track is a hosted window; the sliver at
@@ -677,6 +769,9 @@ table.ref td { vertical-align: top; }
 [data-motion="off"] .ladder::after { height: calc(100% - 1rem); }
 [data-motion="off"] .tape li { opacity: 1; }
 [data-motion="off"] .pair .out { width: 17ch; border-right-color: var(--good); }
+[data-motion="off"] .pair .msgs .msg { opacity: 1;
+                                       border-left-color: var(--good); }
+[data-motion="off"] .pair .toks li { opacity: 1; }
 [data-motion="off"] .wire::after { opacity: 1 }
 [data-motion="off"] .wire.h::after { left: 50% }
 [data-motion="off"] .wire.v::after { top: 50% }
@@ -684,6 +779,8 @@ table.ref td { vertical-align: top; }
 [data-motion="off"] .stream .line span { width: 34ch;
                                          border-right-color: var(--good); }
 [data-motion="off"] .gauge .bar i { flex-basis: var(--w); }
+[data-motion="off"] .gauge .v { opacity: 1; }
+[data-motion="off"] .gauge .row.over .bar { border-color: var(--ink-hot); }
 [data-motion="off"] .scale .track i { width: 4.1%; }
 [data-motion="off"] .scale .wall { opacity: 1; }
 
@@ -703,6 +800,17 @@ table.ref td { vertical-align: top; }
 }
 .tip p { margin: 0; font-size: .85rem; color: var(--ink); }
 .tip p + p { margin-top: .5rem; }
+
+/* ── the question list ────────────────────────────────────────────────────────
+   A definition list read out of order, one question at a time, so each pair is
+   ruled off rather than indented. The question is the loud half. */
+
+.faq { margin: 1.5rem 0 0; }
+.faq dt {
+  color: var(--ink-hot); font-weight: 600;
+  border-top: 1px dashed var(--rule); padding-top: .8rem;
+}
+.faq dd { margin: .35rem 0 1.1rem; font-size: .9rem; }
 
 /* ── the index list ───────────────────────────────────────────────────────── */
 
