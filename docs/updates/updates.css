@@ -136,6 +136,12 @@ blockquote {
 table { border-collapse: collapse; width: 100%; font-size: .85rem; }
 th, td { border: 1px solid var(--rule); padding: .35rem .5rem; text-align: left; }
 th { color: var(--ink-hot); background: var(--paper-2); font-weight: 600; }
+/* reference tables: the left column is a short label and the right is prose, so
+   fix the split rather than letting the prose squeeze the labels into stacks */
+table.ref { table-layout: fixed; }
+table.ref :is(th, td):first-child { width: 10.5rem; }
+table.ref td { vertical-align: top; }
+@media (max-width: 34rem) { table.ref :is(th, td):first-child { width: 7rem; } }
 
 /* ── animated diagrams ────────────────────────────────────────────────────────
    Five figures, all pure CSS on one shared 8s clock so they read as the same
@@ -510,8 +516,128 @@ th { color: var(--ink-hot); background: var(--paper-2); font-weight: 600; }
 .fan .bundle li:nth-child(2) { animation-delay: 2.8s; }
 .fan .bundle li:nth-child(3) { animation-delay: 3.2s; }
 
+/* ‥ figure 6: the stream ‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥
+   What `for await` actually hands you: not an answer, a queue of fragments.
+   The chips light one at a time along the top (borrowing `chip` from figure 5)
+   and the line below grows out of them, because the string is yours to keep. */
+
+.stream { display: grid; gap: .5rem; }
+.stream .cap {
+  color: var(--ink-faint); font-size: .62rem;
+  letter-spacing: .16em; text-transform: uppercase;
+}
+.stream .chunks {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-wrap: wrap; gap: .3rem;
+}
+.stream .chunks li {
+  border: 1px solid var(--rule); background: var(--paper);
+  padding: .2rem .4rem; font-size: .7rem; color: var(--ink); opacity: .2;
+  animation: chip 8s linear infinite;
+}
+.stream .chunks li:nth-child(1) { animation-delay: 0.3s; }
+.stream .chunks li:nth-child(2) { animation-delay: 0.9s; }
+.stream .chunks li:nth-child(3) { animation-delay: 1.5s; }
+.stream .chunks li:nth-child(4) { animation-delay: 2.1s; }
+.stream .chunks li:nth-child(5) { animation-delay: 2.7s; }
+.stream .chunks li:nth-child(6) { animation-delay: 3.3s; }
+.stream .chunks li:nth-child(7) { animation-delay: 3.9s; }
+/* the accumulator. Same content-box trick as figure 3: the `ch` width is the
+   text alone, and the step count must equal the character count — 34 of each. */
+.stream .line {
+  border: 1px solid var(--rule); background: var(--paper-2);
+  padding: .4rem .5rem; overflow: hidden;
+}
+.stream .line span {
+  display: block; box-sizing: content-box;
+  overflow: hidden; white-space: nowrap; width: 34ch;
+  font-size: .74rem; color: var(--ink);
+  border-right: .5rem solid var(--good);
+  animation: growline 8s steps(34, end) infinite, caret .9s step-end infinite;
+}
+@keyframes growline { 0%, 4% { width: 0 } 62%, 100% { width: 34ch } }
+
+/* ‥ figure 7: the VRAM budget ‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥
+   Three loads against one card. The bar box *is* the card, so 100% is the
+   whole of it — which makes the third row's overflow the picture rather than a
+   sentence. Each segment carries its own `--w`, in percent of the card. */
+
+.gauge { display: grid; gap: .55rem; }
+.gauge .row {
+  display: grid; grid-template-columns: 7rem 1fr 5.2rem;
+  gap: .5rem; align-items: center;
+}
+.gauge .row > b {
+  color: var(--ink-hot); font-weight: 600; font-size: .66rem;
+  letter-spacing: .1em; text-transform: uppercase;
+}
+/* clipped, so a load that does not fit is visibly cut off at the card's edge */
+.gauge .bar {
+  position: relative; height: 1.35rem; display: flex; overflow: hidden;
+  border: 1px solid var(--rule); background: var(--paper);
+}
+.gauge .bar i {
+  flex: 0 0 var(--w); font-style: normal; font-size: .58rem;
+  line-height: 1.35rem; white-space: nowrap; overflow: hidden;
+  padding: 0 .25rem; color: var(--paper); background: var(--good);
+  animation: fillbar 8s cubic-bezier(.3,.9,.3,1) infinite;
+}
+/* the conversation's own cache, in a second colour: it grows after the load,
+   and it is the half people forget to budget for */
+.gauge .bar i.kv { background: var(--ink-faint); animation-delay: .5s; }
+@keyframes fillbar { 0% { flex-basis: 0 } 24%, 92% { flex-basis: var(--w) }
+                     100% { flex-basis: 0 } }
+.gauge .v {
+  font-size: .62rem; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-faint);
+}
+/* the failure row: the overspill is hatched rather than filled, and the
+   verdict is the only hot text in the figure */
+.gauge .row.over .kv {
+  background: repeating-linear-gradient(45deg,
+    var(--ink-faint) 0 3px, rgba(0,0,0,0) 3px 6px);
+  color: var(--ink);
+}
+.gauge .row.over .v { color: var(--ink-hot); }
+
+/* ‥ figure 8: the context wall ‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥
+   Drawn to scale on purpose. The whole track is a hosted window; the sliver at
+   the left is the one you get in a tab. The fill grows and stops dead at it. */
+
+.scale { display: grid; gap: .35rem; }
+.scale .track {
+  position: relative; height: 1.6rem;
+  border: 1px solid var(--rule); background: var(--paper);
+}
+/* 8192 of 200000 is 4.1%, and it is meant to look like that */
+.scale .track i {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 4.1%;
+  background: var(--good);
+  animation: fillwall 8s cubic-bezier(.2,.9,.3,1) infinite;
+}
+@keyframes fillwall { 0% { width: 0 } 55%, 100% { width: 4.1% } }
+.scale .wall {
+  position: absolute; left: 4.1%; top: -2px; bottom: -2px; width: 2px;
+  background: var(--good); opacity: .35;
+  animation: wallhit 8s linear infinite;
+}
+@keyframes wallhit {
+  0%, 50%   { opacity: .35; box-shadow: none }
+  58%, 76%  { opacity: 1;   box-shadow: 0 0 .45rem var(--good) }
+  84%, 100% { opacity: .35; box-shadow: none }
+}
+.scale .legs {
+  display: flex; justify-content: space-between; gap: .5rem;
+  color: var(--ink-faint); font-size: .62rem; letter-spacing: .04em;
+}
+.scale .legs .l { color: var(--ink); }
+
 @media (max-width: 34rem) {
   .pair { grid-template-columns: 1fr; }
+  /* label, bar and verdict each get their own line rather than three cramped
+     columns — the bar is the part that has to stay wide */
+  .gauge .row { grid-template-columns: 1fr; gap: .2rem; }
+  .scale .legs { flex-direction: column; }
   /* stacked: the arrow turns to point down the page and the seam goes away */
   .pair .cross {
     width: auto; height: 1.2rem; transform: rotate(90deg);
@@ -554,6 +680,29 @@ th { color: var(--ink-hot); background: var(--paper-2); font-weight: 600; }
 [data-motion="off"] .wire::after { opacity: 1 }
 [data-motion="off"] .wire.h::after { left: 50% }
 [data-motion="off"] .wire.v::after { top: 50% }
+[data-motion="off"] .stream .chunks li { opacity: 1; }
+[data-motion="off"] .stream .line span { width: 34ch;
+                                         border-right-color: var(--good); }
+[data-motion="off"] .gauge .bar i { flex-basis: var(--w); }
+[data-motion="off"] .scale .track i { width: 4.1%; }
+[data-motion="off"] .scale .wall { opacity: 1; }
+
+/* ── tips ─────────────────────────────────────────────────────────────────────
+   The aside for the thing that saves an hour. Kept visually quieter than a
+   figure and louder than a paragraph, because it is read out of order. */
+
+.tip {
+  margin: 1.5rem 0; padding: .6rem .8rem;
+  border: 1px solid var(--rule); border-left: 3px solid var(--good);
+  background: var(--paper-2);
+}
+.tip > b {
+  display: block; margin-bottom: .25rem;
+  color: var(--ink-hot); font-size: .62rem;
+  letter-spacing: .18em; text-transform: uppercase;
+}
+.tip p { margin: 0; font-size: .85rem; color: var(--ink); }
+.tip p + p { margin-top: .5rem; }
 
 /* ── the index list ───────────────────────────────────────────────────────── */
 

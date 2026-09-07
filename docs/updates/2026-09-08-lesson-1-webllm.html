@@ -178,6 +178,40 @@ document.getElementById("go").onclick = async () =&gt; {
        chat-completions shape, so the code you write here is nearly the code you
        will write against a hosted model in unit 2.</p>
 
+    <p>That last block is the part worth staring at. A stream does not hand you
+       an answer; it hands you fragments, and the answer is the variable
+       <em>you</em> grow out of them:</p>
+
+    <figure class="diag">
+      <div class="stream">
+        <div class="cap">chunk.choices[0].delta.content</div>
+        <ol class="chunks">
+          <li>"Blue"</li>
+          <li>" light"</li>
+          <li>" scatters"</li>
+          <li>" more"</li>
+          <li>" than"</li>
+          <li>" red"</li>
+          <li>"."</li>
+        </ol>
+        <div class="cap">text += …</div>
+        <div class="line"><span>Blue light scatters more than red.</span></div>
+      </div>
+      <figcaption>Each chunk is a few characters and nothing else — no index, no
+        total, no promise of how many are coming. So the two questions you cannot
+        answer mid-stream are <b>how long is this</b> and <b>is it finished</b>,
+        and every agent bug about half-written output starts there.</figcaption>
+    </figure>
+
+    <div class="tip">
+      <b>tip — the first run always looks broken</b>
+      <p>Nothing happens for a long time, then it happens all at once. Open
+         devtools on the Network tab for the first load and you will see the
+         shards arriving; reload and you will see them not arriving, which is the
+         cache. Two minutes of watching this now saves you an hour of debugging
+         a download you thought had hung.</p>
+    </div>
+
     <h2>Keep the tab responsive</h2>
 
     <p>Run that and the page freezes in bursts, because decoding tokens is real
@@ -214,28 +248,51 @@ const engine = await CreateWebWorkerMLCEngine(
        stops painting while it decodes, so every judgement you make about the
        model's speed — and about whether it has hung — is wrong.</p>
 
-    <p>Keep the engine in a variable and reuse it. Creating a second one for the
-       same model reloads the GPU for no reason, and a model you have finished
-       with should be <code>unload()</code>ed before you load another — VRAM is
-       the resource you will run out of first, and only one model at a time
-       really fits.</p>
+    <p>One engine, one model: keep it in a variable and reuse it, and
+       <code>unload()</code> before you load another. A second engine for the same
+       model reloads the GPU for nothing, and only one model at a time really
+       fits — which is the next section.</p>
 
     <h2>What it costs you instead of money</h2>
 
     <p>Free is not the same as free. The bill is paid in other currencies, and
-       being surprised by them later is worse than reading them now:</p>
+       being surprised by them later is worse than reading them now. The first
+       currency is the card, and there is a rule of thumb: at 4-bit, a model
+       costs about <strong>half a byte per parameter</strong> — so 2B is roughly
+       a gigabyte, 9B roughly five — and then the conversation wants its own
+       room on top.</p>
+
+    <figure class="diag">
+      <div class="gauge">
+        <div class="row">
+          <b>2B · 8k ctx</b>
+          <div class="bar"><i style="--w:16%">weights</i><i class="kv" style="--w:4%"></i></div>
+          <span class="v">fits easily</span>
+        </div>
+        <div class="row">
+          <b>9B · 8k ctx</b>
+          <div class="bar"><i style="--w:68%">weights</i><i class="kv" style="--w:9%">kv</i></div>
+          <span class="v">fits</span>
+        </div>
+        <div class="row over">
+          <b>9B · 32k ctx</b>
+          <div class="bar"><i style="--w:68%">weights</i><i class="kv" style="--w:40%">kv</i></div>
+          <span class="v">device lost</span>
+        </div>
+      </div>
+      <figcaption>The box is the card — an 8 GB one here — so 100% is all of it.
+        Green is weights, grey is the conversation cache, and the hatching is the
+        part there was no room for. Note what the third row did <b>not</b> do:
+        raising the context window did not slow anything down or truncate
+        anything, it killed the GPU device, sometimes minutes into a load. Start
+        at the 2B and move up only once it works.</figcaption>
+    </figure>
 
     <ul>
-      <li><strong>The download.</strong> Roughly half a byte per parameter at
-          4-bit, so about a gigabyte for a 2B model and five or so for a 9B.
-          Once per model per origin, and slow the first time.</li>
-      <li><strong>VRAM.</strong> The weights plus the conversation cache have to
-          fit on the card. Ask for more than fits and you do not get a polite
-          error — you get a lost GPU device, sometimes minutes into a load. Start
-          with the 2B, move up when it works.</li>
+      <li><strong>The download.</strong> That same gigabyte or five, over the
+          wire — once per model per origin, and slow the first time.</li>
       <li><strong>Context.</strong> 8192 tokens here, against hundreds of
-          thousands on a hosted model. A long conversation is a wall you will
-          hit, and this is why compaction exists.</li>
+          thousands on a hosted model.</li>
       <li><strong>Text only.</strong> These builds cannot see images. Attach a
           screenshot and it is simply not there — which is unit 5's whole
           subject, and a reason that unit wants a different model.</li>
@@ -244,10 +301,25 @@ const engine = await CreateWebWorkerMLCEngine(
           confidently mangle a format.</li>
     </ul>
 
-    <p>That last one is a feature <em>here</em>, and only here. You are learning
-       what the exchange looks like, and a weak model fails visibly, instantly
-       and for free. The same failures behind a hosted key cost money and hide
-       inside plausible prose.</p>
+    <figure class="diag">
+      <div class="scale">
+        <div class="track"><i></i><span class="wall"></span></div>
+        <div class="legs">
+          <span class="l">8,192 tokens — the whole budget in the tab</span>
+          <span>~200,000 — a hosted model</span>
+        </div>
+      </div>
+      <figcaption>Drawn to scale, because the scale is the point: the tab's whole
+        conversation is that sliver. A chat fills it in a few dozen turns and a
+        chat with tool output in it fills it in <b>three</b> — and then the
+        oldest messages have to go somewhere. Deciding what to drop is
+        compaction, and it is unit 4.</figcaption>
+    </figure>
+
+    <p>Cleverness is the one cost that is a feature <em>here</em>, and only here.
+       You are learning what the exchange looks like, and a weak model fails
+       visibly, instantly and for free. The same failures behind a hosted key
+       cost money and hide inside plausible prose.</p>
 
     <h2>Two ways to give it tools</h2>
 
@@ -283,16 +355,36 @@ const reply = await engine.chat.completions.create({
 // → [ { function: { name: "get_weather", arguments: '{"city":"Paris"}' } } ]
 reply.choices[0].message.tool_calls;</code></pre>
 
-    <p>The three conditions. It works on <strong>five model builds</strong> — the
-       Hermes-2-Pro and Hermes-3 ones, which were fine-tuned for a specific tool
-       prompt; pass <code>tools</code> with any other id and the request throws
-       rather than degrades. It <strong>refuses your own system prompt</strong>,
-       because it needs that slot for the tool prompt it writes itself — so a
-       request with a <code>system</code> message and <code>tools</code> together
-       is an error. And it <strong>constrains the entire reply</strong> to a JSON
-       array of calls: a turn is calls or prose, never a sentence and then a call.
-       (<code>tool_choice</code> is accepted and then ignored, which is worse than
-       rejecting it — check what you got back rather than trusting it.)</p>
+    <p>It runs. The three conditions are what make it the wrong one:</p>
+
+    <table class="ref">
+      <thead>
+        <tr><th>what it takes away</th><th>what that means in practice</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Your choice of model</strong></td>
+          <td>Five builds support it — the Hermes-2-Pro and Hermes-3 ones,
+              fine-tuned for one specific tool prompt. Pass <code>tools</code>
+              with any other id and the request throws rather than degrades.</td>
+        </tr>
+        <tr>
+          <td><strong>Your system prompt</strong></td>
+          <td>The runtime needs that slot for the tool prompt it writes itself, so
+              a <code>system</code> message and <code>tools</code> in the same
+              request is an error.</td>
+        </tr>
+        <tr>
+          <td><strong>Prose in the same turn</strong></td>
+          <td>The whole reply is constrained to a JSON array of calls. A turn is
+              calls or prose, never a sentence and then a call.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p><code>tool_choice</code> is accepted and then ignored, which is worse than
+       rejecting it — check what came back rather than trusting it did as
+       asked.</p>
 
     <p>An agent needs all three of the things that path takes away: any model,
        its own system prompt, and a turn that can say something and then act. So the
@@ -360,6 +452,15 @@ reply.choices[0].message.tool_calls;</code></pre>
       <li>Load the 9B instead of the 2B. Either it is meaningfully better, or
           your GPU tells you the honest truth about its memory.</li>
     </ul>
+
+    <div class="tip">
+      <b>tip — how to get a cold load back</b>
+      <p>Once the weights are cached you cannot re-time the first load, and the
+         first load is the number you want to know. Devtools →
+         <em>Application</em> → <em>Storage</em> → <em>Clear site data</em> puts
+         you back to zero; the same button is how you get the several gigabytes
+         off your disk when you are done with a model.</p>
+    </div>
 
     <p>You can also do all of this in <a href="/">the harness</a> without writing
        a file: the completion backend panel has <em>WebLLM — in this tab</em>
