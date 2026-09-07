@@ -585,34 +585,106 @@ reply.choices[0].message.tool_calls;</code></pre>
 
     <h2>The exercise</h2>
 
-    <p>Run the file above with the console open. Then, before you change anything,
-       answer three questions just by looking:</p>
+    <p>You don't need to save a file for this part. Open <a href="/">the
+       harness</a> — or any page you're serving from <code>localhost</code> — and
+       open devtools on the <em>Console</em> tab. Paste this in and press
+       enter:</p>
+
+<pre><code>// ── paste 1: the engine and a helper to ask it things. ────────────────
+//    Note the dynamic import(). A console is not a module, so the
+//    `import … from` line from earlier is a SyntaxError in here.
+var { CreateMLCEngine } = await import(
+  "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.84/lib/index.js");
+
+var MODEL = "Qwen3.5-2B-q4f16_1-MLC";
+var t0 = performance.now();
+
+var engine = await CreateMLCEngine(
+  MODEL,
+  { initProgressCallback: (r) =&gt; console.log(r.text) },
+  { context_window_size: 8192 },
+);
+
+console.log("loaded in", ((performance.now() - t0) / 1000).toFixed(1), "s");
+
+// one call, streamed, printed as it arrives. Everything below reuses it.
+var ask = async (messages, opts = {}) =&gt; {
+  const stream = await engine.chat.completions.create({
+    messages, stream: true, max_tokens: 512,
+    extra_body: { enable_thinking: false },
+    ...opts,
+  });
+  let text = "";
+  for await (const chunk of stream) {
+    text += chunk.choices[0]?.delta?.content || "";
+  }
+  console.log(text);
+  return text;
+};
+
+await ask([
+  { role: "system", content: "Answer in one sentence." },
+  { role: "user",   content: "Why is the sky blue?" },
+]);</code></pre>
+
+    <p>Two console details worth knowing, because both of them bite. The
+       <code>await</code> at the top level only works in a devtools console, so
+       this snippet is not the same code as the file above. And every declaration
+       is <code>var</code> on purpose: you're going to re-paste these lines a
+       dozen times, and <code>var</code> lets you redeclare while
+       <code>const</code> argues with you about it. If the import itself fails
+       with a content-security-policy error, the page you're standing on won't
+       load modules from a CDN. Move to the harness or your own
+       <code>localhost</code> and try again.</p>
+
+    <p>Now, before you change anything, answer three questions:</p>
 
     <ul>
-      <li>How long did the load take, and how long does it take the
-          <em>second</em> time you press the button? The gap between those two
-          numbers is the cache doing its job.</li>
-      <li>Delete <code>{ role: "system", … }</code> and ask the same question. The
-          answer gets longer and vaguer. That one line was doing real work, and it
-          is the cheapest control you have over any model.</li>
-      <li>Ask it something it cannot know: today's date, or the contents of a file
-          on your disk. Watch it answer anyway. That confident wrongness is the
-          exact hole that tools fill, and it's where unit 2 starts.</li>
+      <li><strong>How much of that was the download?</strong> Drop the engine and
+          build it again. The weights are cached now, so the second number is the
+          honest cost of loading the GPU:
+<pre><code>await engine.unload();
+var t = performance.now();
+engine = await CreateMLCEngine(MODEL, {}, { context_window_size: 8192 });
+console.log(((performance.now() - t) / 1000).toFixed(1), "s from cache");</code></pre>
+          The gap between those two numbers is the cache doing its job.</li>
+      <li><strong>What is the system message actually worth?</strong> Ask the same
+          question without it:
+          <code>await ask([{ role: "user", content: "Why is the sky blue?" }])</code>.
+          The answer gets longer and vaguer. That one line was doing real work,
+          and it is the cheapest control you have over any model.</li>
+      <li><strong>What does it do when it doesn't know?</strong>
+          <code>await ask([{ role: "user", content: "What is today's date?" }])</code>.
+          Watch it answer anyway, with total confidence. That is the exact hole
+          tools fill, and it's where unit 2 starts.</li>
     </ul>
 
-    <p>Now break it on purpose. This is the half everybody skips:</p>
+    <p>Now break it on purpose. This is the half everybody skips, and it is where
+       the lesson actually lands:</p>
 
-    <ul>
-      <li>Ask for a model name that doesn't exist and read the error. You will see
-          it again the first time you typo a model id against a paid API, where it
-          costs more than a minute.</li>
-      <li>Drop <code>max_tokens</code> to <code>20</code>. The reply stops
-          mid-word and nothing errors. <strong>A truncated answer is not an
-          error</strong>. The stream just ends. An agent that treats truncation as
-          success is a bug you'll meet for real in unit 3.</li>
-      <li>Load the 9B instead of the 2B. Either it is meaningfully better, or your
-          GPU tells you the honest truth about its memory.</li>
-    </ul>
+<pre><code>// ── a model id that doesn't exist. Read the error, you'll meet it again
+//    the first time you typo a model against a paid API. ───────────────
+await CreateMLCEngine("Qwen3.5-2B-q4f16_1-MLC-turbo")
+  .catch((e) =&gt; console.log("→", e.message));
+
+// ── truncation. The reply stops mid-word and NOTHING throws. ──────────
+await ask([{ role: "user", content: "Explain how rainbows form." }],
+          { max_tokens: 20 });
+
+// ── how fast was that, really? tokens/sec for the last call. ──────────
+console.log(await engine.runtimeStatsText());
+
+// ── move up a size. Either it's meaningfully better, or your GPU tells
+//    you the honest truth about its memory. Unload first: one at a time.
+await engine.unload();
+engine = await CreateMLCEngine("Hermes-3-Llama-3.1-8B-q4f16_1-MLC",
+  { initProgressCallback: (r) =&gt; console.log(r.text) });</code></pre>
+
+    <p>The truncation one is the finding to keep. <strong>A truncated answer is not
+       an error.</strong> The stream just ends, the promise resolves, and your code
+       is holding half a sentence that looks exactly like a whole one. An agent
+       that treats truncation as success is a bug you will meet for real in unit
+       3.</p>
 
     <div class="tip">
       <b>tip: how to get a cold load back</b>
@@ -623,10 +695,11 @@ reply.choices[0].message.tool_calls;</code></pre>
          model.</p>
     </div>
 
-    <p>You can do all of this in <a href="/">the harness</a> without writing a
-       single file. The completion backend panel has <em>WebLLM in this tab</em>
-       alongside Ollama, vLLM and the hosted vendors, and the console logs every
-       step of the load, the cached shard count, and the tokens per second.</p>
+    <p>And if you'd rather not drive it from a console at all, <a href="/">the
+       harness</a> has the same thing wired to a panel: the completion backend
+       list carries <em>WebLLM in this tab</em> alongside Ollama, vLLM and the
+       hosted vendors, and it logs every step of the load, the cached shard count,
+       and the tokens per second as it goes.</p>
 
     <!-- ══ the questions people actually type. Answered in prose here and
             mirrored in the FAQPage block in the head, so a search engine can
