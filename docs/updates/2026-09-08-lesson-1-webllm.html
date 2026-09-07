@@ -130,13 +130,12 @@
       <time datetime="2026-09-08">8 September 2026</time>
       <h1>Unit 1, WebLLM: a language model in the tab, no key, no server,
           no bill</h1>
-      <p>Every agent needs one thing before it can do anything: a model to talk
-         to. Almost every tutorial starts by asking for your credit card. Let's
-         skip that. <strong>WebLLM runs a real language model inside your
-         browser, on your own GPU, with the network off.</strong> No account, no
-         key, no server, nothing to install. By the end of this unit you will
-         have the exchange the whole course is built on: messages in, tokens
-         out, with nothing in your way and nothing at stake.</p>
+      <p>Every agent needs a model to talk to. Most tutorials start by asking for
+         your credit card. We are going to skip that step. <strong>WebLLM runs a
+         real language model inside your browser, on your own GPU, with the
+         network off.</strong> No account. No key. No server. Nothing to install.
+         By the end of this unit you will have the one exchange the whole course
+         is built on: messages in, tokens out.</p>
       <!-- the form itself rather than a link down to it: one field, one
            button, no jump. Same list, same sink frame as the foot. -->
       <form class="signup lede" id="signup-lede"
@@ -157,14 +156,14 @@
 
     <h2>The one idea</h2>
 
-    <p>A language model is a function. You hand it an array of messages, it hands
-       you back text, one token at a time. That's the whole interface. It doesn't
+    <p>A language model is a function. You hand it an array of messages. It hands
+       you back text, one token at a time. That is the whole interface. It does not
        change when the model gets smarter, when you put it behind an API, or when
-       you wrap it in an agent. <em>Every</em> one of the five units after this
-       one is a wrapper around this single call.</p>
+       you wrap it in an agent. <em>Every</em> one of the five units after this one
+       is a wrapper around this single call.</p>
 
-    <p>So the first question worth asking isn't &ldquo;which model&rdquo; or
-       &ldquo;which framework.&rdquo; It's this: what do I send, and what comes
+    <p>So the first question is not &ldquo;which model&rdquo; or &ldquo;which
+       framework.&rdquo; The first question is: what do I send, and what comes
        back?</p>
 
     <figure class="diag">
@@ -199,51 +198,49 @@
       </div>
       <figcaption>No session, no memory, no connection. Every call sends the whole
         conversation again. Keeping that array is <b>your</b> job, and by unit 3
-        it's the only state your agent has.</figcaption>
+        it is the only state your agent has.</figcaption>
     </figure>
 
-    <p>Normally you pay for that view with a signup, a key, a billing page, and a
-       little worry about the loop you left running. Run the model in the tab and
-       all four go away. That's why we start here.</p>
+    <p>Usually you pay for a look at that with a signup, a key, a billing page,
+       and a little worry about the loop you left running. Run the model in the tab
+       and all four go away. That is why we start here.</p>
 
     <h2 id="why">Why WebLLM is important</h2>
 
-    <p>The zero-friction part isn't just a convenience. It changes what you can
-       build and who can run it.</p>
+    <p>Zero friction is not just a nice-to-have. It changes what you can build
+       and who gets to run it.</p>
 
-    <p><strong>The distance between you and the model goes to zero.</strong> No
-       signup, no key to rotate, no rate limit, no dashboard, no meter running
-       while you read the docs. You can be wrong a hundred times in an afternoon
-       for free, and that is how everybody actually learns this. Tutorials that
-       open with a billing page lose most of their readers on line one, and the
-       readers who stay are careful right when they should be reckless.</p>
+    <p><strong>You start in seconds.</strong> No signup. No key to rotate. No rate
+       limit. No dashboard. No meter running while you read the docs. You can get
+       it wrong a hundred times in one afternoon and it costs you nothing. That is
+       how developers learn. When a tutorial opens with a billing page, most
+       people close the tab, and the ones who stay play it safe. Here you can just
+       experiment.</p>
 
-    <p><strong>The data never leaves the machine.</strong> This isn't a policy you
-       have to trust or a promise buried in a subprocessor list. There is nowhere
-       for the data to go. Once the weights land, the tab is talking to your
-       graphics card and nothing else. That's the difference between a demo you
-       can show a hospital, a bank or a law firm and a demo you can't. It is also
-       the honest answer to &ldquo;where do my prompts go,&rdquo; and the only
-       answer that needs no lawyer.</p>
+    <p><strong>Your data stays on your machine.</strong> This is not a privacy
+       policy you have to trust. There is nowhere for the data to go. The weights
+       load into your GPU, and from then on the tab is talking to your graphics
+       card. That is the difference between a demo you can show a hospital, a bank
+       or a law firm and a demo you cannot. Somebody asks where your prompts go,
+       and the answer is: nowhere.</p>
 
-    <p><strong>Inference becomes someone else's electricity.</strong> A hosted
-       agent's cost per user grows with every user you add. An in-tab agent's
-       cost doesn't grow at all, because the compute belongs to the person using
-       it. The web already made this trade with rendering, and it is why an
-       in-browser model is the only way to ship an agent to a hundred thousand
-       people on a hobby budget.</p>
+    <p><strong>Your costs stay flat.</strong> Run an agent on a hosted model and
+       every new user adds to your bill. Run it in the tab and your inference cost
+       is zero, because every user brings their own GPU. Ten users or a hundred
+       thousand users, you pay the same. The web made this trade a long time ago
+       with rendering, and it is how you ship an agent to a lot of people on a
+       hobby budget.</p>
 
-    <p><strong>And it survives the network.</strong> One fetch, and then you're
-       fine on a plane, in a basement, in a hospital wing with no signal, on
-       conference wifi that dies in the middle of your talk. The model keeps
-       answering. Nothing else in this course can say that.</p>
+    <p><strong>It works offline.</strong> Download the model once. After that you
+       can be on a plane, in a basement, or on conference wifi that dies in the
+       middle of your talk, and the model keeps answering. Nothing else in this
+       course does that.</p>
 
-    <p>Now the honest part: this is not a replacement for a frontier model, and
-       the rest of this unit says so plainly. A 2B model in a tab is small,
-       slow-ish, and confidently wrong. That's fine here. It's the whole reason we
-       start here. You get to watch every mechanism of an agent fail in the open,
-       at no cost, before unit 2 hands you a model good enough to hide its
-       failures.</p>
+    <p>Now the honest part. This is not a frontier model. A 2B model in a tab is
+       small, a little slow, and confidently wrong. That is fine, and it is
+       exactly why we start here. You get to watch every part of an agent break in
+       the open, for free, before unit 2 gives you a model good enough to hide its
+       mistakes.</p>
 
     <h2>What WebLLM is, and what &ldquo;in the tab&rdquo; means</h2>
 
@@ -252,14 +249,14 @@
        quantized model weights to run on
        <a href="https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API"><strong>WebGPU</strong></a>,
        the browser's access to your graphics card, and puts them behind the same
-       chat-completions API a hosted vendor gives you. It is not a proxy, and it
-       is not a little server you forgot you started. The weights are ordinary
-       files, fetched once over HTTP and kept in the browser cache. After that
-       first fetch you can turn off your wifi and keep talking.</p>
+       chat-completions API a hosted vendor gives you. It is not a proxy. It is not
+       a little server you forgot you started. The weights are ordinary files. You
+       fetch them once over HTTP and the browser keeps them in its cache. After
+       that first fetch you can turn off your wifi and keep talking.</p>
 
-    <p>Here's the whole requirements list: a browser with WebGPU, so Chrome or
-       Edge on the desktop or a recent Safari or Firefox, plus a card with a
-       couple of gigabytes free. That's it.</p>
+    <p>Here is the whole requirements list: a browser with WebGPU, so Chrome or
+       Edge on the desktop or a recent Safari or Firefox, plus a card with a couple
+       of gigabytes free. That is it.</p>
 
     <figure class="diag">
       <ol class="ladder">
@@ -275,7 +272,7 @@
       <figcaption>Step 2 is the one you feel: minutes, once per model. Step 3 is
         the one that fails on a small GPU. Steps 1–3 happen on the first send and
         never again for that model on that origin. So the second question you ask
-        is fast, and the tenth is free.</figcaption>
+        is fast, and the tenth one is free.</figcaption>
     </figure>
 
     <h2>The WebLLM code: one file, no build step</h2>
@@ -333,15 +330,15 @@ document.getElementById("go").onclick = async () =&gt; {
 &lt;/script&gt;</code></pre>
 
     <p>Three things to notice. First, the <code>messages</code> array is exactly
-       the shape from the diagram. Second, <code>initProgressCallback</code> is
-       not decoration: without it a five-minute download looks like a hung page
-       and you will assume you broke something. Third, the request body is the
-       chat-completions shape, so this code is very nearly the code you'll write
+       the shape from the diagram. Second, <code>initProgressCallback</code> is not
+       decoration. Without it, a five-minute download looks like a hung page and
+       you will assume you broke something. Third, the request body is the
+       chat-completions shape, so this is very close to the code you will write
        against a hosted model in unit 2.</p>
 
-    <p>That last block is the one to stare at. A stream doesn't hand you an
-       answer. It hands you fragments, and the answer is a variable <em>you</em>
-       grow out of them:</p>
+    <p>Take a good look at that last block. A stream does not hand you an answer.
+       It hands you fragments. The answer is a variable <em>you</em> build out of
+       them:</p>
 
     <figure class="diag">
       <div class="stream">
@@ -360,26 +357,26 @@ document.getElementById("go").onclick = async () =&gt; {
       </div>
       <figcaption>Each chunk is a few characters and nothing else. No index, no
         total, no promise of how many are coming. So there are two questions you
-        can't answer mid-stream: <b>how long is this</b> and <b>is it
+        cannot answer mid-stream: <b>how long is this</b> and <b>is it
         finished</b>. Every agent bug about half-written output starts
-        there.</figcaption>
+        here.</figcaption>
     </figure>
 
     <div class="tip">
       <b>tip: the first run always looks broken</b>
       <p>Nothing happens for a long time, and then everything happens at once.
          Open devtools on the Network tab for the first load and watch the shards
-         arrive. Reload and watch them not arrive. That's the cache. Two minutes
-         of watching this now saves you an hour of debugging a download you
+         arrive. Reload and watch them not arrive. That is the cache. Two minutes
+         of watching this now will save you an hour of debugging a download you
          thought had hung.</p>
     </div>
 
     <h2>Keep the tab responsive: WebLLM in a web worker</h2>
 
     <p>Run that file and the page freezes in bursts. Decoding tokens is real work,
-       and it is happening on the main thread. Move the engine into a worker and
-       the freezing stops. One extra file, and no change at all to the code that
-       does the asking:</p>
+       and right now it is happening on the main thread. Move the engine into a
+       worker and the freezing stops. It takes one extra file, and the code that
+       does the asking does not change at all:</p>
 
 <pre><code>// ── worker.js: the whole file. It hands every message to web-llm's
 //    own handler, which does the work off the main thread. ────────────
@@ -410,18 +407,18 @@ const engine = await CreateWebWorkerMLCEngine(
        painting while it decodes, so every judgment you make about how fast the
        model is, or whether it has hung, will be wrong.</p>
 
-    <p>One engine, one model. Keep it in a variable, reuse it, and call
-       <code>unload()</code> before you load another. A second engine for the same
-       model reloads the GPU for nothing, and only one model fits at a time
+    <p>One engine, one model. Keep it in a variable and reuse it, and call
+       <code>unload()</code> before you load another one. A second engine for the
+       same model reloads the GPU for no reason, and only one model fits at a time
        anyway. Which brings us to the next section.</p>
 
     <h2 id="costs">What WebLLM costs you instead of money</h2>
 
-    <p>Free isn't free. You pay the bill in other currencies, and you want to read
-       them now rather than be surprised later. The first one is your graphics
-       card, and the rule of thumb is easy: at 4-bit, a model costs about
-       <strong>half a byte per parameter</strong>. So 2B is roughly a gigabyte and
-       9B is roughly five. The conversation then needs room of its own on top.</p>
+    <p>Free is not free. You pay in other ways, and it is better to know about them
+       now than to be surprised later. The first one is your graphics card. The rule
+       of thumb is easy: at 4-bit, a model costs about <strong>half a byte per
+       parameter</strong>. So 2B is about a gigabyte and 9B is about five. Then the
+       conversation needs room of its own on top of that.</p>
 
     <figure class="diag">
       <div class="gauge">
@@ -444,9 +441,9 @@ const engine = await CreateWebWorkerMLCEngine(
       <figcaption>The box is the card, 8 GB. 100% is all of it. Green is
         weights, grey is the conversation cache, and the hatching is the part
         there was no room for. Notice what the third row did <b>not</b> do:
-        raising the context window didn't slow anything down and didn't truncate
+        raising the context window did not slow anything down and did not truncate
         anything. It killed the GPU device, sometimes minutes into a load. Start
-        with the 2B and move up once it works.</figcaption>
+        with the 2B and move up once that works.</figcaption>
     </figure>
 
     <ul>
@@ -454,9 +451,9 @@ const engine = await CreateWebWorkerMLCEngine(
           wire. Once per model per origin, and slow the first time.</li>
       <li><strong>Context.</strong> 8192 tokens here, versus hundreds of
           thousands on a hosted model.</li>
-      <li><strong>Text only.</strong> These builds can't see images. Attach a
-          screenshot and it simply isn't there. That is unit 5's whole subject,
-          and it's why that unit wants a different model.</li>
+      <li><strong>Text only.</strong> These builds cannot see images. Attach a
+          screenshot and it simply is not there. That is unit 5's whole subject,
+          and it is why that unit wants a different model.</li>
       <li><strong>Smarts.</strong> A model small enough to run in a tab is not a
           smart model. It repeats itself, loses the thread, and mangles formats
           with total confidence.</li>
@@ -473,21 +470,21 @@ const engine = await CreateWebWorkerMLCEngine(
       <figcaption>Drawn to scale, because the scale is the point: the tab's whole
         conversation is that sliver. A chat fills it in a few dozen turns. A chat
         with tool output in it fills it in <b>three</b>. Then the oldest messages
-        have to go somewhere, and deciding what to drop is compaction. That's unit
+        have to go somewhere, and deciding what to drop is compaction. That is unit
         4.</figcaption>
     </figure>
 
     <p>The missing smarts are the one cost that works in your favor <em>here</em>,
        and only here. You are learning what the exchange looks like, and a weak
-       model fails visibly, instantly, and for free. Behind a hosted key, those
-       same failures cost money and hide inside plausible prose.</p>
+       model fails right away, in the open, for free. Behind a hosted key, those
+       same failures cost you money and hide inside prose that sounds fine.</p>
 
     <h2>Two ways to give WebLLM tools</h2>
 
-    <p>Ask this model to check the weather and it will make the weather up,
-       because it has no tools yet. Giving it some is where the in-tab runtime
-       gets interesting, because there are <em>two</em> ways to do it and the
-       obvious one is the wrong one.</p>
+    <p>Ask this model to check the weather and it will make the weather up, because
+       it has no tools yet. Giving it some is where the in-tab runtime gets
+       interesting. There are <em>two</em> ways to do it, and the obvious one is the
+       wrong one.</p>
 
     <p>The obvious one is native. web-llm really does accept a <code>tools</code>
        parameter, in the same chat-completions shape a hosted vendor uses, and it
@@ -516,7 +513,8 @@ const reply = await engine.chat.completions.create({
 // → [ { function: { name: "get_weather", arguments: '{"city":"Paris"}' } } ]
 reply.choices[0].message.tool_calls;</code></pre>
 
-    <p>It runs. And here are the three conditions that make it the wrong one:</p>
+    <p>It runs. And here are the three conditions that make it the wrong way to
+       go:</p>
 
     <table class="ref">
       <thead>
@@ -545,14 +543,14 @@ reply.choices[0].message.tool_calls;</code></pre>
 
     <p>One more gotcha: <code>tool_choice</code> is accepted and then ignored,
        which is worse than rejecting it. Check what came back instead of trusting
-       that it did what you asked.</p>
+       that it did what you asked for.</p>
 
     <p>An agent needs all three of the things that path takes away: any model, its
        own system prompt, and a turn that can say something and then act. So the
-       second way is the one you'll actually use. It needs nothing from the runtime
-       at all, because tool calling is a convention, not a capability. You describe
-       the convention in the system prompt. <em>To run a tool, reply with a
-       <code>&lt;tool_call&gt;</code> block and end your turn</em>. Then you find
+       second way is the one you will actually use. It needs nothing from the
+       runtime at all, because tool calling is a convention, not a feature. You
+       describe the convention in the system prompt. <em>To run a tool, reply with
+       a <code>&lt;tool_call&gt;</code> block and end your turn</em>. Then you find
        the tags in the stream yourself and act on them:</p>
 
     <figure class="diag">
@@ -564,35 +562,32 @@ reply.choices[0].message.tool_calls;</code></pre>
             <code>&lt;tool_response&gt;{"output": "18°C, light rain"}&lt;/tool_response&gt;</code></li>
         <li><b>assistant</b>: Yes, light rain in Paris at 18°C. Take one.</li>
       </ol>
-      <figcaption>A tool call with the structure taken away: just tags in a
-        string, which your code finds and acts on. This is how the harness drives
-        an in-tab model, any build, its own system prompt intact, prose and calls
-        in one turn. Worth seeing once, because when unit 2 hands you a real
-        <code>tool_use</code> block you'll recognize it as the same agreement with
-        the parsing done for you.</figcaption>
+      <figcaption>This is a tool call with nothing fancy behind it: tags in a
+        string, and your code finds them and acts on them. It is how the harness
+        drives an in-tab model, with any build, its own system prompt intact, and
+        prose and calls in the same turn. Worth seeing once, because when unit 2
+        hands you a real <code>tool_use</code> block you will recognize it as the
+        same deal with the parsing done for you.</figcaption>
     </figure>
 
-    <p>The cost of doing it yourself is that nothing is enforced anymore. The
-       native path couldn't return malformed JSON if it tried, because the grammar
-       forbids it. Here the model is only <em>asked</em> to keep the shape, and
-       small models keep that bargain badly. They invent parameter names, narrate
-       the call instead of making it, or write the
-       <code>&lt;tool_response&gt;</code> themselves and answer their own question.
-       So make your parser suspicious: match the tags, parse what's between them,
-       and treat a failure as a message back to the model rather than a crash.
-       Watch this go wrong once and you'll understand exactly why unit 2 asks for a
-       capable model.</p>
+    <p>The cost of doing it yourself is that nothing is enforced anymore. The native
+       path could not return malformed JSON if it tried, because the grammar forbids
+       it. Here you are only <em>asking</em> the model to keep the shape, and small
+       models are bad at that. They invent parameter names. They describe the call
+       instead of making it. They write the <code>&lt;tool_response&gt;</code>
+       themselves and answer their own question. So write a suspicious parser: match
+       the tags, parse what is between them, and when that fails, send a message back
+       to the model instead of crashing. Watch this go wrong once and you will know
+       exactly why unit 2 asks for a capable model.</p>
 
     <h2>The exercise</h2>
 
-    <p>You don't need to save a file for this part. Open <a href="/">the
-       harness</a> — or any page you're serving from <code>localhost</code> — and
+    <p>You do not need to save a file for this part. Open <a href="/">the
+       harness</a>, or any page you are serving from <code>localhost</code>, and
        open devtools on the <em>Console</em> tab. Paste this in and press
        enter:</p>
 
 <pre><code>// ── paste 1: the engine and a helper to ask it things. ────────────────
-//    Note the dynamic import(). A console is not a module, so the
-//    `import … from` line from earlier is a SyntaxError in here.
 var { CreateMLCEngine } = await import(
   "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.84/lib/index.js");
 
@@ -627,15 +622,15 @@ await ask([
   { role: "user",   content: "Why is the sky blue?" },
 ]);</code></pre>
 
-    <p>Two console details worth knowing, because both of them bite. The
-       <code>await</code> at the top level only works in a devtools console, so
-       this snippet is not the same code as the file above. And every declaration
-       is <code>var</code> on purpose: you're going to re-paste these lines a
-       dozen times, and <code>var</code> lets you redeclare while
-       <code>const</code> argues with you about it. If the import itself fails
-       with a content-security-policy error, the page you're standing on won't
-       load modules from a CDN. Move to the harness or your own
-       <code>localhost</code> and try again.</p>
+    <p>Two console details worth knowing, because both of them will bite you. The
+       top-level <code>await</code> only works in a devtools console, so this
+       snippet is not the same code as the file above. And every declaration is
+       <code>var</code> on purpose. You are going to re-paste these lines a dozen
+       times, and <code>var</code> lets you redeclare while <code>const</code>
+       argues with you about it. If the import itself fails with a
+       content-security-policy error, then the page you are on will not load
+       modules from a CDN. Move to the harness or your own <code>localhost</code>
+       and try again.</p>
 
     <p>Now, before you change anything, answer three questions:</p>
 
@@ -648,19 +643,19 @@ var t = performance.now();
 engine = await CreateMLCEngine(MODEL, {}, { context_window_size: 8192 });
 console.log(((performance.now() - t) / 1000).toFixed(1), "s from cache");</code></pre>
           The gap between those two numbers is the cache doing its job.</li>
-      <li><strong>What is the system message actually worth?</strong> Ask the same
-          question without it:
+      <li><strong>What is the system message worth?</strong> Ask the same question
+          without it:
           <code>await ask([{ role: "user", content: "Why is the sky blue?" }])</code>.
-          The answer gets longer and vaguer. That one line was doing real work,
-          and it is the cheapest control you have over any model.</li>
-      <li><strong>What does it do when it doesn't know?</strong>
+          The answer gets longer and vaguer. That one line was doing real work, and
+          it is the cheapest control you have over any model.</li>
+      <li><strong>What does it do when it does not know?</strong>
           <code>await ask([{ role: "user", content: "What is today's date?" }])</code>.
           Watch it answer anyway, with total confidence. That is the exact hole
-          tools fill, and it's where unit 2 starts.</li>
+          tools fill, and it is where unit 2 starts.</li>
     </ul>
 
     <p>Now break it on purpose. This is the half everybody skips, and it is where
-       the lesson actually lands:</p>
+       the lesson really lands:</p>
 
 <pre><code>// ── a model id that doesn't exist. Read the error, you'll meet it again
 //    the first time you typo a model against a paid API. ───────────────
@@ -680,23 +675,23 @@ await engine.unload();
 engine = await CreateMLCEngine("Hermes-3-Llama-3.1-8B-q4f16_1-MLC",
   { initProgressCallback: (r) =&gt; console.log(r.text) });</code></pre>
 
-    <p>The truncation one is the finding to keep. <strong>A truncated answer is not
-       an error.</strong> The stream just ends, the promise resolves, and your code
-       is holding half a sentence that looks exactly like a whole one. An agent
-       that treats truncation as success is a bug you will meet for real in unit
+    <p>The truncation one is the result to remember. <strong>A truncated answer is
+       not an error.</strong> The stream just ends, the promise resolves, and your
+       code is holding half a sentence that looks exactly like a whole one. An agent
+       that treats truncation as success is a bug you will hit for real in unit
        3.</p>
 
     <div class="tip">
       <b>tip: how to get a cold load back</b>
-      <p>Once the weights are cached you can't re-time the first load, and the
+      <p>Once the weights are cached you cannot re-time the first load, and the
          first load is the number you want. Devtools → <em>Application</em> →
-         <em>Storage</em> → <em>Clear site data</em> puts you back to zero. That's
-         also how you get those gigabytes off your disk when you're done with a
+         <em>Storage</em> → <em>Clear site data</em> puts you back to zero. That is
+         also how you get those gigabytes off your disk when you are done with a
          model.</p>
     </div>
 
-    <p>And if you'd rather not drive it from a console at all, <a href="/">the
-       harness</a> has the same thing wired to a panel: the completion backend
+    <p>And if you would rather not drive it from a console at all, <a href="/">the
+       harness</a> has the same thing wired up to a panel. The completion backend
        list carries <em>WebLLM in this tab</em> alongside Ollama, vLLM and the
        hosted vendors, and it logs every step of the load, the cached shard count,
        and the tokens per second as it goes.</p>
@@ -714,17 +709,16 @@ engine = await CreateMLCEngine("Hermes-3-Llama-3.1-8B-q4f16_1-MLC",
           installed.</dd>
 
       <dt>Is WebLLM free?</dt>
-      <dd>Yes, and there's nothing to sign up for, because the inference is your
-          own GPU's work. It bills you in download, VRAM, context window and
-          smarts instead. Here's the full accounting of
+      <dd>Yes, and there is nothing to sign up for, because your own GPU does the
+          inference. You pay in download, VRAM, context window and smarts instead.
+          Here is the full list of
           <a href="#costs">what it costs you instead of money</a>.</dd>
 
       <dt>Why is WebLLM important?</dt>
-      <dd>Nothing stands between a reader and a working model, so learning is
-          free and mistakes are cheap. Prompts stay on the machine, so you can
-          work with private data without a policy to trust. The compute belongs
-          to the user, so cost per user doesn't grow with users. And it keeps
-          answering with the network off.
+      <dd>You start in seconds, so learning is free and mistakes are cheap. Prompts
+          stay on your machine, so you can work with private data without a policy
+          to trust. Every user brings their own GPU, so your inference cost stays
+          flat as you add users. And it keeps answering with the network off.
           <a href="#why">The longer version</a>.</dd>
 
       <dt>Which browsers does WebLLM work in?</dt>
@@ -748,18 +742,18 @@ engine = await CreateMLCEngine("Hermes-3-Llama-3.1-8B-q4f16_1-MLC",
           per model per origin, and nothing after that touches the network.</dd>
 
       <dt>WebLLM or Ollama?</dt>
-      <dd>WebLLM when it has to run for someone who won't install anything: a
-          demo, a lesson, a page you send to a stranger. Ollama when it's your own
-          machine and you want a bigger model, one download shared across
+      <dd>Use WebLLM when it has to run for someone who will not install anything:
+          a demo, a lesson, a page you send to a stranger. Use Ollama when it is
+          your own machine and you want a bigger model, one download shared across
           projects, and no browser in the way. The harness speaks both.</dd>
     </dl>
 
     <h2>Next week</h2>
 
     <p><strong>Unit 2: tool calling</strong> gives the model hands. You hand it a
-       list of functions, it asks for one by name, your code runs the real thing
-       and passes the answer back. That loop is the whole of agents, it's about
-       twenty lines of code, and it
+       list of functions. It asks for one by name. Your code runs the real thing and
+       passes the answer back. That loop is all an agent is, it takes about twenty
+       lines of code, and it
        <a href="2026-09-15-lesson-2-tool-calling.html">arrives next
        Tuesday</a>.</p>
 
