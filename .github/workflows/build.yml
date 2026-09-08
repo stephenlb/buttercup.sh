@@ -1,5 +1,6 @@
-# Pages serves main:/docs, and docs/index.html is generated — so every push that
-# touches a source file rebuilds it and commits the result back to main.
+# Pages serves main:/docs, and docs/index.html and docs/sitemap.xml are
+# generated — so every push that touches a source file rebuilds them and commits
+# the result back to main.
 name: build
 
 on:
@@ -10,6 +11,10 @@ on:
       - build.mjs
       - css/**
       - js/**
+      # Publishing a post edits the archive index, and the sitemap is read off
+      # its links. The step below writes docs/index.html and docs/sitemap.xml —
+      # neither path is listed here, so the commit-back cannot retrigger this.
+      - docs/lessons/index.html
       - .github/workflows/build.yml
   workflow_dispatch:
 
@@ -35,7 +40,7 @@ jobs:
       # exits non-zero rather than shipping a corrupt bundle.
       - run: node build.mjs
 
-      - name: commit docs/index.html when it changed
+      - name: commit the generated docs files when they changed
         run: |
           if git diff --quiet -- docs; then
             echo "bundle already current"

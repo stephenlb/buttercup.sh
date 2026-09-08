@@ -3,125 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>updates — buttercup.sh</title>
-<meta name="description" content="The weekly AI Agent training archive for buttercup.sh, plus release notes for the open-source agent harness that runs in a browser tab.">
-<link rel="stylesheet" href="updates.css">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23191204'/%3E%3Ctext x='2' y='12' font-family='monospace' font-size='11' fill='%23ffd873'%3E%26gt;%3C/text%3E%3C/svg%3E">
+<!-- This page moved: /updates/ became /lessons/. Pages serves static files, so
+     there is no 301 to give — a meta refresh plus the canonical below is what a
+     crawler reads as one, and the link in the body covers anyone whose browser
+     honours neither. -->
+<meta http-equiv="refresh" content="0; url=https://buttercup.sh/lessons/">
+<link rel="canonical" href="https://buttercup.sh/lessons/">
+<title>moved to lessons — buttercup.sh</title>
+<style>
+  html { background: #191204; color: #ffd873; font: 15px/1.6 ui-monospace, monospace; }
+  body { margin: 12vh auto; max-width: 34rem; padding: 0 1.5rem; }
+  a { color: #ffd873; }
+</style>
 </head>
 <body>
-
-<div class="crt" aria-hidden="true"></div>
-
-<div class="sheet">
-
-  <header class="titlebar">
-    <span class="lamps" aria-hidden="true"><i></i><i></i><i></i></span>
-    <a class="home" href="/">buttercup.sh</a>
-    <span class="where">updates</span>
-  </header>
-
-  <h1>Updates</h1>
-  <p class="kicker">the weekly agent lessons, and what changed</p>
-
-  <!-- top and bottom, on every page in this directory — the archive included.
-       Same list and same sink frame as the copy in the foot. -->
-  <form class="signup lede" id="signup-lede"
-        action="https://5487903a.sibforms.com/serve/MUIFAAPvkZdoviEts98XHd7P8K3TyLVS3MtyAoJy_sJMZ9DgAKwbaJqN4Lgn4NMQH3JL50ANiWCKfMJlE3Wj5aEiDLJ3sbnhtSTvh3z7Lgg2BOpAJjNZhMpN_BCn21Kz_o-buc-NY7aFM5JXPRkd-GW0iihg0KEvSJQiAgmUYcB_8D6DmR8Xb4bEFUzTJmlYFti6yJBG7K33hsR_MQ=="
-        method="POST" target="signup-sink" autocomplete="on">
-    <label class="sigil" for="signup-lede-email" aria-hidden="true">&gt;</label>
-    <label class="slabel" for="signup-lede-email">EMAIL</label>
-    <input id="signup-lede-email" name="EMAIL" type="email" required
-           spellcheck="false" placeholder="you@example.com">
-    <input type="text" name="email_address_check" value="" class="trap"
-           tabindex="-1" aria-hidden="true" autocomplete="off">
-    <input type="hidden" name="locale" value="en">
-    <button type="submit">SUBSCRIBE</button>
-    <p class="note">one lesson a week &middot; unsubscribe whenever</p>
-    <p class="thanks" role="status">subscribed — thank you!</p>
-  </form>
-
-  <hr>
-
-  <!-- Newest first. One entry per article file in this directory. -->
-  <ul class="log">
-    <!--
-    <li>
-      <time datetime="2026-09-15">15 September 2026</time>
-      <a href="2026-09-15-lesson-2-tool-calling.html">Unit 2 — tool calling: how a chat model gets hands</a>
-      <p>For beginners: the four-station loop that turns a chat model into an
-         agent, written out by hand in JavaScript and in Python. Why the model
-         never runs anything, why tool descriptions are prompts, and the four
-         rules that save you a weekend — then an exercise you run in the
-         tab.</p>
-    </li>
-    -->
-    <li>
-      <time datetime="2026-09-08">8 September 2026</time>
-      <a href="2026-09-08-lesson-1-webllm.html">Unit 1 — WebLLM: a language model in the tab, no key, no server, no bill</a>
-      <p>A real language model running on your own GPU, inside the browser, with
-         the network off. What a model actually receives and sends back, a
-         complete single-file WebLLM example, the web worker version, both ways
-         to give it tools, and what &ldquo;free&rdquo; costs you in download and
-         VRAM instead of money — and why a weak model is the right one to learn
-         on.</p>
-    </li>
-    <li>
-      <time datetime="2026-09-04">4 September 2026</time>
-      <a href="2026-09-04-the-syllabus.html">The syllabus — six units, the loop first</a>
-      <p>The course has a shape: tool calling, loops and goals, agents hiring
-         other agents over Blocks.ai, then a model in the tab with WebLLM,
-         vision and evals. The loop that makes an agent an agent comes first,
-         with what you build and what you need for each — and an argument for
-         why that order and not another.</p>
-    </li>
-    <li>
-      <time datetime="2026-09-02">2 September 2026</time>
-      <a href="2026-09-02-weekly-agent-training.html">A new agent lesson every week</a>
-      <p>buttercup.sh is now a course as well as a harness. One lesson by email
-         every week — a single idea, the code that makes it work, and an
-         exercise you run in the tab. Free, no account, and every exercise runs
-         on a local model if you would rather not spend a cent.</p>
-    </li>
-    <li>
-      <time datetime="2026-09-01">1 September 2026</time>
-      <a href="2026-09-01-buttercup-is-open-source.html">buttercup.sh is open source: an agent harness that lives in your browser</a>
-      <p>Eighteen tools, a virtual filesystem and an undo stack in one static
-         page — on desktop or phone, with no backend and no build step. Free
-         forever, and it talks to local models so nothing has to leave your
-         machine.</p>
-    </li>
-  </ul>
-
-  <!-- ══ subscribe: the same form the harness carries, posting to the same
-          list. Every page in the archive ends here. ═══════════════════════ -->
-  <section class="subscribe">
-    <h2>One lesson a week</h2>
-    <form class="signup" id="signup"
-          action="https://5487903a.sibforms.com/serve/MUIFAAPvkZdoviEts98XHd7P8K3TyLVS3MtyAoJy_sJMZ9DgAKwbaJqN4Lgn4NMQH3JL50ANiWCKfMJlE3Wj5aEiDLJ3sbnhtSTvh3z7Lgg2BOpAJjNZhMpN_BCn21Kz_o-buc-NY7aFM5JXPRkd-GW0iihg0KEvSJQiAgmUYcB_8D6DmR8Xb4bEFUzTJmlYFti6yJBG7K33hsR_MQ=="
-          method="POST" target="signup-sink" autocomplete="on">
-      <label class="sigil" for="signup-email" aria-hidden="true">&gt;</label>
-      <label class="slabel" for="signup-email">EMAIL</label>
-      <input id="signup-email" name="EMAIL" type="email" required
-             spellcheck="false" placeholder="you@example.com">
-      <input type="text" name="email_address_check" value="" class="trap"
-             tabindex="-1" aria-hidden="true" autocomplete="off">
-      <input type="hidden" name="locale" value="en">
-      <button type="submit">SUBSCRIBE</button>
-      <p class="note">one AI Agent training lesson, weekly</p>
-      <p class="note">starting mid-September 2026</p>
-      <p class="thanks" role="status">subscribed — thank you!</p>
-    </form>
-    <iframe name="signup-sink" title="subscription result" hidden></iframe>
-  </section>
-
-  <footer class="foot">
-    <p><a href="/">← the harness</a> &middot;
-       <a href="https://github.com/stephenlb/buttercup.sh">source</a> &middot;
-       <a href="https://github.com/stephenlb/buttercup.sh/issues/new">feedback</a></p>
-  </footer>
-
-</div>
-
-<script src="signup.js"></script>
+<p>&gt; this page moved to <a href="https://buttercup.sh/lessons/">buttercup.sh/lessons/</a></p>
+<p>redirecting&hellip;</p>
 </body>
 </html>

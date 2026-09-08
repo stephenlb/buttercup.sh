@@ -262,7 +262,7 @@
 
   $("reset-session").addEventListener("click", () => runCommand("/clear"));
 
-  /* ── the updates list ─────────────────────────────────────────────────────
+  /* ── the lessons list ─────────────────────────────────────────────────────
      The POST goes to the mailing-list vendor in a hidden frame, so the page
      stays put and we never see the response — cross-origin. The receipt is
      therefore "sent", not "accepted", which is honest: the confirmation email

@@ -5,7 +5,7 @@
    put and we never see the response — cross-origin. The receipt is therefore
    "sent", not "accepted", which is honest: the confirmation email is what
    actually confirms. Same behaviour as the harness (js/main.js), kept separate
-   because updates/ is plain documents and loads none of the harness.
+   because lessons/ is plain documents and loads none of the harness.
    ═══════════════════════════════════════════════════════════════════════════ */
 document.querySelectorAll("form.signup").forEach((form) => {
   // A password manager that fills the honeypot would get a real person

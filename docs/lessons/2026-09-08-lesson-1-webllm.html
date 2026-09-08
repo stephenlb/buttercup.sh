@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WebLLM: run a language model in the browser on WebGPU, Lesson 1</title>
+<meta name="description" content="A WebLLM tutorial in one file: run a real language model inside the browser on WebGPU, with no API key, no server and no bill. The complete example, the web worker version, WebLLM tool calling, the VRAM and download costs, and an exercise you run in the tab. Lesson 1 of the free buttercup.sh agent course.">
+<link rel="canonical" href="https://buttercup.sh/lessons/2026-09-08-lesson-1-webllm.html">
+
+<!-- ══ social cards + structured data. The term this page is meant to be found
+        by is WebLLM, so it leads the title, the h1 and the description, and the
+        JSON-LD below names it as the article's subject. ═══════════════════════ -->
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="buttercup.sh">
+<meta property="og:title" content="WebLLM: run a language model in the browser on WebGPU">
+<meta property="og:description" content="A WebLLM tutorial in one file. A real model on your own GPU, in a tab, with no key, no server and no bill.">
+<meta property="og:url" content="https://buttercup.sh/lessons/2026-09-08-lesson-1-webllm.html">
+<meta property="article:published_time" content="2026-09-08">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="WebLLM: run a language model in the browser on WebGPU">
+<meta name="twitter:description" content="A WebLLM tutorial in one file. A real model on your own GPU, in a tab, with no key, no server and no bill.">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "TechArticle",
+      "@id": "https://buttercup.sh/lessons/2026-09-08-lesson-1-webllm.html#article",
+      "headline": "WebLLM: a language model in the tab. No key, no server, no bill",
+      "description": "Run a real language model inside the browser on WebGPU with WebLLM: a complete single-file example, the web worker version, both ways to give it tools, and what it costs in download and VRAM instead of money.",
+      "url": "https://buttercup.sh/lessons/2026-09-08-lesson-1-webllm.html",
+      "datePublished": "2026-09-08",
+      "inLanguage": "en",
+      "proficiencyLevel": "Beginner",
+      "dependencies": "A browser with WebGPU support and a GPU with at least 2 GB of free VRAM",
+      "keywords": "WebLLM, WebGPU, in-browser LLM, local LLM, MLC, WebAssembly, tool calling, AI agents",
+      "author":    { "@type": "Person", "name": "Stephen Blum" },
+      "publisher": { "@type": "Organization", "name": "buttercup.sh", "url": "https://buttercup.sh/" },
+      "isPartOf":  { "@type": "Course", "name": "buttercup.sh AI Agent training", "url": "https://buttercup.sh/lessons/2026-09-04-the-syllabus.html" },
+      "about": [
+        {
+          "@type": "SoftwareApplication",
+          "name": "WebLLM",
+          "alternateName": "@mlc-ai/web-llm",
+          "applicationCategory": "DeveloperApplication",
+          "operatingSystem": "Any browser with WebGPU",
+          "url": "https://github.com/mlc-ai/web-llm",
+          "description": "An open-source in-browser inference engine from MLC AI that runs quantized language models on WebGPU, with an OpenAI-compatible chat completions API.",
+          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+        },
+        { "@type": "Thing", "name": "WebGPU", "url": "https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API" }
+      ]
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "buttercup.sh", "item": "https://buttercup.sh/" },
+        { "@type": "ListItem", "position": 2, "name": "lessons", "item": "https://buttercup.sh/lessons/" },
+        { "@type": "ListItem", "position": 3, "name": "Lesson 1: WebLLM" }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is WebLLM?",
+          "acceptedAnswer": { "@type": "Answer", "text": "WebLLM is an open-source in-browser inference engine from MLC AI. It compiles quantized model weights to run on WebGPU, the browser's access to your graphics card, and exposes them behind the same chat completions API a hosted vendor uses. There is no server, no API key and no install: the weights are ordinary files, fetched once over HTTP and kept in the browser cache." }
+        },
+        {
+          "@type": "Question",
+          "name": "Is WebLLM free?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. There is no account, no key and no per-token bill, because inference happens on your own GPU. You pay in other currencies: a one-time download of a gigabyte or more per model, VRAM to hold the weights and the conversation cache, a small context window, and a model too small to be smart." }
+        },
+        {
+          "@type": "Question",
+          "name": "Why is WebLLM important?",
+          "acceptedAnswer": { "@type": "Answer", "text": "It removes every barrier between a person and a working model: no signup, no key, no bill, so learning and experimenting are free. The prompts never leave the machine, so you can work with private data without a policy to trust. The compute belongs to the user, so cost per user does not grow with users. And after the first load it runs offline, on a plane or on dead conference wifi." }
+        },
+        {
+          "@type": "Question",
+          "name": "Which browsers does WebLLM work in?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Any browser with WebGPU enabled like Chrome and Edge on desktop, and Safari and Firefox in their recent versions. The page must be served over http:// or https:// rather than opened as a file:// path, because module imports and the cache both need a real origin." }
+        },
+        {
+          "@type": "Question",
+          "name": "How much VRAM does WebLLM need?",
+          "acceptedAnswer": { "@type": "Answer", "text": "At 4-bit quantization a model costs roughly half a byte per parameter, so a 2B model is about a gigabyte of weights and a 9B model about five, and the conversation cache wants its own room on top. Ask for more than the card has and WebGPU does not slow down or truncate. It loses the device, sometimes minutes into a load." }
+        },
+        {
+          "@type": "Question",
+          "name": "Does WebLLM support tool calling?",
+          "acceptedAnswer": { "@type": "Answer", "text": "It does, in the OpenAI chat completions shape, but only on the five Hermes-2-Pro and Hermes-3 builds, only without a system message of your own, and only for a turn that is calls and no prose. For an agent, the better path is to describe the tool convention in the system prompt and parse the tags out of the stream yourself. That works with any model." }
+        },
+        {
+          "@type": "Question",
+          "name": "Does WebLLM work offline?",
+          "acceptedAnswer": { "@type": "Answer", "text": "After the first load, yes. The runtime and the weights are fetched once per model per origin and kept in the browser cache; from then on you can turn off your wifi and keep talking, because nothing after that first fetch touches the network." }
+        },
+        {
+          "@type": "Question",
+          "name": "WebLLM or Ollama?",
+          "acceptedAnswer": { "@type": "Answer", "text": "WebLLM when the code has to run for someone who will not install anything. A demo, a lesson, a page you send to a stranger. Ollama when it is your own machine and you want a larger model, one download shared across projects, and no browser in the way." }
+        }
+      ]
+    }
+  ]
+}
+</script>
+
+<link rel="stylesheet" href="lessons.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23191204'/%3E%3Ctext x='2' y='12' font-family='monospace' font-size='11' fill='%23ffd873'%3E%26gt;%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+
+<div class="crt" aria-hidden="true"></div>
+
+<div class="sheet">
+
+  <header class="titlebar">
+    <span class="lamps" aria-hidden="true"><i></i><i></i><i></i></span>
+    <a class="home" href="/">buttercup.sh</a>
+    <a href="./">lessons</a>
+    <span class="where">lesson 1</span>
+  </header>
+
+  <article>
+    <header>
+      <time datetime="2026-09-08">8 September 2026</time>
+      <h1>Lesson 1, WebLLM: a language model in the tab, no key, no server,
+          no bill</h1>
+      <p>Every agent needs a model to talk to. Most tutorials start by asking for
+         your credit card. We are going to skip that step. <strong>WebLLM runs a
+         real language model inside your browser, on your own GPU, with the
+         network off.</strong> No account. No key. No server. Nothing to install.
+         By the end of this lesson you will have the one exchange the whole course
+         is built on: messages in, tokens out.</p>
+      <!-- the form itself rather than a link down to it: one field, one
+           button, no jump. Same list, same sink frame as the foot. -->
+      <form class="signup lede" id="signup-lede"
+            action="https://5487903a.sibforms.com/serve/MUIFAAPvkZdoviEts98XHd7P8K3TyLVS3MtyAoJy_sJMZ9DgAKwbaJqN4Lgn4NMQH3JL50ANiWCKfMJlE3Wj5aEiDLJ3sbnhtSTvh3z7Lgg2BOpAJjNZhMpN_BCn21Kz_o-buc-NY7aFM5JXPRkd-GW0iihg0KEvSJQiAgmUYcB_8D6DmR8Xb4bEFUzTJmlYFti6yJBG7K33hsR_MQ=="
+            method="POST" target="signup-sink" autocomplete="on">
+        <label class="sigil" for="signup-lede-email" aria-hidden="true">&gt;</label>
+        <label class="slabel" for="signup-lede-email">EMAIL</label>
+        <input id="signup-lede-email" name="EMAIL" type="email" required
+               spellcheck="false" placeholder="you@example.com">
+        <input type="text" name="email_address_check" value="" class="trap"
+               tabindex="-1" aria-hidden="true" autocomplete="off">
+        <input type="hidden" name="locale" value="en">
+        <button type="submit">SUBSCRIBE</button>
+        <p class="note">one lesson a week &middot; unsubscribe whenever</p>
+        <p class="thanks" role="status">subscribed — thank you!</p>
+      </form>
+    </header>
+
+    <figure class="diag tube">
+      <div class="screen">
+        <iframe src="https://www.youtube-nocookie.com/embed/yLoCggcxoy0"
+                title="Lesson 1, WebLLM: a language model in the tab"
+                loading="lazy" allowfullscreen
+                referrerpolicy="strict-origin-when-cross-origin"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"></iframe>
+      </div>
+      <figcaption>The same lesson, walked through end to end: the load, the first
+        tokens, and what it looks like when the GPU runs out of room. Prefer to
+        read? Everything in the video is below, and the code blocks are
+        copyable. <a href="https://youtu.be/yLoCggcxoy0">Watch on YouTube</a>.</figcaption>
+    </figure>
+
+    <h2>The one idea</h2>
+
+    <p>A language model is a function. You hand it an array of messages. It hands
+       you back text, one token at a time. That is the whole interface. It does not
+       change when the model gets smarter, when you put it behind an API, or when
+       you wrap it in an agent. <em>Every</em> one of the five lessons after this one
+       is a wrapper around this single call.</p>
+
+    <p>So the first question is not &ldquo;which model&rdquo; or &ldquo;which
+       framework.&rdquo; The first question is: what do I send, and what comes
+       back?</p>
+
+    <figure class="diag">
+      <div class="pair">
+        <div class="side">
+          <b>you send an array</b>
+          <!-- one .msg per message, and no newlines between them: the spans are
+               display:block, so they break their own lines. A literal newline
+               here would render as an extra blank one inside the <pre>. -->
+<pre class="msgs"><code>[<span class="msg">  { role: "system",
+    content: "Answer in one sentence." },</span><span class="msg">  { role: "user",
+    content: "Why is the sky blue?" }</span>]</code></pre>
+        </div>
+        <!-- the crossing. Decorative: the two headings already say which way
+             this reads, so it is hidden from the reading order. -->
+        <div class="cross" aria-hidden="true">&rarr;</div>
+        <div class="side">
+          <b>you get back text, in pieces</b>
+          <!-- chips rather than a block of text, arriving one at a time: the
+               reply is not a string that appears, it is fragments you are
+               handed. Figure 6 takes this apart properly. -->
+          <ol class="toks">
+            <li>"Blue"</li>
+            <li>" light"</li>
+            <li>" scatters"</li>
+            <li>" more"</li>
+            <li>" than"</li>
+            <li>" red"</li>
+            <li>"."</li>
+          </ol>
+        </div>
+      </div>
+      <figcaption>No session, no memory, no connection. Every call sends the whole
+        conversation again. Keeping that array is <b>your</b> job, and by lesson 3
+        it is the only state your agent has.</figcaption>
+    </figure>
+
+    <p>Usually you pay for a look at that with a signup, a key, a billing page,
+       and a little worry about the loop you left running. Run the model in the tab
+       and all four go away. That is why we start here.</p>
+
+    <h2 id="why">Why WebLLM is important</h2>
+
+    <p>Zero friction is not just a nice-to-have. It changes what you can build
+       and who gets to run it.</p>
+
+    <p><strong>You start in seconds.</strong> No signup. No key to rotate. No rate
+       limit. No dashboard. No meter running while you read the docs. You can get
+       it wrong a hundred times in one afternoon and it costs you nothing. That is
+       how developers learn. When a tutorial opens with a billing page, most
+       people close the tab, and the ones who stay play it safe. Here you can just
+       experiment.</p>
+
+    <p><strong>Your data stays on your machine.</strong> This is not a privacy
+       policy you have to trust. There is nowhere for the data to go. The weights
+       load into your GPU, and from then on the tab is talking to your graphics
+       card. That is the difference between a demo you can show a hospital, a bank
+       or a law firm and a demo you cannot. Somebody asks where your prompts go,
+       and the answer is: nowhere.</p>
+
+    <p><strong>Your costs stay flat.</strong> Run an agent on a hosted model and
+       every new user adds to your bill. Run it in the tab and your inference cost
+       is zero, because every user brings their own GPU. Ten users or a hundred
+       thousand users, you pay the same. The web made this trade a long time ago
+       with rendering, and it is how you ship an agent to a lot of people on a
+       hobby budget.</p>
+
+    <p><strong>It works offline.</strong> Download the model once. After that you
+       can be on a plane, in a basement, or on conference wifi that dies in the
+       middle of your talk, and the model keeps answering. Nothing else in this
+       course does that.</p>
+
+    <p>Now the honest part. This is not a frontier model. A 2B model in a tab is
+       small, a little slow, and confidently wrong. That is fine, and it is
+       exactly why we start here. You get to watch every part of an agent break in
+       the open, for free, before lesson 2 gives you a model good enough to hide its
+       mistakes.</p>
+
+    <h2>What WebLLM is, and what &ldquo;in the tab&rdquo; means</h2>
+
+    <p><strong><a href="https://github.com/mlc-ai/web-llm">WebLLM</a> is an
+       open-source in-browser inference engine from MLC AI.</strong> It compiles
+       quantized model weights to run on
+       <a href="https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API"><strong>WebGPU</strong></a>,
+       the browser's access to your graphics card, and puts them behind the same
+       chat-completions API a hosted vendor gives you. It is not a proxy. It is not
+       a little server you forgot you started. The weights are ordinary files. You
+       fetch them once over HTTP and the browser keeps them in its cache. After
+       that first fetch you can turn off your wifi and keep talking.</p>
+
+    <p>Here is the whole requirements list: a browser with WebGPU, so Chrome or
+       Edge on the desktop or a recent Safari or Firefox, plus a card with a couple
+       of gigabytes free. That is it.</p>
+
+    <figure class="diag">
+      <ol class="ladder">
+        <li><span class="t">The runtime arrives</span>
+            <span class="m">a couple of MB of JavaScript and WebAssembly, from a CDN</span></li>
+        <li><span class="t">The weights arrive once</span>
+            <span class="m">a gigabyte or several, in shards, into the browser cache</span></li>
+        <li><span class="t">The GPU is loaded</span>
+            <span class="m">weights to VRAM, plus a paged cache for the conversation</span></li>
+        <li><span class="t">Tokens come out</span>
+            <span class="m">from here on, nothing touches the network at all</span></li>
+      </ol>
+      <figcaption>Step 2 is the one you feel: minutes, once per model. Step 3 is
+        the one that fails on a small GPU. Steps 1–3 happen on the first send and
+        never again for that model on that origin. So the second question you ask
+        is fast, and the tenth one is free.</figcaption>
+    </figure>
+
+    <h2>The WebLLM code: one file, no build step</h2>
+
+    <p>This is complete and runnable. Save it as <code>index.html</code> and serve
+       it with <code>python3 -m http.server</code>, then open
+       <code>localhost:8000</code>. Serve it, don't open it as a
+       <code>file://</code> path. Module imports and the cache both need a real
+       origin.</p>
+
+<pre><code>&lt;!DOCTYPE html&gt;
+&lt;meta charset="utf-8"&gt;
+&lt;title&gt;a model in this tab&lt;/title&gt;
+&lt;button id="go"&gt;LOAD AND ASK&lt;/button&gt;
+&lt;pre id="out"&gt;press the button.&lt;/pre&gt;
+
+&lt;script type="module"&gt;
+import { CreateMLCEngine } from
+  "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.84/lib/index.js";
+
+const out = document.getElementById("out");
+const say = (t) =&gt; { out.textContent = t; };
+
+document.getElementById("go").onclick = async () =&gt; {
+
+  // ── 1. the engine. The first call downloads the weights; every call
+  //       after this one reads them straight out of the cache. ──────────
+  const engine = await CreateMLCEngine(
+    "Qwen3.5-2B-q4f16_1-MLC",
+    { initProgressCallback: (r) =&gt; say(r.text) },   // the load messages
+    { context_window_size: 8192 },
+  );
+
+  // ── 2. the request. The same shape as an OpenAI chat completion,
+  //       because that is the shape this engine speaks. ────────────────
+  const stream = await engine.chat.completions.create({
+    messages: [
+      { role: "system", content: "Answer in one sentence." },
+      { role: "user", content: "Why is the sky blue?" },
+    ],
+    stream: true,
+    max_tokens: 512,
+    // Qwen will otherwise deliberate for a page before answering, and on a
+    // 2B in a tab you feel every token of it.
+    extra_body: { enable_thinking: false },
+  });
+
+  // ── 3. the tokens, as they arrive. Nothing here touches the network. ─
+  let text = "";
+  for await (const chunk of stream) {
+    text += chunk.choices[0]?.delta?.content || "";
+    say(text);
+  }
+};
+&lt;/script&gt;</code></pre>
+
+    <p>Three things to notice. First, the <code>messages</code> array is exactly
+       the shape from the diagram. Second, <code>initProgressCallback</code> is not
+       decoration. Without it, a five-minute download looks like a hung page and
+       you will assume you broke something. Third, the request body is the
+       chat-completions shape, so this is very close to the code you will write
+       against a hosted model in lesson 2.</p>
+
+    <p>Take a good look at that last block. A stream does not hand you an answer.
+       It hands you fragments. The answer is a variable <em>you</em> build out of
+       them:</p>
+
+    <figure class="diag">
+      <div class="stream">
+        <div class="cap">chunk.choices[0].delta.content</div>
+        <ol class="chunks">
+          <li>"Blue"</li>
+          <li>" light"</li>
+          <li>" scatters"</li>
+          <li>" more"</li>
+          <li>" than"</li>
+          <li>" red"</li>
+          <li>"."</li>
+        </ol>
+        <div class="cap">text += …</div>
+        <div class="line"><span>Blue light scatters more than red.</span></div>
+      </div>
+      <figcaption>Each chunk is a few characters and nothing else. No index, no
+        total, no promise of how many are coming. So there are two questions you
+        cannot answer mid-stream: <b>how long is this</b> and <b>is it
+        finished</b>. Every agent bug about half-written output starts
+        here.</figcaption>
+    </figure>
+
+    <div class="tip">
+      <b>tip: the first run always looks broken</b>
+      <p>Nothing happens for a long time, and then everything happens at once.
+         Open devtools on the Network tab for the first load and watch the shards
+         arrive. Reload and watch them not arrive. That is the cache. Two minutes
+         of watching this now will save you an hour of debugging a download you
+         thought had hung.</p>
+    </div>
+
+    <h2>Keep the tab responsive: WebLLM in a web worker</h2>
+
+    <p>Run that file and the page freezes in bursts. Decoding tokens is real work,
+       and right now it is happening on the main thread. Move the engine into a
+       worker and the freezing stops. It takes one extra file, and the code that
+       does the asking does not change at all:</p>
+
+<pre><code>// ── worker.js: the whole file. It hands every message to web-llm's
+//    own handler, which does the work off the main thread. ────────────
+import { WebWorkerMLCEngineHandler } from
+  "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.84/lib/index.js";
+
+const handler = new WebWorkerMLCEngineHandler();
+self.onmessage = (msg) =&gt; handler.onmessage(msg);
+
+
+// ── in the page: one line different from before. ────────────────────
+import { CreateWebWorkerMLCEngine } from
+  "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.84/lib/index.js";
+
+const worker = new Worker(new URL("./worker.js", import.meta.url),
+                          { type: "module" });
+
+const engine = await CreateWebWorkerMLCEngine(
+  worker,
+  "Qwen3.5-2B-q4f16_1-MLC",
+  { initProgressCallback: (r) =&gt; say(r.text) },
+  { context_window_size: 8192 },
+);
+// …and engine.chat.completions.create is unchanged. The worker engine
+//    is a proxy with the identical interface.</code></pre>
+
+    <p>Do this early. It is not a polish pass. On the main thread the tab stops
+       painting while it decodes, so every judgment you make about how fast the
+       model is, or whether it has hung, will be wrong.</p>
+
+    <p>One engine, one model. Keep it in a variable and reuse it, and call
+       <code>unload()</code> before you load another one. A second engine for the
+       same model reloads the GPU for no reason, and only one model fits at a time
+       anyway. Which brings us to the next section.</p>
+
+    <h2 id="costs">What WebLLM costs you instead of money</h2>
+
+    <p>Free is not free. You pay in other ways, and it is better to know about them
+       now than to be surprised later. The first one is your graphics card. The rule
+       of thumb is easy: at 4-bit, a model costs about <strong>half a byte per
+       parameter</strong>. So 2B is about a gigabyte and 9B is about five. Then the
+       conversation needs room of its own on top of that.</p>
+
+    <figure class="diag">
+      <div class="gauge">
+        <div class="row">
+          <b>2B · 8k ctx</b>
+          <div class="bar"><i style="--w:16%">weights</i><i class="kv" style="--w:4%"></i></div>
+          <span class="v">fits easily</span>
+        </div>
+        <div class="row">
+          <b>9B · 8k ctx</b>
+          <div class="bar"><i style="--w:68%">weights</i><i class="kv" style="--w:9%">kv</i></div>
+          <span class="v">fits</span>
+        </div>
+        <div class="row over">
+          <b>9B · 32k ctx</b>
+          <div class="bar"><i style="--w:68%">weights</i><i class="kv" style="--w:40%">kv</i></div>
+          <span class="v">device lost</span>
+        </div>
+      </div>
+      <figcaption>The box is the card, 8 GB. 100% is all of it. Green is
+        weights, grey is the conversation cache, and the hatching is the part
+        there was no room for. Notice what the third row did <b>not</b> do:
+        raising the context window did not slow anything down and did not truncate
+        anything. It killed the GPU device, sometimes minutes into a load. Start
+        with the 2B and move up once that works.</figcaption>
+    </figure>
+
+    <ul>
+      <li><strong>The download.</strong> That same gigabyte or five, over the
+          wire. Once per model per origin, and slow the first time.</li>
+      <li><strong>Context.</strong> 8192 tokens here, versus hundreds of
+          thousands on a hosted model.</li>
+      <li><strong>Text only.</strong> These builds cannot see images. Attach a
+          screenshot and it simply is not there. That is lesson 5's whole subject,
+          and it is why that lesson wants a different model.</li>
+      <li><strong>Smarts.</strong> A model small enough to run in a tab is not a
+          smart model. It repeats itself, loses the thread, and mangles formats
+          with total confidence.</li>
+    </ul>
+
+    <figure class="diag">
+      <div class="scale">
+        <div class="track"><i></i><span class="wall"></span></div>
+        <div class="legs">
+          <span class="l">8,192 tokens, the whole budget in the tab</span>
+          <span>~200,000, a hosted model</span>
+        </div>
+      </div>
+      <figcaption>Drawn to scale, because the scale is the point: the tab's whole
+        conversation is that sliver. A chat fills it in a few dozen turns. A chat
+        with tool output in it fills it in <b>three</b>. Then the oldest messages
+        have to go somewhere, and deciding what to drop is compaction. That is lesson
+        4.</figcaption>
+    </figure>
+
+    <p>The missing smarts are the one cost that works in your favor <em>here</em>,
+       and only here. You are learning what the exchange looks like, and a weak
+       model fails right away, in the open, for free. Behind a hosted key, those
+       same failures cost you money and hide inside prose that sounds fine.</p>
+
+    <h2>Two ways to give WebLLM tools</h2>
+
+    <p>Ask this model to check the weather and it will make the weather up, because
+       it has no tools yet. Giving it some is where the in-tab runtime gets
+       interesting. There are <em>two</em> ways to do it, and the obvious one is the
+       wrong one.</p>
+
+    <p>The obvious one is native. web-llm really does accept a <code>tools</code>
+       parameter, in the same chat-completions shape a hosted vendor uses, and it
+       hands back a parsed <code>tool_calls</code> array.</p>
+
+<pre><code>// the native path. Runs, and worth knowing, read the three
+// conditions under it before you build on it.
+const engine = await CreateMLCEngine("Hermes-3-Llama-3.1-8B-q4f16_1-MLC");
+
+const reply = await engine.chat.completions.create({
+  messages: [{ role: "user", content: "do I need an umbrella in Paris?" }],
+  tools: [{
+    type: "function",
+    function: {
+      name: "get_weather",
+      description: "current weather for a city",
+      parameters: {
+        type: "object",
+        properties: { city: { type: "string" } },
+        required: ["city"],
+      },
+    },
+  }],
+});
+
+// → [ { function: { name: "get_weather", arguments: '{"city":"Paris"}' } } ]
+reply.choices[0].message.tool_calls;</code></pre>
+
+    <p>It runs. And here are the three conditions that make it the wrong way to
+       go:</p>
+
+    <table class="ref">
+      <thead>
+        <tr><th>what it takes away</th><th>what that means in practice</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Your choice of model</strong></td>
+          <td>Five builds support it: the Hermes-2-Pro and Hermes-3 ones,
+              fine-tuned for one specific tool prompt. Pass <code>tools</code>
+              with any other id and the request throws instead of degrading.</td>
+        </tr>
+        <tr>
+          <td><strong>Your system prompt</strong></td>
+          <td>The runtime needs that slot for the tool prompt it writes itself. A
+              <code>system</code> message and <code>tools</code> in the same
+              request is an error.</td>
+        </tr>
+        <tr>
+          <td><strong>Prose in the same turn</strong></td>
+          <td>The whole reply is constrained to a JSON array of calls. A turn is
+              either calls or prose, never a sentence and then a call.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>One more gotcha: <code>tool_choice</code> is accepted and then ignored,
+       which is worse than rejecting it. Check what came back instead of trusting
+       that it did what you asked for.</p>
+
+    <p>An agent needs all three of the things that path takes away: any model, its
+       own system prompt, and a turn that can say something and then act. So the
+       second way is the one you will actually use. It needs nothing from the
+       runtime at all, because tool calling is a convention, not a feature. You
+       describe the convention in the system prompt. <em>To run a tool, reply with
+       a <code>&lt;tool_call&gt;</code> block and end your turn</em>. Then you find
+       the tags in the stream yourself and act on them:</p>
+
+    <figure class="diag">
+      <ol class="tape">
+        <li><b>user</b>: do I need an umbrella in Paris?</li>
+        <li><b>assistant</b>: <span class="k">text</span>
+            <code>&lt;tool_call&gt;{"name": "get_weather", "arguments": {"city": "Paris"}}&lt;/tool_call&gt;</code></li>
+        <li><b>user</b>: <span class="k">text</span>
+            <code>&lt;tool_response&gt;{"output": "18°C, light rain"}&lt;/tool_response&gt;</code></li>
+        <li><b>assistant</b>: Yes, light rain in Paris at 18°C. Take one.</li>
+      </ol>
+      <figcaption>This is a tool call with nothing fancy behind it: tags in a
+        string, and your code finds them and acts on them. It is how the harness
+        drives an in-tab model, with any build, its own system prompt intact, and
+        prose and calls in the same turn. Worth seeing once, because when lesson 2
+        hands you a real <code>tool_use</code> block you will recognize it as the
+        same deal with the parsing done for you.</figcaption>
+    </figure>
+
+    <p>The cost of doing it yourself is that nothing is enforced anymore. The native
+       path could not return malformed JSON if it tried, because the grammar forbids
+       it. Here you are only <em>asking</em> the model to keep the shape, and small
+       models are bad at that. They invent parameter names. They describe the call
+       instead of making it. They write the <code>&lt;tool_response&gt;</code>
+       themselves and answer their own question. So write a suspicious parser: match
+       the tags, parse what is between them, and when that fails, send a message back
+       to the model instead of crashing. Watch this go wrong once and you will know
+       exactly why lesson 2 asks for a capable model.</p>
+
+    <h2>The exercise</h2>
+
+    <p>You do not need to save a file for this part. Open <a href="/">the
+       harness</a>, or any page you are serving from <code>localhost</code>, and
+       open devtools on the <em>Console</em> tab. Paste this in and press
+       enter:</p>
+
+<pre><code>// ── paste 1: the engine and a helper to ask it things. ────────────────
+var { CreateMLCEngine } = await import(
+  "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.84/lib/index.js");
+
+var MODEL = "Qwen3.5-2B-q4f16_1-MLC";
+var t0 = performance.now();
+
+var engine = await CreateMLCEngine(
+  MODEL,
+  { initProgressCallback: (r) =&gt; console.log(r.text) },
+  { context_window_size: 8192 },
+);
+
+console.log("loaded in", ((performance.now() - t0) / 1000).toFixed(1), "s");
+
+// one call, streamed, printed as it arrives. Everything below reuses it.
+var ask = async (messages, opts = {}) =&gt; {
+  const stream = await engine.chat.completions.create({
+    messages, stream: true, max_tokens: 512,
+    extra_body: { enable_thinking: false },
+    ...opts,
+  });
+  let text = "";
+  for await (const chunk of stream) {
+    text += chunk.choices[0]?.delta?.content || "";
+  }
+  console.log(text);
+  return text;
+};
+
+await ask([
+  { role: "system", content: "Answer in one sentence." },
+  { role: "user",   content: "Why is the sky blue?" },
+]);</code></pre>
+
+    <p>Two console details worth knowing, because both of them will bite you. The
+       top-level <code>await</code> only works in a devtools console, so this
+       snippet is not the same code as the file above. And every declaration is
+       <code>var</code> on purpose. You are going to re-paste these lines a dozen
+       times, and <code>var</code> lets you redeclare while <code>const</code>
+       argues with you about it. If the import itself fails with a
+       content-security-policy error, then the page you are on will not load
+       modules from a CDN. Move to the harness or your own <code>localhost</code>
+       and try again.</p>
+
+    <p>Now, before you change anything, answer three questions:</p>
+
+    <ul>
+      <li><strong>How much of that was the download?</strong> Drop the engine and
+          build it again. The weights are cached now, so the second number is the
+          honest cost of loading the GPU:
+<pre><code>await engine.unload();
+var t = performance.now();
+engine = await CreateMLCEngine(MODEL, {}, { context_window_size: 8192 });
+console.log(((performance.now() - t) / 1000).toFixed(1), "s from cache");</code></pre>
+          The gap between those two numbers is the cache doing its job.</li>
+      <li><strong>What is the system message worth?</strong> Ask the same question
+          without it:
+          <code>await ask([{ role: "user", content: "Why is the sky blue?" }])</code>.
+          The answer gets longer and vaguer. That one line was doing real work, and
+          it is the cheapest control you have over any model.</li>
+      <li><strong>What does it do when it does not know?</strong>
+          <code>await ask([{ role: "user", content: "What is today's date?" }])</code>.
+          Watch it answer anyway, with total confidence. That is the exact hole
+          tools fill, and it is where lesson 2 starts.</li>
+    </ul>
+
+    <p>Now break it on purpose. This is the half everybody skips, and it is where
+       the lesson really lands:</p>
+
+<pre><code>// ── a model id that doesn't exist. Read the error, you'll meet it again
+//    the first time you typo a model against a paid API. ───────────────
+await CreateMLCEngine("Qwen3.5-2B-q4f16_1-MLC-turbo")
+  .catch((e) =&gt; console.log("→", e.message));
+
+// ── truncation. The reply stops mid-word and NOTHING throws. ──────────
+await ask([{ role: "user", content: "Explain how rainbows form." }],
+          { max_tokens: 20 });
+
+// ── how fast was that, really? tokens/sec for the last call. ──────────
+console.log(await engine.runtimeStatsText());
+
+// ── move up a size. Either it's meaningfully better, or your GPU tells
+//    you the honest truth about its memory. Unload first: one at a time.
+await engine.unload();
+engine = await CreateMLCEngine("Hermes-3-Llama-3.1-8B-q4f16_1-MLC",
+  { initProgressCallback: (r) =&gt; console.log(r.text) });</code></pre>
+
+    <p>The truncation one is the result to remember. <strong>A truncated answer is
+       not an error.</strong> The stream just ends, the promise resolves, and your
+       code is holding half a sentence that looks exactly like a whole one. An agent
+       that treats truncation as success is a bug you will hit for real in lesson
+       3.</p>
+
+    <div class="tip">
+      <b>tip: how to get a cold load back</b>
+      <p>Once the weights are cached you cannot re-time the first load, and the
+         first load is the number you want. Devtools → <em>Application</em> →
+         <em>Storage</em> → <em>Clear site data</em> puts you back to zero. That is
+         also how you get those gigabytes off your disk when you are done with a
+         model.</p>
+    </div>
+
+    <p>And if you would rather not drive it from a console at all, <a href="/">the
+       harness</a> has the same thing wired up to a panel. The completion backend
+       list carries <em>WebLLM in this tab</em> alongside Ollama, vLLM and the
+       hosted vendors, and it logs every step of the load, the cached shard count,
+       and the tokens per second as it goes.</p>
+
+    <!-- ══ the questions people actually type. Answered in prose here and
+            mirrored in the FAQPage block in the head, so a search engine can
+            quote them without a click. ═══════════════════════════════════════ -->
+    <h2>Questions people ask about WebLLM</h2>
+
+    <dl class="faq">
+      <dt>What is WebLLM?</dt>
+      <dd>An open-source in-browser inference engine from MLC AI. It compiles
+          quantized model weights to run on WebGPU and serves them behind the
+          chat-completions API you already know. No server, no key, nothing
+          installed.</dd>
+
+      <dt>Is WebLLM free?</dt>
+      <dd>Yes, and there is nothing to sign up for, because your own GPU does the
+          inference. You pay in download, VRAM, context window and smarts instead.
+          Here is the full list of
+          <a href="#costs">what it costs you instead of money</a>.</dd>
+
+      <dt>Why is WebLLM important?</dt>
+      <dd>You start in seconds, so learning is free and mistakes are cheap. Prompts
+          stay on your machine, so you can work with private data without a policy
+          to trust. Every user brings their own GPU, so your inference cost stays
+          flat as you add users. And it keeps answering with the network off.
+          <a href="#why">The longer version</a>.</dd>
+
+      <dt>Which browsers does WebLLM work in?</dt>
+      <dd>Any browser with WebGPU: current Chrome and Edge on the desktop, and
+          recent Safari and Firefox. Serve the page over http:// or https://. From
+          a <code>file://</code> path, the module imports and the cache both
+          fail.</dd>
+
+      <dt>How much VRAM does WebLLM need?</dt>
+      <dd>About half a byte per parameter at 4-bit, so a gigabyte for a 2B and
+          five for a 9B, plus room for the conversation cache. Overshoot and you
+          lose the GPU device instead of slowing it down.</dd>
+
+      <dt>Does WebLLM support tool calling?</dt>
+      <dd>Natively on the five Hermes builds only, and it costs you your system
+          prompt and any prose in the same turn. For an agent, describe the
+          convention in the system prompt and parse the tags yourself.</dd>
+
+      <dt>Does WebLLM work offline?</dt>
+      <dd>After the first load, completely. Runtime and weights are cached once
+          per model per origin, and nothing after that touches the network.</dd>
+
+      <dt>WebLLM or Ollama?</dt>
+      <dd>Use WebLLM when it has to run for someone who will not install anything:
+          a demo, a lesson, a page you send to a stranger. Use Ollama when it is
+          your own machine and you want a bigger model, one download shared across
+          projects, and no browser in the way. The harness speaks both.</dd>
+    </dl>
+
+    <h2>Next week</h2>
+
+    <p><strong>Lesson 2: tool calling</strong> gives the model hands. You hand it a
+       list of functions. It asks for one by name. Your code runs the real thing and
+       passes the answer back. That loop is all an agent is, it takes about twenty
+       lines of code, and it
+       <a href="2026-09-15-lesson-2-tool-calling.html">arrives next
+       Tuesday</a>.</p>
+
+    <p>Where this sits in the whole course, and what comes after:
+       <a href="2026-09-04-the-syllabus.html">the syllabus</a>.</p>
+
+    <p>If someone forwarded you this, the lessons are free and weekly and the
+       archive keeps the ones you missed:</p>
+
+    <p><a class="cta" href="/">open the harness</a></p>
+
+  </article>
+
+  <!-- ══ subscribe: the same form the harness carries, posting to the same
+          list. Every page in the archive ends here. ═══════════════════════ -->
+  <section class="subscribe">
+    <h2>One lesson a week</h2>
+    <form class="signup" id="signup"
+          action="https://5487903a.sibforms.com/serve/MUIFAAPvkZdoviEts98XHd7P8K3TyLVS3MtyAoJy_sJMZ9DgAKwbaJqN4Lgn4NMQH3JL50ANiWCKfMJlE3Wj5aEiDLJ3sbnhtSTvh3z7Lgg2BOpAJjNZhMpN_BCn21Kz_o-buc-NY7aFM5JXPRkd-GW0iihg0KEvSJQiAgmUYcB_8D6DmR8Xb4bEFUzTJmlYFti6yJBG7K33hsR_MQ=="
+          method="POST" target="signup-sink" autocomplete="on">
+      <label class="sigil" for="signup-email" aria-hidden="true">&gt;</label>
+      <label class="slabel" for="signup-email">EMAIL</label>
+      <input id="signup-email" name="EMAIL" type="email" required
+             spellcheck="false" placeholder="you@example.com">
+      <input type="text" name="email_address_check" value="" class="trap"
+             tabindex="-1" aria-hidden="true" autocomplete="off">
+      <input type="hidden" name="locale" value="en">
+      <button type="submit">SUBSCRIBE</button>
+      <p class="note">one AI Agent training lesson, weekly</p>
+      <p class="note">starting mid-September 2026</p>
+      <p class="thanks" role="status">subscribed — thank you!</p>
+    </form>
+    <iframe name="signup-sink" title="subscription result" hidden></iframe>
+  </section>
+
+  <footer class="foot">
+    <p><a href="./">← all lessons</a> &middot;
+       <a href="https://github.com/stephenlb/buttercup.sh">source</a> &middot;
+       <a href="https://github.com/stephenlb/buttercup.sh/issues/new">feedback</a></p>
+  </footer>
+
+</div>
+
+<script src="signup.js"></script>
+</body>
+</html>

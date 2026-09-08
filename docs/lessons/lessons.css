@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   updates — the reading skin.
+   lessons — the reading skin.
 
    Deliberately not css/buttercup.css: that file is the machine, and gets
    inlined into one page by build.mjs. These are plain documents, so they carry
@@ -394,7 +394,7 @@ table.ref td { vertical-align: top; }
                    50% { border-right-color: transparent } }
 
 /* ‥ the same panel pair, both sides moving ‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥
-   Unit 1's figure 1, where the whole point is the exchange rather than one
+   Lesson 1's figure 1, where the whole point is the exchange rather than one
    generated string. The messages light in the order you assemble them, the
    arrow ticks over on `shove`, and then the reply arrives as separate chips —
    because that is what a stream hands you. Same 8s clock, so the beats read
@@ -493,7 +493,7 @@ table.ref td { vertical-align: top; }
 .ladder li:nth-child(4) { animation: lightup 8s linear infinite 3.7s; }
 .ladder li:nth-child(5) { animation: lightup 8s linear infinite 4.9s; }
 .ladder li:nth-child(6) { animation: lightup 8s linear infinite 6.1s; }
-/* a four-rung ladder — unit 1's load sequence — shares the clock but has to
+/* a four-rung ladder — lesson 1's load sequence — shares the clock but has to
    spread over four beats instead of six, or the line goes on climbing past
    rungs that are not there while the last one has been lit for two seconds.
    Delays re-spaced to land the fourth rung where `climb` tops out (78%, 6.24s). */

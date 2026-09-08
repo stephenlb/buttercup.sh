@@ -203,18 +203,25 @@ node build.mjs        # → docs/index.html + docs/.nojekyll
 Zero dependencies, syntax-checked before it writes. A convenience, not a
 requirement — the source runs as-is.
 
-## Updates
+## Lessons
 
-`docs/updates/` is the news page — a plain document served alongside the harness
-but not part of it, and its own source of truth. The build writes only
-`docs/index.html` and `docs/.nojekyll`, so nothing there is generated, minified
-or inlined; edit it in place. `docs/updates/index.html` is served at
-[buttercup.sh/updates/](https://buttercup.sh/updates/). Add an article by
+`docs/lessons/` is the course archive — plain documents served alongside the
+harness but not part of it, and their own source of truth. The build writes only
+`docs/index.html`, `docs/sitemap.xml` and `docs/.nojekyll`, so nothing there is
+generated, minified or inlined; edit it in place. `docs/lessons/index.html` is
+served at [buttercup.sh/lessons/](https://buttercup.sh/lessons/). Add a lesson by
 dropping an HTML file in beside the others and linking it from
-`docs/updates/index.html`, newest first. Opening it from disk works too —
-`open docs/updates/index.html`.
+`docs/lessons/index.html`, newest first. Opening it from disk works too —
+`open docs/lessons/index.html`.
 
-The repository root has an `updates` symlink pointing at `docs/updates`, so the
-relative `updates/` link in the header resolves the same way when you serve the
+The repository root has a `lessons` symlink pointing at `docs/lessons`, so the
+relative `lessons/` link in the header resolves the same way when you serve the
 root in development as it does on Pages. It exists for that reason only; the
 build never reads it.
+
+`docs/sitemap.xml` is generated from the links in `docs/lessons/index.html`, so
+publishing is one gesture: write the lesson, link it, push. A lesson that is
+written but not launched keeps its `<li>` HTML-commented out — the build strips
+comments before reading the links, so an unlaunched lesson stays out of the
+sitemap until you uncomment it. `docs/robots.txt` points crawlers at the
+sitemap and is hand-written.

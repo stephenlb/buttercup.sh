@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>buttercup.sh — web agent harness</title>
 <meta name="description" content="A free weekly AI Agent training course, plus the 100% static, no-backend terminal harness you practice in — build agents that run in your browser.">
+<!-- The apex host is canonical; www and http both 301 here. -->
+<link rel="canonical" href="https://buttercup.sh/">
 <link rel="stylesheet" href="css/buttercup.css">
 <!-- Inline so the harness stays a self-contained set of text files. -->
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23191204'/%3E%3Ctext x='2' y='12' font-family='monospace' font-size='11' fill='%23ffd873'%3E%26gt;%3C/text%3E%3C/svg%3E">
@@ -22,7 +24,7 @@
   <header class="titlebar">
     <span class="lamps" aria-hidden="true"><i></i><i></i><i></i></span>
     <h1>buttercup.sh<span class="rev"></span></h1>
-    <p class="tagline">em dashes welcome — <a href="updates/">updates</a> &middot; <a href="https://github.com/stephenlb/buttercup.sh">github</a> &middot; <a href="https://github.com/stephenlb/buttercup.sh/issues/new">feedback</a></p>
+    <p class="tagline">em dashes welcome — <a href="lessons/">lessons</a> &middot; <a href="https://github.com/stephenlb/buttercup.sh">github</a> &middot; <a href="https://github.com/stephenlb/buttercup.sh/issues/new">feedback</a></p>
     <output class="lamp-status" id="status" data-state="notready" aria-live="polite">NOT READY</output>
     <!-- All three faces ship here; CSS shows the live one. See js/theme.js.
          The glyphs are drawn on a 9&times;9 pixel grid, one path run per row, so
@@ -66,7 +68,7 @@
              up to a working agent: the tool-call loop, tool definitions, context
              and compaction, screenshots, browser control, planning, and the
              failure modes nobody warns you about. Miss a week and the
-             <a href="updates/">archive</a> keeps it.</p>
+             <a href="lessons/">archive</a> keeps it.</p>
           <p>No backend, no signup to play: open
              <label for="tab-keys" class="linky">KEYS</label> and paste an API
              key. It stays in this browser's <code>localStorage</code>; model
