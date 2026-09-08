@@ -784,6 +784,20 @@ table.ref td { vertical-align: top; }
 [data-motion="off"] .scale .track i { width: 4.1%; }
 [data-motion="off"] .scale .wall { opacity: 1; }
 
+/* ── the screen ───────────────────────────────────────────────────────────────
+   A video embed, wearing the same dashed panel the figures wear so it reads as
+   part of the page rather than a hole punched through it. `aspect-ratio` on the
+   frame means no padding-box trick and no width/height to keep in sync — the
+   iframe fills whatever column it lands in. Unlike the figures, this one does
+   need the network, so it is only ever an extra: everything it shows is also
+   written out below it. */
+
+.tube .screen {
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--rule); background: var(--edge);
+}
+.tube .screen iframe { display: block; width: 100%; height: 100%; border: 0; }
+
 /* ── tips ─────────────────────────────────────────────────────────────────────
    The aside for the thing that saves an hour. Kept visually quieter than a
    figure and louder than a paragraph, because it is read out of order. */
