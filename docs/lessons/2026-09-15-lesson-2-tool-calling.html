@@ -299,6 +299,42 @@ while True:
        last request contains all ten steps. That is why lesson 5 is about
        context, and why the bill grows the way it does.</p>
 
+    <figure class="diag">
+      <div class="grow">
+        <div class="row">
+          <b>request 1</b>
+          <div class="bar"><i class="nw" style="--w:6%"></i></div>
+          <span class="t">0.3k</span>
+        </div>
+        <div class="row">
+          <b>request 2</b>
+          <div class="bar"><i class="re" style="--w:6%"></i><i class="nw" style="--w:11%"></i></div>
+          <span class="t">0.9k</span>
+        </div>
+        <div class="row">
+          <b>request 3</b>
+          <div class="bar"><i class="re" style="--w:17%"></i><i class="nw" style="--w:20%"></i></div>
+          <span class="t">2.0k</span>
+        </div>
+        <div class="row">
+          <b>request 4</b>
+          <div class="bar"><i class="re" style="--w:37%"></i><i class="nw" style="--w:17%"></i></div>
+          <span class="t">2.9k</span>
+        </div>
+        <div class="row">
+          <b>request 5</b>
+          <div class="bar"><i class="re" style="--w:54%"></i><i class="nw" style="--w:24%"></i></div>
+          <span class="t">4.2k</span>
+        </div>
+      </div>
+      <figcaption>One agent run, five requests. The hatched part of each bar is
+        the conversation you already sent; the solid part is the only new thing
+        in it. Nothing here is a leak or a mistake — <b>this is what stateless
+        means</b>. It is also why tool output that comes back fat (a whole file,
+        a whole page of JSON) costs you on every remaining turn, not just the
+        one that asked for it.</figcaption>
+    </figure>
+
     <h2>Four rules that will save you a weekend</h2>
 
     <ul>
@@ -327,6 +363,29 @@ while True:
     </ul>
 
     <figure class="diag">
+      <div class="fork">
+        <div class="src"><b>station 3 throws</b>
+          <code>ENOENT: notes/paris.md</code> — the disk said no, and your
+          function raised</div>
+        <ul class="roads">
+          <li class="dead"><b>you drop the result</b>
+            the array now holds a <code>tool_use</code> with nothing answering
+            it, so the <em>next</em> request is the one that fails</li>
+          <li class="live"><b>you send it back</b>
+            a <code>tool_result</code> with <code>is_error: true</code> and the
+            message as its content — ordinary information, in the ordinary
+            place</li>
+        </ul>
+      </div>
+      <figcaption>A failing tool is not an error in the loop; a
+        <b>missing</b> result is. Catch around your own function, put whatever it
+        threw into the content, and the model does the sensible thing — fixes the
+        path, tries the other tool, or tells the user it cannot. Let the exception
+        escape instead and you break the protocol one turn later, which is where
+        the confusing stack trace comes from.</figcaption>
+    </figure>
+
+    <figure class="diag">
       <div class="fan">
         <span class="cap">one assistant turn · three tool_use blocks</span>
         <ul class="calls">
@@ -351,6 +410,35 @@ while True:
         in the logs to blame.</figcaption>
     </figure>
 
+    <figure class="diag">
+      <div class="limit">
+        <span class="cap">turns taken · one per trip round the ring</span>
+        <ol class="ticks">
+          <li style="--i:0"></li><li style="--i:1"></li><li style="--i:2"></li>
+          <li style="--i:3"></li><li style="--i:4"></li><li style="--i:5"></li>
+          <li style="--i:6"></li><li style="--i:7"></li><li style="--i:8"></li>
+          <li style="--i:9"></li><li style="--i:10"></li><li style="--i:11"></li>
+          <li style="--i:12"></li><li style="--i:13"></li><li style="--i:14"></li>
+          <li style="--i:15"></li><li style="--i:16"></li><li style="--i:17"></li>
+          <li style="--i:18"></li><li class="last" style="--i:19"></li>
+          <li class="wall" aria-hidden="true"></li>
+          <li class="ghost"></li><li class="ghost"></li><li class="ghost"></li>
+          <li class="ghost"></li><li class="ghost"></li><li class="ghost"></li>
+        </ol>
+        <div class="legs">
+          <span class="l">turn 1 — the question</span>
+          <span class="r">turn 20 — you stop</span>
+        </div>
+      </div>
+      <figcaption>The counter is four lines of code and it is the difference
+        between a bug and an invoice. A model that has misread one tool
+        description does not crash — it calls the tool again, reasonably, forever,
+        and every one of those turns carries the whole array with it. The hatched
+        ticks past the wall are the calls you never paid for. Pick a number,
+        <code>break</code> at it, and log the fact that you did: hitting the cap
+        is always a description problem worth reading about later.</figcaption>
+    </figure>
+
     <p>One shortcut, now that you have written the loop by hand: both SDKs will
        run it for you — <code>client.beta.messages.tool_runner()</code> in
        Python with the <code>@beta_tool</code> decorator,
@@ -372,6 +460,30 @@ while True:
        <code>tool_result</code> confirming it, a second
        <code>tool_use</code> for the read. Two trips round the ring, then
        prose.</p>
+
+    <figure class="diag">
+      <ol class="tape six">
+        <li><b>user</b> — make notes/paris.md with three lines about the
+            weather, then read it back</li>
+        <li><b>assistant</b> — <span class="k">tool_use</span>
+            <code>write_file</code> ·
+            <code>{"path": "notes/paris.md", …}</code></li>
+        <li><b>user</b> — <span class="k">tool_result</span> wrote 3 lines,
+            87 bytes</li>
+        <li><b>assistant</b> — <span class="k">tool_use</span>
+            <code>read_file</code> · <code>{"path": "notes/paris.md"}</code></li>
+        <li><b>user</b> — <span class="k">tool_result</span> the three lines,
+            back verbatim</li>
+        <li><b>assistant</b> — Written and read back. Here is what it
+            says…</li>
+      </ol>
+      <figcaption>The shape to check your run against. Six entries, two trips,
+        and note that the model does <b>not</b> ask permission between them — it
+        writes, sees that the write worked, and only then reads. If your
+        transcript shows the read before the result of the write has landed, you
+        have found the bug this whole lesson is about: the loop must wait at
+        station 3.</figcaption>
+    </figure>
 
     <p>Then break it on purpose, which is the half people skip:</p>
 

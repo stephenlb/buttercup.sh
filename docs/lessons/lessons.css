@@ -144,7 +144,7 @@ table.ref td { vertical-align: top; }
 @media (max-width: 34rem) { table.ref :is(th, td):first-child { width: 7rem; } }
 
 /* ── animated diagrams ────────────────────────────────────────────────────────
-   Five figures, all pure CSS on one shared 8s clock so they read as the same
+   Every figure in the archive, all pure CSS on one shared 8s clock so they read as the same
    machine ticking. No JS, no SVG, no images — a diagram that needs a build step
    is a diagram nobody updates. Every figure also has a legible static state,
    kept in the `data-motion="off"` block at the end of this section, so the
@@ -724,8 +724,189 @@ table.ref td { vertical-align: top; }
 }
 .scale .legs .l { color: var(--ink); }
 
+/* ‥ figure 9: the two roads out of a failure ‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥
+   Rule 1, drawn. The throw happens at the top; the left road drops the result
+   and dies at the next request, the right road hands the error back and the loop
+   keeps turning. Same 8s clock: throw, then both roads light, then the two
+   verdicts. The dead road is the only ink-hot thing in the figure. */
+
+.fork { display: grid; gap: .45rem; }
+.fork .src {
+  border: 1px solid var(--rule); background: var(--paper);
+  padding: .45rem .55rem; font-size: .74rem; line-height: 1.45;
+  color: var(--ink); animation: threw 8s linear infinite;
+}
+.fork .src b, .fork .roads b {
+  display: block; margin-bottom: .15rem;
+  color: var(--ink-hot); font-size: .62rem;
+  letter-spacing: .14em; text-transform: uppercase;
+}
+@keyframes threw {
+  0%, 2%    { border-color: var(--rule);    background: var(--paper) }
+  6%, 26%   { border-color: var(--ink-hot); background: var(--paper-3) }
+  34%, 100% { border-color: var(--rule);    background: var(--paper) }
+}
+.fork .roads {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: 1fr 1fr; gap: .5rem;
+}
+.fork .roads li {
+  position: relative; margin-top: 1.5rem; opacity: .22;
+  border: 1px solid var(--rule); background: var(--paper);
+  padding: .45rem .55rem; font-size: .72rem; line-height: 1.45;
+  color: var(--ink);
+  animation: roadlit 8s linear infinite;
+}
+/* the leg back up to the throw — dashed, like every other track here */
+.fork .roads li::before {
+  content: ""; position: absolute; left: 50%; top: -1.5rem;
+  height: 1.5rem; width: 0; border-left: 1px dashed var(--rule);
+}
+@keyframes roadlit {
+  0%        { opacity: .22 }
+  6%, 84%   { opacity: 1 }
+  94%, 100% { opacity: .22 }
+}
+.fork .dead { border-left: 3px solid var(--ink-hot); }
+.fork .live { border-left: 3px solid var(--good); }
+.fork .roads li.dead { animation-delay: 1.4s; }
+.fork .roads li.live { animation-delay: 2.4s; }
+/* the verdicts. Base opacity 0, so each one is absent until its own delay and
+   absent again after — no fill-mode, nothing parked. */
+.fork .roads li::after {
+  display: block; margin-top: .35rem; padding-top: .3rem;
+  border-top: 1px dashed var(--rule);
+  font-size: .68rem; letter-spacing: .04em; opacity: 0;
+}
+@keyframes verdictin {
+  0%        { opacity: 0 }
+  4%, 70%   { opacity: 1 }
+  80%, 100% { opacity: 0 }
+}
+.fork .dead::after {
+  content: "✕ next request rejected"; color: var(--ink-hot);
+  animation: verdictin 8s linear infinite 3.2s;
+}
+.fork .live::after {
+  content: "↻ model reads it and retries"; color: var(--good);
+  animation: verdictin 8s linear infinite 4.4s;
+}
+
+/* ‥ figure 10: the array is the memory ‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥
+   Five requests in one run. The hatched part of each bar is what you are sending
+   again, the solid part is the only new thing in it. Rows land in sequence, so
+   the growth is something you watch happen rather than a claim in a caption. */
+
+.grow { display: grid; gap: .4rem; }
+.grow .row {
+  display: grid; grid-template-columns: 5.6rem 1fr 3.6rem;
+  gap: .5rem; align-items: center; opacity: .2;
+  animation: rowin 8s cubic-bezier(.2,.9,.3,1) infinite;
+}
+.grow .row > b {
+  color: var(--ink-hot); font-weight: 600; font-size: .64rem;
+  letter-spacing: .1em; text-transform: uppercase;
+}
+.grow .bar {
+  display: flex; height: 1.15rem; overflow: hidden;
+  border: 1px solid var(--rule); background: var(--paper);
+}
+.grow .bar i { flex: 0 0 var(--w); font-style: normal; }
+/* what you are paying for twice */
+.grow .bar i.re {
+  background: repeating-linear-gradient(45deg,
+    var(--ink-faint) 0 3px, rgba(0,0,0,0) 3px 6px);
+}
+.grow .bar i.nw { background: var(--good); }
+.grow .t {
+  font-size: .62rem; color: var(--ink-faint); text-align: right;
+}
+@keyframes rowin {
+  0%        { opacity: .2; transform: translateY(-.3rem) }
+  4%        { opacity: 1;  transform: none }
+  90%       { opacity: 1;  transform: none }
+  100%      { opacity: .2; transform: translateY(-.3rem) }
+}
+.grow .row:nth-child(1) { animation-delay: 0.3s; }
+.grow .row:nth-child(2) { animation-delay: 1.5s; }
+.grow .row:nth-child(3) { animation-delay: 2.7s; }
+.grow .row:nth-child(4) { animation-delay: 3.9s; }
+.grow .row:nth-child(5) { animation-delay: 5.1s; }
+
+/* ‥ figure 11: the cap ‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥
+   Twenty turns tick past, the counter trips, and the ghosts to the right of the
+   wall are the calls a misread tool description would have gone on making. Each
+   tick carries its own `--i`, so the delay is arithmetic rather than twenty
+   hand-written rules. */
+
+.limit { display: grid; gap: .45rem; }
+.limit .cap {
+  color: var(--ink-faint); font-size: .62rem;
+  letter-spacing: .16em; text-transform: uppercase;
+}
+.limit .ticks {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; align-items: stretch; gap: .16rem;
+}
+.limit .ticks li {
+  flex: 1 1 0; height: 1.2rem; opacity: .2;
+  border: 1px solid var(--rule); background: var(--paper);
+  animation: tick 8s linear infinite;
+  animation-delay: calc(var(--i) * 0.24s);
+}
+/* a turn that has gone by stays filled — at half strength, so the tick being
+   taken right now is still the brightest thing in the row. Border colour is
+   left alone on purpose: the twentieth tick's marker has to survive this. */
+@keyframes tick {
+  0%        { opacity: .2;  background: var(--paper) }
+  3%        { opacity: 1;   background: var(--good) }
+  9%, 86%   { opacity: .55; background: var(--good) }
+  95%, 100% { opacity: .2;  background: var(--paper) }
+}
+/* the twentieth turn is the one the counter is watching for */
+.limit .ticks li.last { border-color: var(--ink-hot); }
+/* the wall, and the calls that never happen because of it */
+.limit .ticks .wall {
+  flex: 0 0 2px; height: 1.6rem; align-self: center;
+  background: var(--ink-hot); opacity: .35; border: 0;
+  animation: trip 8s linear infinite;
+}
+@keyframes trip {
+  0%, 60%   { opacity: .35; box-shadow: none }
+  66%, 88%  { opacity: 1;   box-shadow: 0 0 .45rem var(--ink-hot) }
+  94%, 100% { opacity: .35; box-shadow: none }
+}
+.limit .ticks li.ghost {
+  opacity: .5; animation: none; border-style: dashed;
+  background: repeating-linear-gradient(45deg,
+    var(--rule) 0 3px, rgba(0,0,0,0) 3px 6px);
+}
+.limit .legs {
+  display: flex; justify-content: space-between; gap: .5rem;
+  color: var(--ink-faint); font-size: .62rem; letter-spacing: .04em;
+}
+.limit .legs .l { color: var(--ink); }
+.limit .legs .r { color: var(--ink-hot); }
+
+/* a six-row tape — the exercise transcript — on the same 8s clock as the
+   four-row one, re-spaced so the last row still lands before the wipe */
+.tape.six li:nth-child(1) { animation-delay: 0.2s; }
+.tape.six li:nth-child(2) { animation-delay: 1.4s; }
+.tape.six li:nth-child(3) { animation-delay: 2.6s; }
+.tape.six li:nth-child(4) { animation-delay: 3.8s; }
+.tape.six li:nth-child(5) { animation-delay: 5.0s; }
+.tape.six li:nth-child(6) { animation-delay: 6.2s; }
+/* both round trips are the point here, so both results are marked, and the
+   id-matching flare from figure 2 is not what this one is about */
+.tape.six li:nth-child(5) { border-left: 3px solid var(--good); }
+.tape.six .id { animation: none; }
+
 @media (max-width: 34rem) {
   .pair { grid-template-columns: 1fr; }
+  .fork .roads { grid-template-columns: 1fr; }
+  .grow .row { grid-template-columns: 1fr; gap: .2rem; }
+  .grow .t { text-align: left; }
+  .limit .legs { flex-direction: column; }
   /* label, bar and verdict each get their own line rather than three cramped
      columns — the bar is the part that has to stay wide */
   .gauge .row { grid-template-columns: 1fr; gap: .2rem; }
@@ -783,6 +964,17 @@ table.ref td { vertical-align: top; }
 [data-motion="off"] .gauge .row.over .bar { border-color: var(--ink-hot); }
 [data-motion="off"] .scale .track i { width: 4.1%; }
 [data-motion="off"] .scale .wall { opacity: 1; }
+[data-motion="off"] .fork .src { border-color: var(--ink-hot); }
+[data-motion="off"] .fork .roads li { opacity: 1; }
+[data-motion="off"] .fork .roads li::after { opacity: 1; }
+[data-motion="off"] .grow .row { opacity: 1; }
+[data-motion="off"] .limit .ticks li { opacity: 1; background: var(--paper-3); }
+[data-motion="off"] .limit .ticks li.ghost {
+  opacity: .5;
+  background: repeating-linear-gradient(45deg,
+    var(--rule) 0 3px, rgba(0,0,0,0) 3px 6px);
+}
+[data-motion="off"] .limit .ticks .wall { opacity: 1; }
 
 /* ── the screen ───────────────────────────────────────────────────────────────
    A video embed, wearing the same dashed panel the figures wear so it reads as
