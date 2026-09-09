@@ -68,6 +68,9 @@ body {
   text-decoration: none;
 }
 .titlebar a.home:hover { text-decoration: underline; text-underline-offset: 3px; }
+/* the same nav the harness carries in its own title bar, so a lesson is never a
+   dead end: back to the list, out to the source, or off to a complaint. */
+.titlebar .crumbs { color: var(--ink-dim); font-size: .78rem; letter-spacing: .06em; }
 .titlebar .where {
   color: var(--ink-faint); font-size: .72rem; letter-spacing: .2em;
   text-transform: uppercase; margin-left: auto;
