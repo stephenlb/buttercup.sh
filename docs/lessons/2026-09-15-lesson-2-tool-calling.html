@@ -110,17 +110,17 @@
       <div class="pair">
         <div class="side">
           <b>you write, once</b>
-<pre><code>{
+          <!-- the two lit lines are the ones the arguments on the right have to
+               obey. They are .msg spans, display:block, so a literal newline
+               either side of one would render as an extra blank line inside the
+               <pre> — the line breaks around them come from block layout. -->
+<pre class="msgs keys"><code>{
   name: "get_weather",
   description:
     "Current weather for one city.",
   input_schema: {
     type: "object",
-    properties: {
-      city: { type: "string" }
-    },
-    required: ["city"]
-  }
+    properties: {<span class="msg">      city: { type: "string" }</span>    },<span class="msg">    required: ["city"]</span>  }
 }</code></pre>
         </div>
         <!-- the crossing. Decorative: the two headings already say which way
@@ -132,9 +132,11 @@
         </div>
       </div>
       <figcaption>The right-hand side is <b>generated text</b>, the same
-        machinery that writes sentences, aimed at a schema. So the description
-        on the left is a prompt, not documentation. You will spend more time
-        editing that one sentence than editing the loop.</figcaption>
+        machinery that writes sentences, aimed at a schema. The two lit lines are
+        all it is actually held to: the name it must use, and the fact that it
+        cannot leave it out. Everything else on the left, the description above
+        all, is a <b>prompt</b> rather than documentation, and you will spend more
+        time editing that one sentence than editing the loop.</figcaption>
     </figure>
 
     <p>Two consequences. First, arguments arrive as JSON, so <strong>parse
@@ -153,13 +155,13 @@
 
 const client = new Anthropic();   // reads ANTHROPIC_API_KEY
 
-// ── 1. the tool. A plain function. Nothing about it is special.
+// 1. the tool. A plain function. Nothing about it is special.
 function getWeather({ city }) {
   const readings = { Paris: "18°C, light rain", Tokyo: "27°C, clear" };
   return readings[city] ?? `no reading for ${city}`;
 }
 
-// ── 2. the description. This is what the model reads, it is a prompt. ───
+// 2. the description. This is what the model reads, it is a prompt.
 const tools = [{
   name: "get_weather",
   description: "Current weather for one city. Use this for any question " +
@@ -173,7 +175,7 @@ const tools = [{
   },
 }];
 
-// ── 3. the loop. The entire agent, right here. ───────────────────────────
+// 3. the loop. The entire agent, right here.
 const messages = [
   { role: "user", content: "Do I need an umbrella in Paris?" },
 ];
@@ -222,12 +224,12 @@ while (true) {
 
 client = anthropic.Anthropic()          # reads ANTHROPIC_API_KEY
 
-# ── 1. the tool ──────────────────────────────────────────────────────────
+# 1. the tool 
 def get_weather(city):
     readings = {"Paris": "18°C, light rain", "Tokyo": "27°C, clear"}
     return readings.get(city, f"no reading for {city}")
 
-# ── 2. the description ───────────────────────────────────────────────────
+# 2. the description
 tools = [{
     "name": "get_weather",
     "description": "Current weather for one city. Use this for any question "
@@ -241,7 +243,7 @@ tools = [{
     },
 }]
 
-# ── 3. the loop ──────────────────────────────────────────────────────────
+# 3. the loop
 messages = [
     {"role": "user", "content": "Do I need an umbrella in Paris?"},
 ]
@@ -355,6 +357,32 @@ while True:
        $0.32, from one tool result. Run that agent a thousand times a day and
        the single <code>read_file</code> you never trimmed costs
        <strong>$320 a day</strong>. Ouch.</p>
+
+    <figure class="diag">
+      <div class="spill">
+        <span class="cap">one fat tool_result · a ten-turn run</span>
+        <div class="src"><b>turn 2 · read_file</b>returns the whole file,
+          <code>8k tokens</code>, and the array keeps it</div>
+        <ol class="tail">
+          <li style="--i:0"><b>3</b></li><li style="--i:1"><b>4</b></li>
+          <li style="--i:2"><b>5</b></li><li style="--i:3"><b>6</b></li>
+          <li style="--i:4"><b>7</b></li><li style="--i:5"><b>8</b></li>
+          <li style="--i:6"><b>9</b></li><li style="--i:7"><b>10</b></li>
+        </ol>
+        <div class="tally">
+          <div class="bar"><i></i></div>
+          <span class="t">+64k input tokens · $0.32 · per run</span>
+        </div>
+      </div>
+      <figcaption>Eight blocks, one mistake. Each is a later request carrying
+        that same 8k again, because you send the whole array every time and
+        nothing ever takes the file back out of it. The bar underneath steps up
+        once per request, and it steps rather than slides for a reason: the bill
+        grows in <b>whole tool results</b>, so the cheapest edit you will ever
+        make is the one that decides how much comes back at station 3. Return
+        the twelve lines you needed and seven of these eight blocks go
+        away.</figcaption>
+    </figure>
 
     <blockquote>Trim the tool result, not the prompt. The prompt is sent once.
       The tool result is sent on every turn that comes after it.</blockquote>
@@ -616,5 +644,6 @@ while True:
 </div>
 
 <script src="signup.js"></script>
+<script src="announce.js"></script>
 </body>
 </html>

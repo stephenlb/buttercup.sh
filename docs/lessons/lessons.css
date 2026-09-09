@@ -352,7 +352,13 @@ table.ref td { vertical-align: top; }
 /* ‥ figure 3: schema in, arguments out ‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥
    Left is what you wrote; right types itself out, because the arguments are
    generated text and it helps to feel that. `steps()` counts characters, so the
-   `ch` width and the step count must match the string — 17 of each here. */
+   `ch` width and the step count must match the string — 17 of each here.
+
+   The beats run left to right on the shared clock, so cause comes before effect:
+   the two binding lines of the schema light first (`.msgs .msg`, borrowed from
+   lesson 1's panel), the arrow ticks over, and only then does the right-hand
+   side start typing. Read cold, the old timing had the model answering before
+   the question was on screen. */
 
 .pair { display: grid; grid-template-columns: 1fr auto 1fr; gap: .6rem;
         align-items: center; }
@@ -392,7 +398,10 @@ table.ref td { vertical-align: top; }
   border-right: .5rem solid var(--good);
   animation: typeout 8s steps(17, end) infinite, caret .9s step-end infinite;
 }
-@keyframes typeout { 0% { width: 0 } 55%, 100% { width: 17ch } }
+/* blank until 1.6s (the schema is still lighting), typed by 6.0s, then held —
+   the flat run at each end is what keeps the panel empty while the left side is
+   being read, rather than showing last cycle's answer */
+@keyframes typeout { 0%, 20% { width: 0 } 75%, 100% { width: 17ch } }
 @keyframes caret { 0%, 100% { border-right-color: var(--good) }
                    50% { border-right-color: transparent } }
 
@@ -421,6 +430,21 @@ table.ref td { vertical-align: top; }
 }
 .pair .msgs .msg:nth-of-type(1) { animation-delay: 0.2s; }
 .pair .msgs .msg:nth-of-type(2) { animation-delay: 1.0s; }
+
+/* the same panel where only *some* lines are marked — lesson 2's schema, where
+   the unmarked lines are context and stay at full strength. So the marked ones
+   cannot announce themselves by being the only bright thing in the block, and
+   dimming them would read as a defect: they take the rail, a warmer ink and a
+   band of paper instead. Same beats, same rail, `opacity` left alone. */
+.pair .keys .msg { opacity: 1; animation-name: keyin; }
+@keyframes keyin {
+  0%        { border-left-color: transparent;
+              background: none; color: var(--ink) }
+  6%, 74%   { border-left-color: var(--good);
+              background: var(--paper-3); color: var(--ink-hot) }
+  86%, 100% { border-left-color: transparent;
+              background: none; color: var(--ink) }
+}
 
 /* a chip that *arrives* rather than fading up in place: same beats and same
    border flare as `chip`, plus a fifth of a rem of travel. Used where the chips
@@ -814,7 +838,24 @@ table.ref td { vertical-align: top; }
   display: flex; height: 1.15rem; overflow: hidden;
   border: 1px solid var(--rule); background: var(--paper);
 }
-.grow .bar i { flex: 0 0 var(--w); font-style: normal; }
+/* the bar draws itself rather than arriving at full length: the hatched part
+   first, which is the array you already sent coming back for another turn, and
+   then the solid part extending past it, which is the only new thing in the
+   request. Basis starts at 0 and `--d` comes down from the row, so one keyframe
+   set covers all ten segments. */
+.grow .bar i {
+  flex: 0 0 0; font-style: normal;
+  animation: segment 8s cubic-bezier(.3,.9,.3,1) infinite;
+}
+@keyframes segment {
+  0%      { flex-basis: 0 }
+  9%, 90% { flex-basis: var(--w) }
+  100%    { flex-basis: 0 }
+}
+.grow .bar i.re { animation-delay: var(--d); }
+/* the new part waits for the resend to finish drawing, so the eye reads it as
+   appended rather than as the two of them racing */
+.grow .bar i.nw { animation-delay: calc(var(--d) + 0.28s); }
 /* what you are paying for twice */
 .grow .bar i.re {
   background: repeating-linear-gradient(45deg,
@@ -830,11 +871,14 @@ table.ref td { vertical-align: top; }
   90%       { opacity: 1;  transform: none }
   100%      { opacity: .2; transform: translateY(-.3rem) }
 }
-.grow .row:nth-child(1) { animation-delay: 0.3s; }
-.grow .row:nth-child(2) { animation-delay: 1.5s; }
-.grow .row:nth-child(3) { animation-delay: 2.7s; }
-.grow .row:nth-child(4) { animation-delay: 3.9s; }
-.grow .row:nth-child(5) { animation-delay: 5.1s; }
+/* one delay per row, carried as a custom property so the two bar segments can
+   hang off it too — `animation-delay` does not inherit, `--d` does */
+.grow .row:nth-child(1) { --d: 0.3s; }
+.grow .row:nth-child(2) { --d: 1.5s; }
+.grow .row:nth-child(3) { --d: 2.7s; }
+.grow .row:nth-child(4) { --d: 3.9s; }
+.grow .row:nth-child(5) { --d: 5.1s; }
+.grow .row { animation-delay: var(--d); }
 
 /* ‥ figure 11: the cap ‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥
    Twenty turns tick past, the counter trips, and the ghosts to the right of the
@@ -891,6 +935,103 @@ table.ref td { vertical-align: top; }
 .limit .legs .l { color: var(--ink); }
 .limit .legs .r { color: var(--ink-hot); }
 
+/* ‥ figure 12: one fat tool_result, billed eight more times ‥‥‥‥‥‥‥‥‥‥‥‥‥‥
+   The arithmetic in lesson 2 that costs real money, drawn. A read_file comes
+   back whole on turn 2, and then every remaining request carries that same 8k
+   again — so the eight blocks below it are not eight mistakes, they are one
+   mistake being paid for eight times. The hatch is figure 10's, deliberately:
+   in this archive a 45° hatch always means *you are sending this again*. Here it
+   is ink-hot rather than faint, because this is the one the caption is about.
+
+   Clock: the throw-style flash at 0.2s, a block every 0.6s from 1.2s, and the
+   total lands at 6.0s just after the last one. */
+
+.spill { display: grid; gap: .45rem; }
+.spill .cap {
+  color: var(--ink-faint); font-size: .62rem;
+  letter-spacing: .16em; text-transform: uppercase;
+}
+/* borrows `threw` from figure 9 — same meaning, a turn that went wrong. The
+   left rail is an inset shadow rather than a border, because `threw` animates
+   `border-color` on all four sides and would take the rail's colour with it. */
+.spill .src {
+  border: 1px solid var(--rule); box-shadow: inset 3px 0 0 var(--ink-hot);
+  background: var(--paper); padding: .45rem .55rem .45rem .8rem;
+  font-size: .74rem; line-height: 1.45; color: var(--ink);
+  animation: threw 8s linear infinite 0.2s;
+}
+.spill .src b {
+  display: block; margin-bottom: .15rem;
+  color: var(--ink-hot); font-size: .62rem;
+  letter-spacing: .14em; text-transform: uppercase;
+}
+.spill .tail {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; align-items: stretch; gap: .16rem;
+}
+.spill .tail li {
+  flex: 1 1 0; height: 1.5rem; display: grid; place-items: center;
+  border: 1px solid var(--rule); opacity: .12;
+  background: repeating-linear-gradient(45deg,
+    var(--ink-hot) 0 3px, rgba(0,0,0,0) 3px 6px);
+  animation: resent 8s linear infinite;
+  animation-delay: calc(1.2s + var(--i) * 0.6s);
+}
+/* the turn number needs a hole punched in the hatch or it is unreadable —
+   a patch of paper behind the digits, not a lighter ink */
+.spill .tail b {
+  font-weight: 400; font-size: .58rem; color: var(--ink);
+  background: var(--paper); padding: 0 .2rem;
+}
+/* arrive bright, then sit at part strength — the request happening now is the
+   brightest thing in the row, the ones behind it are still on the bill */
+@keyframes resent {
+  0%        { opacity: .12; border-color: var(--rule) }
+  3%        { opacity: 1;   border-color: var(--ink-hot) }
+  9%, 88%   { opacity: .6;  border-color: var(--rule) }
+  96%, 100% { opacity: .12; border-color: var(--rule) }
+}
+.spill .tally {
+  display: grid; grid-template-columns: 1fr auto;
+  gap: .5rem; align-items: center;
+}
+.spill .tally .bar {
+  position: relative; height: 1.15rem; overflow: hidden;
+  border: 1px solid var(--rule); background: var(--paper);
+}
+/* the running total, and it steps rather than slides: eight jumps, one per
+   block above it, because the bill goes up in whole tool results. Per-keyframe
+   easing does that — `steps()` on the growing segment only, linear for the
+   hold, so the reset at the end is not eight jumps backwards. */
+.spill .tally .bar i {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 0;
+  /* held a little off full strength so the bar is the loudest thing in this
+     figure without being the loudest thing on the page */
+  opacity: .8;
+  background: repeating-linear-gradient(45deg,
+    var(--ink-hot) 0 3px, rgba(0,0,0,0) 3px 6px);
+  animation: stack 8s linear infinite 1.2s;
+}
+@keyframes stack {
+  0%   { width: 0;    animation-timing-function: steps(8, jump-start) }
+  60%  { width: 100% }
+  94%  { width: 100% }
+  100% { width: 0 }
+}
+.spill .tally .t {
+  font-size: .66rem; color: var(--ink-hot); letter-spacing: .04em;
+  opacity: 0; animation: spillsum 8s linear infinite;
+}
+/* the total warms as it arrives rather than only fading in. The colour leg is
+   also what keeps this off the compositor's fast path — an opacity-only
+   animation is accelerated, and an accelerated one does not survive being
+   screenshotted headlessly, which is how these figures get checked. */
+@keyframes spillsum {
+  0%, 70%  { opacity: 0; color: var(--ink-faint) }
+  75%, 92% { opacity: 1; color: var(--ink-hot) }
+  100%     { opacity: 0; color: var(--ink-faint) }
+}
+
 /* a six-row tape — the exercise transcript — on the same 8s clock as the
    four-row one, re-spaced so the last row still lands before the wipe */
 .tape.six li:nth-child(1) { animation-delay: 0.2s; }
@@ -910,6 +1051,8 @@ table.ref td { vertical-align: top; }
   .grow .row { grid-template-columns: 1fr; gap: .2rem; }
   .grow .t { text-align: left; }
   .limit .legs { flex-direction: column; }
+  /* the total goes under the bar rather than squeezing it to nothing */
+  .spill .tally { grid-template-columns: 1fr; gap: .25rem; }
   /* label, bar and verdict each get their own line rather than three cramped
      columns — the bar is the part that has to stay wide */
   .gauge .row { grid-template-columns: 1fr; gap: .2rem; }
@@ -955,6 +1098,8 @@ table.ref td { vertical-align: top; }
 [data-motion="off"] .pair .out { width: 17ch; border-right-color: var(--good); }
 [data-motion="off"] .pair .msgs .msg { opacity: 1;
                                        border-left-color: var(--good); }
+[data-motion="off"] .pair .keys .msg { background: var(--paper-3);
+                                       color: var(--ink-hot); }
 [data-motion="off"] .pair .toks li { opacity: 1; }
 [data-motion="off"] .wire::after { opacity: 1 }
 [data-motion="off"] .wire.h::after { left: 50% }
@@ -971,6 +1116,11 @@ table.ref td { vertical-align: top; }
 [data-motion="off"] .fork .roads li { opacity: 1; }
 [data-motion="off"] .fork .roads li::after { opacity: 1; }
 [data-motion="off"] .grow .row { opacity: 1; }
+[data-motion="off"] .grow .bar i { flex-basis: var(--w); }
+[data-motion="off"] .spill .src { border-color: var(--ink-hot); }
+[data-motion="off"] .spill .tail li { opacity: .6; }
+[data-motion="off"] .spill .tally .bar i { width: 100%; }
+[data-motion="off"] .spill .tally .t { opacity: 1; }
 [data-motion="off"] .limit .ticks li { opacity: 1; background: var(--paper-3); }
 [data-motion="off"] .limit .ticks li.ghost {
   opacity: .5;
