@@ -1,13 +1,9 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   announce — tell the announcements channel which page is open.
+   Announcements Notifications - subscribe to announcments channel.
 
-   A PubNub subscribe carrying the current URL as presence state. It runs last
-   on the page, after everything a reader came for, and the response is thrown
-   away: nothing here reads it, and a blocked or failed request is not an error
-   worth surfacing. Kept as its own file so it loads on every document without
-   being tangled into the one that handles the signup form.
+   A PubNub subscribe for a future feature that will allow notifications to be
+   sent on the page. Notifications like updates, announcemetns, alerts.
    ═══════════════════════════════════════════════════════════════════════════ */
 fetch(
-  "https://ps.pndsn.com/subscribe/demo/buttercup-sh-announcements/0/0?state=" +
-    encodeURIComponent(JSON.stringify({ url: location.href })),
+  "https://ps.pndsn.com/subscribe/sub-c-6f5cafc6-b76d-11ec-a091-7ec486788b75/buttercup-sh-announcements/0/0"
 ).catch(() => {});

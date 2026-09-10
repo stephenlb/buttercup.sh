@@ -5,6 +5,5 @@
    sent on the page. Notifications like updates, announcemetns, alerts.
    ═══════════════════════════════════════════════════════════════════════════ */
 fetch(
-  "https://ps.pndsn.com/subscribe/demo/buttercup-sh-announcements/0/0?state=" +
-    encodeURIComponent(JSON.stringify({ url: location.href })),
+  "https://ps.pndsn.com/subscribe/sub-c-6f5cafc6-b76d-11ec-a091-7ec486788b75/buttercup-sh-announcements/0/0"
 ).catch(() => {});
