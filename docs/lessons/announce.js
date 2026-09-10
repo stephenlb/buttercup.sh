@@ -1,9 +1,0 @@
-/* ═══════════════════════════════════════════════════════════════════════════
-   Announcements Notifications - subscribe to announcments channel.
-
-   A PubNub subscribe for a future feature that will allow notifications to be
-   sent on the page. Notifications like updates, announcemetns, alerts.
-   ═══════════════════════════════════════════════════════════════════════════ */
-fetch(
-  "https://ps.pndsn.com/subscribe/sub-c-6f5cafc6-b76d-11ec-a091-7ec486788b75/buttercup-sh-announcements/0/0"
-).catch(() => {});

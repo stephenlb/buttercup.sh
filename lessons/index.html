@@ -29,7 +29,8 @@
   <h1>Lessons</h1>
   <p class="kicker">the weekly agent lessons, and what changed</p>
 
-  
+  <!-- top and bottom, on every page in this directory — the archive included.
+       Same list and same sink frame as the copy in the foot. -->
   <form class="signup lede" id="signup-lede"
         action="https://5487903a.sibforms.com/serve/MUIFAAPvkZdoviEts98XHd7P8K3TyLVS3MtyAoJy_sJMZ9DgAKwbaJqN4Lgn4NMQH3JL50ANiWCKfMJlE3Wj5aEiDLJ3sbnhtSTvh3z7Lgg2BOpAJjNZhMpN_BCn21Kz_o-buc-NY7aFM5JXPRkd-GW0iihg0KEvSJQiAgmUYcB_8D6DmR8Xb4bEFUzTJmlYFti6yJBG7K33hsR_MQ=="
         method="POST" target="signup-sink" autocomplete="on">
@@ -47,7 +48,7 @@
 
   <hr>
 
-  
+  <!-- Newest first. One entry per article file in this directory. -->
   <ul class="log">
     <li>
       <time datetime="2026-09-15">15 September 2026</time>
@@ -95,7 +96,8 @@
     </li>
   </ul>
 
-  
+  <!-- ══ subscribe: the same form the harness carries, posting to the same
+          list. Every page in the archive ends here. ═══════════════════════ -->
   <section class="subscribe">
     <h2>One lesson a week</h2>
     <form class="signup" id="signup"
@@ -124,24 +126,7 @@
 
 </div>
 
-<script>
-/* lessons/signup.js */
-
-document.querySelectorAll("form.signup").forEach((form) => {
-form.elements.email_address_check.value = "";
-form.addEventListener("submit", (e) => {
-if (form.elements.email_address_check.value) e.preventDefault();
-form.dataset.sent = "1";
-});
-});
-
-;
-/* js/announce.js */
-
-fetch(
-"https://ps.pndsn.com/subscribe/sub-c-6f5cafc6-b76d-11ec-a091-7ec486788b75/buttercup-sh-announcements/0/0"
-).catch(() => {});
-
-</script>
+<script src="signup.js"></script>
+<script src="../js/announce.js"></script>
 </body>
 </html>

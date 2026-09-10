@@ -1,6 +1,6 @@
-# Pages serves main:/docs, and docs/index.html and docs/sitemap.xml are
-# generated — so every push that touches a source file rebuilds them and commits
-# the result back to main.
+# Pages serves main:/docs, and docs/index.html, docs/lessons/ and
+# docs/sitemap.xml are generated — so every push that touches a source file
+# rebuilds them and commits the result back to main.
 name: build
 
 on:
@@ -11,10 +11,11 @@ on:
       - build.mjs
       - css/**
       - js/**
-      # Publishing a post edits the archive index, and the sitemap is read off
-      # its links. The step below writes docs/index.html and docs/sitemap.xml —
-      # neither path is listed here, so the commit-back cannot retrigger this.
-      - docs/lessons/index.html
+      # The lesson sources: their pages are bundled into docs/lessons/ and the
+      # sitemap is read off the archive index's links. The step below writes
+      # docs/ only, and no docs/ path is listed here, so the commit-back cannot
+      # retrigger this.
+      - lessons/**
       - .github/workflows/build.yml
   workflow_dispatch:
 

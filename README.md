@@ -197,7 +197,7 @@ imports resolve without a server.
 One optional script folds the whole thing into a single file for GitHub Pages:
 
 ```
-node build.mjs        # → docs/index.html + docs/.nojekyll
+node build.mjs        # → docs/index.html + docs/lessons/ + docs/.nojekyll
 ```
 
 Zero dependencies, syntax-checked before it writes. A convenience, not a
@@ -205,21 +205,24 @@ requirement — the source runs as-is.
 
 ## Lessons
 
-`docs/lessons/` is the course archive — plain documents served alongside the
-harness but not part of it, and their own source of truth. The build writes only
-`docs/index.html`, `docs/sitemap.xml` and `docs/.nojekyll`, so nothing there is
-generated, minified or inlined; edit it in place. `docs/lessons/index.html` is
-served at [buttercup.sh/lessons/](https://buttercup.sh/lessons/). Add a lesson by
-dropping an HTML file in beside the others and linking it from
-`docs/lessons/index.html`, newest first. Opening it from disk works too —
-`open docs/lessons/index.html`.
+`lessons/` is the course archive — plain documents served alongside the harness
+but not part of it. The build treats them the way it treats the harness: every
+`<script src>` in a page is inlined, so `docs/lessons/` is what Pages serves and
+no page on the site loads a separate `.js` file. `announce.js` therefore lives in
+one place, `js/announce.js`, read by the harness and by every lesson.
 
-The repository root has a `lessons` symlink pointing at `docs/lessons`, so the
-relative `lessons/` link in the header resolves the same way when you serve the
-root in development as it does on Pages. It exists for that reason only; the
-build never reads it.
+Edit `lessons/`, never `docs/lessons/` — the latter is generated and overwritten
+on each build. Add a lesson by dropping an HTML file in beside the others and
+linking it from `lessons/index.html`, newest first. The sources open straight
+from disk — `open lessons/index.html` — because the paths in them are the paths a
+browser reads; the build only folds them in.
 
-`docs/sitemap.xml` is generated from the links in `docs/lessons/index.html`, so
+The shared stylesheet stays a linked file: `lessons/lessons.css` is minified into
+`docs/lessons/lessons.css`, since one cached 58 kB sheet beats a copy of it in
+every post. Anything else dropped in `lessons/` — an image, say — is copied
+through untouched.
+
+`docs/sitemap.xml` is generated from the links in `lessons/index.html`, so
 publishing is one gesture: write the lesson, link it, push. A lesson that is
 written but not launched keeps its `<li>` HTML-commented out — the build strips
 comments before reading the links, so an unlaunched lesson stays out of the

@@ -40,7 +40,8 @@
          the whole of agents, everything later in this course refines it. No
          prior agent code assumed, and the exercise runs in the browser tab
          next to this one.</p>
-      
+      <!-- the form itself rather than a link down to it: one field, one
+           button, no jump. Same list, same sink frame as the foot. -->
       <form class="signup lede" id="signup-lede"
             action="https://5487903a.sibforms.com/serve/MUIFAAPvkZdoviEts98XHd7P8K3TyLVS3MtyAoJy_sJMZ9DgAKwbaJqN4Lgn4NMQH3JL50ANiWCKfMJlE3Wj5aEiDLJ3sbnhtSTvh3z7Lgg2BOpAJjNZhMpN_BCn21Kz_o-buc-NY7aFM5JXPRkd-GW0iihg0KEvSJQiAgmUYcB_8D6DmR8Xb4bEFUzTJmlYFti6yJBG7K33hsR_MQ=="
             method="POST" target="signup-sink" autocomplete="on">
@@ -110,7 +111,10 @@
       <div class="pair">
         <div class="side">
           <b>you write, once</b>
-          
+          <!-- the two lit lines are the ones the arguments on the right have to
+               obey. They are .msg spans, display:block, so a literal newline
+               either side of one would render as an extra blank line inside the
+               <pre> — the line breaks around them come from block layout. -->
 <pre class="msgs keys"><code>{
   name: "get_weather",
   description:
@@ -120,7 +124,8 @@
     properties: {<span class="msg">      city: { type: "string" }</span>    },<span class="msg">    required: ["city"]</span>  }
 }</code></pre>
         </div>
-        
+        <!-- the crossing. Decorative: the two headings already say which way
+             this reads, so it is hidden from the reading order. -->
         <div class="cross" aria-hidden="true">&rarr;</div>
         <div class="side">
           <b>the model writes, per call</b>
@@ -609,7 +614,8 @@ while True:
 
   </article>
 
-  
+  <!-- ══ subscribe: the same form the harness carries, posting to the same
+          list. Every page in the archive ends here. ═══════════════════════ -->
   <section class="subscribe">
     <h2>One lesson a week</h2>
     <form class="signup" id="signup"
@@ -638,24 +644,7 @@ while True:
 
 </div>
 
-<script>
-/* lessons/signup.js */
-
-document.querySelectorAll("form.signup").forEach((form) => {
-form.elements.email_address_check.value = "";
-form.addEventListener("submit", (e) => {
-if (form.elements.email_address_check.value) e.preventDefault();
-form.dataset.sent = "1";
-});
-});
-
-;
-/* js/announce.js */
-
-fetch(
-"https://ps.pndsn.com/subscribe/sub-c-6f5cafc6-b76d-11ec-a091-7ec486788b75/buttercup-sh-announcements/0/0"
-).catch(() => {});
-
-</script>
+<script src="signup.js"></script>
+<script src="../js/announce.js"></script>
 </body>
 </html>

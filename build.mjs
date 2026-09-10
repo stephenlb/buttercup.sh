@@ -14,15 +14,21 @@
    every minified script before emitting. A corrupted bundle fails the build
    instead of shipping.
 
-   It also writes docs/sitemap.xml, read off the links in docs/lessons/ —
+   It also writes docs/sitemap.xml, read off the links in lessons/index.html —
    see the sitemap section at the foot of this file.
 
-   Only index.html, sitemap.xml and .nojekyll are written. Everything else
-   already in docs/ — the plain documents (lessons/, robots.txt, CNAME, and
-   whatever comes later) that are served alongside the harness but are not part
-   of it — is left alone; those files are edited in place, not generated.
+   The lesson documents get the same treatment, one level down: lessons/ is the
+   source, docs/lessons/ the artefact, and every <script src> in a post is
+   inlined into it — so no page on the site loads a separate .js file, and
+   announce.js exists once, in js/, for the harness and the lessons alike. Their
+   shared stylesheet stays a linked file: six copies of one 58 kB sheet is worse
+   for a reader working through the course than one cached request.
+
+   docs/index.html, docs/lessons/, docs/sitemap.xml and docs/.nojekyll are
+   written. The rest of docs/ — robots.txt, CNAME, updates/ and whatever comes
+   later — is hand-written and left alone.
    ═══════════════════════════════════════════════════════════════════════════ */
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, copyFileSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
@@ -167,54 +173,129 @@ function stripCss(src) {
 
 const stripHtmlComments = (html) => html.replace(/<!--[\s\S]*?-->/g, "");
 
+// Blank runs left behind by the stripped comments, closed up — except inside a
+// <pre>, where a blank line is content: a lesson's code samples space themselves
+// with them, and collapsing those would reflow published listings.
+const squeezeBlankLines = (html) =>
+  html.split(/(<pre[\s\S]*?<\/pre>)/i)
+    .map((part, i) => (i % 2 ? part : part.replace(/\n{3,}/g, "\n\n")))
+    .join("");
+
 /* ── assemble ────────────────────────────────────────────────────────────── */
 
 const inlineSafe = (code, tag) =>
   code.replace(new RegExp(`</(?=${tag})`, "gi"), "<\\/");
 
-// Comments go before anything is inlined: `<!--` inside an inlined string
-// would otherwise be read as the start of an HTML comment.
-let html = stripHtmlComments(read("index.html"));
-
-const cssRefs = [...html.matchAll(/<link\b[^>]*href="([^"]+\.css)"[^>]*>/gi)];
-const jsRefs = [...html.matchAll(/<script\b[^>]*src="([^"]+\.js)"[^>]*><\/script>\s*/gi)];
-if (!cssRefs.length || !jsRefs.length) {
-  console.error("build: index.html no longer references css/js the way this script expects");
-  process.exit(1);
-}
-
-const css = cssRefs.map((m) => stripCss(read(m[1]))).join("");
-const scripts = jsRefs.map((m) => {
-  const code = stripJs(read(m[1]));
-  try {
-    new vm.Script(code, { filename: m[1] });     // fail the build, not the page
-  } catch (err) {
-    console.error(`build: minified ${m[1]} does not parse — ${err.message}`);
-    process.exit(1);
-  }
-  return `/* ${m[1]} */\n${code}`;
-}).join("\n;\n");
-
 // Replacements go through a function: the bundle contains `$&` (a regex escape
 // in js/vfs.js), and String.replace would expand that into the matched tag.
 const swap = (haystack, needle, text) => haystack.replace(needle, () => text);
 
-// The first stylesheet ref becomes the inline <style>; later ones vanish.
-html = swap(html, cssRefs[0][0], `<style>${inlineSafe(css, "style")}</style>`);
-for (const ref of cssRefs.slice(1)) html = swap(html, ref[0], "");
-// Likewise the first <script src> becomes the whole bundle.
-html = swap(html, jsRefs[0][0], `<script>\n${inlineSafe(scripts, "script")}\n</script>\n`);
-for (const ref of jsRefs.slice(1)) html = swap(html, ref[0], "");
+const die = (msg) => { console.error(`build: ${msg}`); process.exit(1); };
 
-html = html.replace(/\n{3,}/g, "\n\n");
+/* Fold one page's assets into it.
+
+   `src` is repo-relative; the paths inside it are page-relative, exactly as the
+   browser reads them, so the same file works opened from disk and inlined here.
+   Scripts always come in — that is the point of the bundle. Stylesheets only
+   when `inlineCss` is set: the harness has one page and inlines its CSS, while
+   the lessons share one 58 kB sheet across every post and are better served by
+   one cached file than by six copies of it.
+
+   Returns { html, refs } — refs for the size report at the foot of the build. */
+function bundle(src, { inlineCss = false } = {}) {
+  const base = dirname(src);                     // "" for a page at the root
+  const resolve = (ref) => (base === "." ? ref : join(base, ref));
+
+  // Comments go before anything is inlined: `<!--` inside an inlined string
+  // would otherwise be read as the start of an HTML comment.
+  let html = stripHtmlComments(read(src));
+
+  const cssRefs = [...html.matchAll(/<link\b[^>]*href="([^"]+\.css)"[^>]*>/gi)];
+  const jsRefs = [...html.matchAll(/<script\b[^>]*src="([^"]+\.js)"[^>]*><\/script>\s*/gi)];
+  if (!jsRefs.length || (inlineCss && !cssRefs.length))
+    die(`${src} no longer references css/js the way this script expects`);
+
+  const scripts = jsRefs.map((m) => {
+    const path = resolve(m[1]);
+    const code = stripJs(read(path));
+    try {
+      new vm.Script(code, { filename: path });   // fail the build, not the page
+    } catch (err) {
+      die(`minified ${path} does not parse — ${err.message}`);
+    }
+    return `/* ${path} */\n${code}`;
+  }).join("\n;\n");
+
+  // The first <script src> becomes the whole bundle; later ones vanish.
+  html = swap(html, jsRefs[0][0], `<script>\n${inlineSafe(scripts, "script")}\n</script>\n`);
+  for (const ref of jsRefs.slice(1)) html = swap(html, ref[0], "");
+
+  if (inlineCss) {
+    const css = cssRefs.map((m) => stripCss(read(resolve(m[1])))).join("");
+    html = swap(html, cssRefs[0][0], `<style>${inlineSafe(css, "style")}</style>`);
+    for (const ref of cssRefs.slice(1)) html = swap(html, ref[0], "");
+  }
+
+  const refs = [...jsRefs, ...(inlineCss ? cssRefs : [])].map((m) => resolve(m[1]));
+  return { html: squeezeBlankLines(html), refs };
+}
 
 mkdirSync(OUT_DIR, { recursive: true });
-writeFileSync(join(OUT_DIR, "index.html"), html);
+
+const harness = bundle("index.html", { inlineCss: true });
+writeFileSync(join(OUT_DIR, "index.html"), harness.html);
 writeFileSync(join(OUT_DIR, ".nojekyll"), "");   // Pages: serve the file as-is
+
+/* ── lessons ─────────────────────────────────────────────────────────────────
+   lessons/ is the source; docs/lessons/ is the artefact. Each document gets its
+   scripts inlined the same way the harness does, so a lesson page is one
+   request and there is no second copy of announce.js to keep in step — the
+   pages point at js/announce.js, the same file the harness loads.
+
+   Everything in the directory is accounted for: .html is bundled, .js is
+   already inside those bundles, .css is minified across, and anything else
+   (an image, say) is copied through untouched.
+   ------------------------------------------------------------------------- */
+
+const LESSONS_SRC = join(ROOT, "lessons");
+const LESSONS_OUT = join(OUT_DIR, "lessons");
+mkdirSync(LESSONS_OUT, { recursive: true });
+
+const lessonEntries = readdirSync(LESSONS_SRC, { withFileTypes: true });
+// A subdirectory would be silently left out of the artefact, so say so instead.
+for (const entry of lessonEntries)
+  if (!entry.isFile()) die(`lessons/${entry.name} is not a file — teach this script how to publish it`);
+
+const lessonFiles = lessonEntries.map((e) => e.name);
+const lessonPages = [];
+const lessonScripts = new Set();
+
+for (const file of lessonFiles) {
+  const out = join(LESSONS_OUT, file);
+  if (file.endsWith(".html")) {
+    const { html, refs } = bundle(`lessons/${file}`);
+    writeFileSync(out, html);
+    lessonPages.push(file);
+    for (const ref of refs) lessonScripts.add(ref);
+  } else if (file.endsWith(".js")) {
+    continue;                                    // inlined into the pages above
+  } else if (file.endsWith(".css")) {
+    writeFileSync(out, stripCss(read(`lessons/${file}`)));
+  } else {
+    copyFileSync(join(LESSONS_SRC, file), out);
+  }
+}
+
+// A lesson script that was inlined this build may still be sitting in docs/ from
+// a build that copied it; serving a stale second copy is worse than not serving
+// one, so anything docs/lessons/ has that lessons/ does not is removed.
+for (const file of readdirSync(LESSONS_OUT)) {
+  if (!lessonFiles.includes(file) || file.endsWith(".js")) rmSync(join(LESSONS_OUT, file), { recursive: true });
+}
 
 /* ── sitemap ─────────────────────────────────────────────────────────────────
    The archive index is the source of truth for what is published: a post that
-   is written but not launched yet sits in docs/lessons/ with its <li> HTML-
+   is written but not launched yet sits in lessons/ with its <li> HTML-
    commented out, so stripping comments first and then reading the links out
    gives exactly the live set. Write a post, link it, and it appears here — no
    second list to remember.
@@ -230,7 +311,7 @@ const SITE = "https://buttercup.sh";
 const POST_HREF = /href="((\d{4})-(\d{2})-(\d{2})-[^"/]+\.html)"/g;
 const xml = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-const archive = stripHtmlComments(read("docs/lessons/index.html"));
+const archive = stripHtmlComments(read("lessons/index.html"));
 const posts = [...archive.matchAll(POST_HREF)]
   .map((m) => ({ file: m[1], date: `${m[2]}-${m[3]}-${m[4]}` }))
   // The same post is linked from the list and sometimes from the prose above it.
@@ -238,14 +319,14 @@ const posts = [...archive.matchAll(POST_HREF)]
   .sort((a, b) => b.date.localeCompare(a.date));
 
 if (!posts.length) {
-  console.error("build: found no published posts in docs/lessons/index.html — has the link markup changed?");
+  console.error("build: found no published posts in lessons/index.html — has the link markup changed?");
   process.exit(1);
 }
 for (const { file } of posts) {
   try {
-    read(`docs/lessons/${file}`);
+    read(`lessons/${file}`);
   } catch {
-    console.error(`build: docs/lessons/index.html links ${file}, which does not exist`);
+    console.error(`build: lessons/index.html links ${file}, which does not exist`);
     process.exit(1);
   }
 }
@@ -259,7 +340,7 @@ const entries = [
 ];
 
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated by build.mjs from the links in docs/lessons/index.html. Do not edit. -->
+<!-- Generated by build.mjs from the links in lessons/index.html. Do not edit. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${entries.map(({ loc, lastmod }) => [
   "  <url>",
@@ -271,9 +352,10 @@ ${entries.map(({ loc, lastmod }) => [
 `;
 writeFileSync(join(OUT_DIR, "sitemap.xml"), sitemap);
 
-const sourceBytes = [...cssRefs, ...jsRefs].reduce((n, m) => n + read(m[1]).length, read("index.html").length);
+const sourceBytes = harness.refs.reduce((n, ref) => n + read(ref).length, read("index.html").length);
 const kb = (n) => (n / 1024).toFixed(1) + " kB";
-console.log(`docs/index.html  ${kb(html.length)}  (${kb(gzipSync(html).length)} gzipped)`);
-console.log(`sources            ${kb(sourceBytes)} across ${cssRefs.length + jsRefs.length + 1} files`);
-console.log(`inlined            ${jsRefs.map((m) => m[1]).join(", ")}`);
+console.log(`docs/index.html  ${kb(harness.html.length)}  (${kb(gzipSync(harness.html).length)} gzipped)`);
+console.log(`sources            ${kb(sourceBytes)} across ${harness.refs.length + 1} files`);
+console.log(`inlined            ${harness.refs.join(", ")}`);
+console.log(`docs/lessons/      ${lessonPages.length} pages, scripts inlined (${[...lessonScripts].join(", ")})`);
 console.log(`docs/sitemap.xml   ${entries.length} URLs (${posts.length} published posts)`);
