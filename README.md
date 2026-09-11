@@ -58,6 +58,39 @@ origin, so it cannot reach this page, this DOM, or your keys.
 
 ---
 
+## Install it as an app
+
+[buttercup.sh](https://buttercup.sh/) is an installable PWA, so it can live on a
+dock, a Start menu or a phone's home screen and open in its own window with no
+browser chrome around it.
+
+- **Chrome, Edge, Brave** — an **INSTALL** link appears in the title-bar row when
+  the browser offers one, or use the install icon in the address bar.
+- **iOS / iPadOS Safari** — Share → *Add to Home Screen*.
+- **Android Chrome** — the ⋮ menu → *Install app*.
+- **Safari on macOS** — File → *Add to Dock*.
+
+Installed or not, `sw.js` keeps a copy of the shell, so a cold launch paints with
+no network and lessons you have read stay readable offline. Two rules keep that
+cache from touching anything of yours: **same-origin GETs only**, and **no
+POSTs**. A model request, a WebLLM weight file, an npm lookup — anything
+cross-origin — passes straight through untouched, so no request carrying a key is
+ever written to a cache. What is cached is the page, the manifest, the icons, and
+lesson pages as you open them.
+
+The worker's cache name carries a hash of what it precaches, so a deploy retires
+the old cache exactly once and stale JavaScript cannot outlive its build. Append
+`?nosw=1` to unregister it and go back to plain requests — useful when you are
+debugging the harness rather than the app. A local model plus an installed window
+is the whole thing running with no network at all.
+
+The pieces: `manifest.webmanifest`, `sw.js`, `js/pwa.js`, and the icons, which
+`build.mjs` *draws* from a pixel grid — a two-colour PNG is a few dozen lines of
+zlib and CRC32, and generating them keeps the repo text-only and the icons in
+step with the palette.
+
+---
+
 ## Key configuration
 
 Open `index.html`. It starts on the **KEYS** panel and stays there until a key
@@ -242,6 +275,7 @@ One optional script folds the whole thing into a single file for GitHub Pages:
 
 ```
 node build.mjs        # → docs/index.html + docs/lessons/ + docs/.nojekyll
+                      #   + docs/manifest.webmanifest + docs/sw.js + app icons
 ```
 
 Zero dependencies, syntax-checked before it writes. A convenience, not a

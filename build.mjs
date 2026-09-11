@@ -24,14 +24,22 @@
    shared stylesheet stays a linked file: six copies of one 58 kB sheet is worse
    for a reader working through the course than one cached request.
 
-   docs/index.html, docs/lessons/, docs/sitemap.xml and docs/.nojekyll are
-   written. The rest of docs/ — robots.txt, CNAME, updates/ and whatever comes
-   later — is hand-written and left alone.
+   The installable-app files are written too, because they are the one part of
+   the site a browser has to read as separate files rather than out of the
+   bundle: docs/manifest.webmanifest is copied, docs/sw.js is minified with a
+   hash of the bundle stamped into it, and the PNG icons are drawn here from a
+   pixel grid — see the app section below.
+
+   docs/index.html, docs/lessons/, docs/sitemap.xml, docs/.nojekyll,
+   docs/manifest.webmanifest, docs/sw.js and docs/*.png are written. The rest of
+   docs/ — robots.txt, CNAME, updates/ and whatever comes later — is
+   hand-written and left alone.
    ═══════════════════════════════════════════════════════════════════════════ */
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, copyFileSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { gzipSync } from "node:zlib";
+import { gzipSync, deflateSync } from "node:zlib";
+import { createHash } from "node:crypto";
 import vm from "node:vm";
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
@@ -246,6 +254,136 @@ const harness = bundle("index.html", { inlineCss: true });
 writeFileSync(join(OUT_DIR, "index.html"), harness.html);
 writeFileSync(join(OUT_DIR, ".nojekyll"), "");   // Pages: serve the file as-is
 
+/* ── installable app ────────────────────────────────────────────────────────
+   The manifest, the worker and the icons. An installer fetches all three from
+   the origin as files, so this is the one thing the build cannot fold into
+   index.html.
+
+   The icons are drawn rather than checked in: the mark is nine rows of pixels —
+   the same prompt caret as the favicon — and a PNG of a two-colour pixel grid
+   is a few dozen lines of zlib and CRC32. That keeps the repo text-only and the
+   icons in step with the palette, instead of asking a designer's export to stay
+   in step with a stylesheet.
+   ------------------------------------------------------------------------- */
+
+const PAPER = [0x19, 0x12, 0x04];                // --paper, night tube
+const INK = [0xff, 0xd8, 0x73];                  // --ink, butter phosphor
+
+// The caret and its cursor rule, on a 16×16 grid. '#' is ink, anything else is
+// the tube. Read it as the picture it is; the rows are the icon.
+const MARK = [
+  "................",
+  "................",
+  "....###.........",
+  ".....###........",
+  "......###.......",
+  ".......###......",
+  "........###.....",
+  ".......###......",
+  "......###.......",
+  ".....###........",
+  "....###.........",
+  "................",
+  "................",
+  "...##########...",
+  "................",
+  "................",
+];
+
+const CRC_TABLE = Int32Array.from({ length: 256 }, (_, n) => {
+  let c = n;
+  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+  return c;
+});
+
+const crc32 = (buf) => {
+  let c = ~0;
+  for (const byte of buf) c = CRC_TABLE[(c ^ byte) & 0xff] ^ (c >>> 8);
+  return ~c >>> 0;
+};
+
+const pngChunk = (type, data) => {
+  const body = Buffer.concat([Buffer.from(type, "latin1"), data]);
+  const len = Buffer.alloc(4);
+  len.writeUInt32BE(data.length);
+  const crc = Buffer.alloc(4);
+  crc.writeUInt32BE(crc32(body));
+  return Buffer.concat([len, body, crc]);
+};
+
+/* A square 8-bit truecolour PNG, no interlacing, filter 0 on every scanline —
+   the simplest thing the spec allows, which for flat colour is also the
+   smallest once deflate has seen it. */
+const png = (size, pixel) => {
+  const stride = size * 3 + 1;                   // one filter byte per row
+  const raw = Buffer.alloc(size * stride);
+  for (let y = 0; y < size; y++) {
+    let p = y * stride + 1;                      // leave the filter byte at 0
+    for (let x = 0; x < size; x++) {
+      const [r, g, b] = pixel(x, y);
+      raw[p++] = r; raw[p++] = g; raw[p++] = b;
+    }
+  }
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(size, 0);
+  ihdr.writeUInt32BE(size, 4);
+  ihdr[8] = 8;                                   // 8 bits per channel
+  ihdr[9] = 2;                                   // truecolour, no alpha
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    pngChunk("IHDR", ihdr),
+    pngChunk("IDAT", deflateSync(raw, { level: 9 })),
+    pngChunk("IEND", Buffer.alloc(0)),
+  ]);
+};
+
+/* `inset` is the fraction of each edge kept clear of the mark. A maskable icon
+   is cropped to whatever shape the platform likes — a circle on Android, a
+   squircle on macOS — and only the middle 80% is guaranteed to survive, so that
+   one is drawn small inside a full-bleed tube. */
+function icon(size, inset) {
+  const cell = Math.max(1, Math.floor((size - 2 * Math.round(size * inset)) / MARK.length));
+  const off = Math.round((size - cell * MARK.length) / 2);
+  return png(size, (x, y) => {
+    const row = MARK[Math.floor((y - off) / cell)];
+    // Outside the grid the row (or the character) is undefined: that is the tube.
+    return row?.[Math.floor((x - off) / cell)] === "#" ? INK : PAPER;
+  });
+}
+
+const ICONS = [
+  ["icon-192.png", 192, 0.09],
+  ["icon-512.png", 512, 0.09],
+  ["icon-maskable-512.png", 512, 0.22],
+  ["apple-touch-icon.png", 180, 0.09],           // iOS: Add to Home Screen
+];
+const iconFiles = ICONS.map(([name, size, inset]) => {
+  const bytes = icon(size, inset);
+  writeFileSync(join(OUT_DIR, name), bytes);
+  return bytes;
+});
+
+// Verbatim: it is already the file a browser reads, and a JSON minifier would
+// buy a few hundred bytes at the cost of a second source of truth.
+const manifest = read("manifest.webmanifest");
+writeFileSync(join(OUT_DIR, "manifest.webmanifest"), manifest);
+
+/* The worker's cache name carries a hash of everything it precaches, so a deploy
+   invalidates the old cache exactly once and nothing stale — bundle, manifest or
+   icon — outlives the build that produced it. */
+const swVersion = createHash("sha256")
+  .update(harness.html).update(manifest).update(Buffer.concat(iconFiles))
+  .digest("hex").slice(0, 12);
+const swSrc = read("sw.js");
+if (!/const VERSION = "dev";/.test(swSrc)) die("sw.js no longer declares the VERSION line the build stamps");
+const sw = stripJs(swSrc.replace('const VERSION = "dev";', `const VERSION = "${swVersion}";`));
+try {
+  new vm.Script(sw, { filename: "sw.js" });
+} catch (err) {
+  die(`minified sw.js does not parse — ${err.message}`);
+}
+writeFileSync(join(OUT_DIR, "sw.js"), sw);
+
 /* ── lessons ─────────────────────────────────────────────────────────────────
    lessons/ is the source; docs/lessons/ is the artefact. Each document gets its
    scripts inlined the same way the harness does, so a lesson page is one
@@ -359,3 +497,5 @@ console.log(`sources            ${kb(sourceBytes)} across ${harness.refs.length 
 console.log(`inlined            ${harness.refs.join(", ")}`);
 console.log(`docs/lessons/      ${lessonPages.length} pages, scripts inlined (${[...lessonScripts].join(", ")})`);
 console.log(`docs/sitemap.xml   ${entries.length} URLs (${posts.length} published posts)`);
+console.log(`docs/sw.js         ${kb(sw.length)}, cache buttercup-${swVersion}`);
+console.log(`app icons          ${ICONS.map(([name]) => name).join(", ")}`);

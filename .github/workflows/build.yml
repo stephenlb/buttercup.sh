@@ -11,6 +11,10 @@ on:
       - build.mjs
       - css/**
       - js/**
+      # The installable-app sources: the manifest is copied into docs/, sw.js is
+      # stamped and minified into it, and the icons are drawn by build.mjs.
+      - manifest.webmanifest
+      - sw.js
       # The lesson sources: their pages are bundled into docs/lessons/ and the
       # sitemap is read off the archive index's links. The step below writes
       # docs/ only, and no docs/ path is listed here, so the commit-back cannot

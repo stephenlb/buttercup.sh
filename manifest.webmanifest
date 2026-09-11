@@ -1,0 +1,28 @@
+{
+  "id": "/",
+  "name": "buttercup.sh — web agent harness",
+  "short_name": "buttercup",
+  "description": "A free weekly AI Agent training course, plus the 100% static, no-backend terminal harness you practice in — build agents that run in your browser.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#191204",
+  "theme_color": "#191204",
+  "categories": ["developer", "education", "productivity", "utilities"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Lessons",
+      "short_name": "Lessons",
+      "description": "The weekly agent course archive",
+      "url": "lessons/"
+    }
+  ]
+}

@@ -139,6 +139,14 @@ body {
 .tagline { margin: 0; color: var(--ink-dim); font-size: .78rem; letter-spacing: .06em; }
 .tagline a { color: var(--ink); text-decoration: underline; text-underline-offset: 2px; }
 .tagline a:hover { color: var(--ink-hot); }
+/* INSTALL sits in the row as one more link; js/pwa.js unhides it only where the
+   browser has an installer to offer. */
+.tagline button {
+  font: inherit; letter-spacing: inherit; color: var(--ink);
+  background: none; border: 0; padding: 0; cursor: pointer;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.tagline button:hover { color: var(--ink-hot); }
 .lamps { display: inline-flex; gap: .4rem; }
 .lamps i { width: .7rem; height: .7rem; border: 1px solid var(--rule); border-radius: 50%;
   background: var(--paper); display: block; }
