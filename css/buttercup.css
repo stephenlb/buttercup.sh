@@ -275,6 +275,15 @@ details.call.ok > summary .tflag { color: var(--good); }
 details > pre { border-top: 1px dashed var(--rule); padding: .5rem 0; margin: 0;
   color: var(--ink-dim); font-size: .84rem; max-height: 22rem; overflow: auto; }
 details.think > pre { font-style: italic; }
+/* a tool result that is a link rather than words: `playground_url`'s URL runs to
+   tens of thousands of characters, too long to read and too expensive to keep in
+   the context, so this row is where it lives — open, once, for the user. */
+details.call .link { display: flex; flex-wrap: wrap; gap: .5rem; align-items: baseline;
+  border-top: 1px dashed var(--rule); padding: .5rem 0; font-size: .8rem; }
+details.call .link a { color: var(--ink-hot); letter-spacing: .06em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+details.call .link button { padding: 0 .4rem; font-size: .7rem; line-height: 1.5; }
+details.call .link .hint { color: var(--ink-faint); font-size: .72rem; }
 
 /* approval strip */
 .approve { border: 1px solid var(--warn); background: var(--paper);
@@ -4623,6 +4632,11 @@ button.danger:hover { background: var(--bad); color: var(--paper); }
 .tools .tag.write { color: var(--warn); border-color: var(--warn); }
 .tools .tag.exec  { color: var(--bad);  border-color: var(--bad); }
 .tools .tag.net   { color: var(--user); border-color: var(--user); }
+/* Not off by choice: a setting elsewhere has to be on before this tool exists.
+   Loud enough to answer "why is that switch dead?" without opening the row. */
+.tools > li[data-off] .tag.opt-in,
+.tools .tag.opt-in { color: var(--warn); border-color: var(--warn); }
+.tools .desc.why { color: var(--warn); }
 .tools dl { margin: 0; padding: .45rem 0; border-top: 1px dashed var(--rule);
   font-size: .8rem; }
 .tools dt { color: var(--ink-hot); }

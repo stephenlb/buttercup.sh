@@ -25,6 +25,7 @@ window.Commands = (function () {
     setMode: () => {},
     queue: () => [],
     clearQueue: () => 0,
+    setLiveCodes: () => {},
     switchWorkspace: () => "",
     renameWorkspace: (id, name) => Workspaces.rename(id, name),
     removeWorkspace: (id) => Workspaces.remove(id),
@@ -140,6 +141,48 @@ The harness loads this file into your system prompt on every turn from now on, s
           "",
           "Edit the file and the next turn picks it up — no reload, no /clear.",
         ].join("\n");
+      },
+    },
+    {
+      name: "livecodes",
+      usage: "/livecodes [on|off]",
+      help: "show or switch the LiveCodes compiler — the `compile` tool",
+      run(rest) {
+        const state = () => (LiveCodes.enabled() ? "on" : "off");
+        if (!rest) {
+          return [
+            `LiveCodes compiler: ${state()} (SDK ${LiveCodes.version})`,
+            "",
+            "  compile         source the sandbox cannot run — jsx, tsx, vue, svelte, scss,",
+            "                  ts, py, rb, go, php and 80-odd more — compiled into one",
+            "                  self-contained page in the workspace, which `preview`,",
+            "                  `screenshot` and `navigate` then treat like any other.",
+            "                  Compiling happens in your browser, but it fetches the SDK",
+            "                  from a CDN and the playground from livecodes.io. The SDK is",
+            "                  pinned to a version and to a SHA-256 of that version's file:",
+            "                  fetched, checked, and only then run. Switch this off for a",
+            "                  session that must make no third-party request at all — the",
+            "                  tool is then not offered to the model at all.",
+            "",
+            "  playground_url  always on, and not switched by this command: the work as a",
+            "                  livecodes.io link, built here with no network. The project",
+            "                  rides in the URL's #fragment, which a browser never sends to",
+            "                  a server. The link arrives as an OPEN / COPY row in the",
+            "                  transcript and is never put in the model's context — it runs",
+            "                  to tens of thousands of characters.",
+            "",
+            `/livecodes ${state() === "on" ? "off" : "on"} to switch the compiler ${state() === "on" ? "off" : "on"}.`,
+          ].join("\n");
+        }
+        if (rest !== "on" && rest !== "off") throw new Error("usage: /livecodes [on|off]");
+        if (rest === state()) return `the LiveCodes compiler was already ${rest}.`;
+        hooks.setLiveCodes(rest === "on");
+        return rest === "on"
+          ? "compiler on — `compile` goes out with the next request. It is the one tool " +
+            "here that runs code from livecodes.io, against a pinned checksum; " +
+            "`playground_url` is unaffected and reaches nothing."
+          : "compiler off — `compile` withdrawn from the next request. `playground_url` stays; " +
+            "it needs no network.";
       },
     },
     {

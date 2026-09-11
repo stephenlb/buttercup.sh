@@ -264,6 +264,41 @@ window.UI = (function () {
     return row;
   }
 
+  /** A result that is a link rather than words: `playground_url` produces a URL
+      tens of thousands of characters long, so the model is told it exists and
+      the user gets the thing itself, here, to open or copy. Nothing on this row
+      ever reaches the wire. */
+  function linkRow(link) {
+    const row = el("div", "link");
+
+    const open = document.createElement("a");
+    open.href = link.url;
+    open.target = "_blank";
+    open.rel = "noopener noreferrer";
+    open.textContent = `OPEN ${link.label}`;
+    row.appendChild(open);
+
+    const copy = el("button", "copy", "COPY LINK");
+    copy.type = "button";
+    copy.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(link.url);
+        copy.textContent = "COPIED";
+      } catch (_) {
+        // Clipboard writes need a permission some browsers withhold from a
+        // file:// page; right-clicking OPEN still gets the address.
+        copy.textContent = "BLOCKED — copy OPEN's address";
+      }
+      setTimeout(() => { copy.textContent = "COPY LINK"; }, 2500);
+    });
+    row.appendChild(copy);
+
+    let host = "";
+    try { host = new URL(link.url).host + " · "; } catch (_) {}
+    row.appendChild(el("span", "hint", `${host}${link.url.length} chars · kept out of the context`));
+    return row;
+  }
+
   /* The header counts what the model is actually handed, not what exists: with
      tools switched off, "18 of 21 tools" is the honest line. */
   function paintToolCount() {
@@ -367,7 +402,7 @@ window.UI = (function () {
       return { box, flag, pre };
     },
 
-    toolEnd(handle, { ok, output, shots }) {
+    toolEnd(handle, { ok, output, shots, link }) {
       handle.box.classList.add(ok ? "ok" : "err");
       handle.flag.textContent = ok ? "ok" : "failed";
       handle.pre.textContent += "\n\nout: " + (output || "").slice(0, 20000);
@@ -375,6 +410,12 @@ window.UI = (function () {
       // since a tool result that is a picture is unreadable collapsed.
       if (shots && shots.length) {
         handle.box.appendChild(shotRow(shots, "shots"));
+        handle.box.open = true;
+      }
+      // The link *is* the result, and it is the only copy of it — so it opens
+      // with the row rather than hiding behind a collapsed summary.
+      if (link && link.url) {
+        handle.box.appendChild(linkRow(link));
         handle.box.open = true;
       }
       if (!ok) handle.box.open = true;
@@ -517,13 +558,20 @@ window.UI = (function () {
       list.replaceChildren();
       for (const def of Tools.defs) {
         const li = el("li");
+        // A tool a setting has withdrawn: its own switch is irrelevant until the
+        // setting changes, so the row says why rather than looking available.
+        const blocked = Tools.blockedReason(def.name);
         // The switch sits outside the <details> on purpose: a checkbox inside a
         // <summary> toggles the disclosure along with itself.
         const sw = el("label", "tswitch");
         const cb = document.createElement("input");
         cb.type = "checkbox";
-        cb.checked = Tools.enabled(def.name);
-        cb.title = `hand ${def.name} to the model`;
+        // A blocked tool reads as unticked, because that is what the model sees:
+        // not offered this turn. Its own switch is untouched underneath and comes
+        // back the way the user left it once the setting that gates it is on.
+        cb.checked = Tools.enabled(def.name) && !blocked;
+        cb.disabled = !!blocked;
+        cb.title = blocked || `hand ${def.name} to the model`;
         cb.addEventListener("change", () => {
           Tools.setEnabled(def.name, cb.checked);
           // Repaint in place rather than rebuild: an open definition stays open.
@@ -532,13 +580,17 @@ window.UI = (function () {
         });
         sw.appendChild(cb);
         li.appendChild(sw);
-        if (!cb.checked) li.dataset.off = "1";
+        if (!cb.checked || blocked) li.dataset.off = "1";
 
         const box = el("details");
         const head = el("summary");
         head.appendChild(el("span", "tname", def.name));
         head.appendChild(el("span", "tag " + def.kind, def.kind));
+        // Said on the closed row, not only inside it: a greyed switch with no
+        // label is a tool the user reads as broken rather than as switched off.
+        if (blocked) head.appendChild(el("span", "tag opt-in", "opt-in"));
         box.appendChild(head);
+        if (blocked) box.appendChild(el("p", "desc why", blocked));
         box.appendChild(el("p", "desc", def.description));
 
         const props = def.input_schema.properties || {};

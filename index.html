@@ -288,7 +288,28 @@
               <span>auto&#8209;compact context</span></label>
             <label class="row"><span>compact at</span>
               <input name="compactAt" id="compactAt" type="number" min="8000" step="1000" value="120000"></label>
+            <label class="check"><input type="checkbox" name="livecodes" id="livecodes" checked>
+              <span>use LiveCodes compiler</span></label>
           </fieldset>
+          <p class="note">This is <code>compile</code>: JSX, Vue, Svelte, Sass,
+             TypeScript, Python and 80-odd more turned into one self-contained
+             page the harness can preview and photograph. It compiles in the
+             browser, but it fetches the SDK from a CDN and the playground from
+             livecodes.io. The SDK is pinned to a version <em>and</em> to a
+             SHA-256 of that version's file — it is fetched, checked and only then
+             run, so nothing else can execute on this origin in its name. Untick
+             this for a session that must make no third-party request at all, and
+             the tool is not offered to the model at all.
+             <code>/livecodes</code> says the same from the prompt, and switches
+             it either way.</p>
+          <p class="note">The other LiveCodes tool, <code>playground_url</code>,
+             needs none of that and is always on: it exports the work as a
+             livecodes.io link built right here, offline, with the project
+             compressed into the URL's <code>#fragment</code> — which a browser
+             never sends to a server. The link comes to you as an OPEN / COPY row
+             in the transcript rather than into the conversation, where tens of
+             thousands of compressed characters would be re-sent on every turn
+             after it.</p>
           <div class="panel-head">
             <button type="submit" class="mini">SAVE</button>
             <button type="button" id="forget" class="mini danger">FORGET KEY</button>
@@ -790,6 +811,7 @@
 <script src="js/capture.js"></script>
 <script src="js/drive.js"></script>
 <script src="js/sandbox.js"></script>
+<script src="js/livecodes.js"></script>
 <script src="js/llm.js"></script>
 <!-- agent.js owns the mode list, and tools.js declares `set_mode` against it
      at load time, so the modes have to exist before the tools do. -->

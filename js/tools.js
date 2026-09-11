@@ -11,8 +11,14 @@
      description   written for the model: when to reach for it, and its limits
      input_schema  JSON Schema (object) — also rendered in the TOOLS panel
      summary(in)   one-line label for the transcript
-     run(in)       -> string shown to the model, or `{ output, shots }` when the
-                      result is a picture as well as words. Throw to fail.
+     run(in)       -> string shown to the model, or `{ output, shots, link }`:
+                      `shots` are pictures the model sees too, `link` is
+                      `{ url, label }` handed to the *user only* — a way to
+                      deliver something too long to be worth a place in the
+                      context. Throw to fail.
+     blocked()     optional: "" when the tool may be used, else why it may not.
+                      A blocked tool is withheld from the model entirely, so it
+                      cannot spend a step discovering the switch is off.
    ═══════════════════════════════════════════════════════════════════════════ */
 window.Tools = (function () {
 
@@ -528,6 +534,112 @@ window.Tools = (function () {
                `then run_agent ${dir}/agent.js or preview ${dir}/index.html.`;
       },
     },
+    /* ── LiveCodes: compile, and link ─────────────────────────────────────────
+       Two tools from one file, gated differently on purpose. `compile` loads
+       third-party code onto this origin, so it waits for the tick in the KEYS
+       panel; `playground_url` builds its link in js/livecodes.js with no network
+       at all, so it is an ordinary tool with nothing to opt into. */
+    {
+      name: "compile",
+      kind: "exec",
+      blocked: () => LiveCodes.compileBlocked(),
+      description:
+        "Compile workspace source the sandbox cannot run — JSX, TSX, Vue, Svelte, Sass/SCSS, " +
+        "TypeScript, Python, Ruby, Go, PHP and 80-odd more — into one self-contained HTML " +
+        "page written back into the workspace, then `preview` that page. Compilation happens " +
+        "in a headless LiveCodes playground: client-side, but it loads livecodes.io and the " +
+        "language's compiler from a CDN, so it needs network and it is slow the first time. " +
+        "A project is at most three files, one per editor: markup (html, md, mdx, pug…), " +
+        "style (css, scss, sass, less…) and script (jsx, tsx, vue, svelte, ts, py, rb, go…); " +
+        "the language is read off each extension. There is no bundler here — a script that " +
+        "imports a sibling workspace file will not resolve, so keep the entry self-contained " +
+        "and import packages from a CDN. Plain .js/.html needs none of this: run it directly.",
+      input_schema: schema({
+        script: str("Workspace path for the script editor, e.g. App.jsx or main.py"),
+        markup: str("Workspace path for the markup editor, e.g. index.html or notes.md"),
+        style: str("Workspace path for the style editor, e.g. app.scss"),
+        out: str("Where to write the compiled page (default: the source path with .built.html)."),
+        title: str("Page title (default: the workspace name)."),
+        script_language: str("Override the language guessed from the script file's extension."),
+        markup_language: str("Override the language guessed from the markup file's extension."),
+        style_language: str("Override the language guessed from the style file's extension."),
+        timeout_ms: int("Give up after this long (default 30000). A WASM language needs more."),
+      }),
+      summary: (i) => [i.script, i.markup, i.style].filter(Boolean).join(" + "),
+      async run({ script, markup, style, out, title, timeout_ms, ...langs }) {
+        const spec = {
+          script, markup, style, title,
+          languages: {
+            script: langs.script_language,
+            markup: langs.markup_language,
+            style: langs.style_language,
+          },
+        };
+        // Named off whichever source is the substance of the project, and left
+        // in that file's directory: `preview` resolves a compiled page's
+        // relative <img>/<link> refs against where the page sits, so moving the
+        // output to a build/ directory would break the project's own assets.
+        const source = VFS.norm(script || markup || style || "project");
+        const target = VFS.norm(out || source.replace(/\.[^./]+$/, "") + ".built.html");
+        for (const [slot, ref] of Object.entries({ script, markup, style })) {
+          if (ref && VFS.norm(ref) === target) {
+            throw new Error(`out (${target}) is the ${slot} source — pick another path`);
+          }
+        }
+
+        const { code, config } = await LiveCodes.compile(spec, { timeout: timeout_ms || 30000 });
+        const { bytes } = VFS.write(target, code.result);
+        const editors = ["markup", "style", "script"]
+          .filter((slot) => config[slot])
+          .map((slot) => `${slot} ${VFS.norm(spec[slot])} (${code[slot].language})`);
+        return `compiled ${editors.join(", ")}\n` +
+               `wrote ${target} — ${bytes} bytes, self-contained\n\n` +
+               `Next: preview ${target}, then screenshot it. The sources stay as they are; ` +
+               `re-run compile after editing them.`;
+      },
+    },
+    {
+      name: "playground_url",
+      // `read`, not `net`: this reads workspace files and returns a string. The
+      // link points at livecodes.io, but making it contacts nothing.
+      kind: "read",
+      description:
+        "Turn workspace files into a livecodes.io link that opens them in an editable, " +
+        "runnable playground — an export, next to `export_zip`. Same three slots as `compile`, " +
+        "but unlike `compile` this needs no network: the link is built here. " +
+        "The project is compressed into the URL's fragment, which a browser never sends to a " +
+        "server, so the code travels in the link itself rather than being uploaded. The harness " +
+        "hands the finished link straight to the user as a clickable OPEN / COPY row in the " +
+        "transcript; you get a receipt, not the URL, because it is thousands of characters of " +
+        "compressed noise that would cost context on every later turn. So do not offer to print " +
+        "the link, and do not call this twice hoping to see it.",
+      input_schema: schema({
+        script: str("Workspace path for the script editor."),
+        markup: str("Workspace path for the markup editor."),
+        style: str("Workspace path for the style editor."),
+        title: str("Project title shown in the playground (default: the workspace name)."),
+        app_url: str("A self-hosted LiveCodes instance instead of https://livecodes.io"),
+      }),
+      summary: (i) => [i.script, i.markup, i.style].filter(Boolean).join(" + "),
+      run({ script, markup, style, title, app_url }) {
+        const { url, config } = LiveCodes.url({ script, markup, style, title }, { appUrl: app_url });
+        // The URL is the deliverable and it is enormous — so it goes to the
+        // transcript as a link the user can open or copy, and the model gets
+        // told it landed. Putting it in the result would re-send those
+        // thousands of characters on every subsequent step of the session.
+        return {
+          output:
+            `playground link ready — ${url.length} characters, waiting in the transcript ` +
+            `as an OPEN / COPY row under this call.` +
+            (url.length > 8000 ? " Long enough that some chat clients would cut it if pasted." : "") +
+            `\n\nThe code rides in the #fragment, so opening it loads livecodes.io and the app ` +
+            `reads the project out of the URL in that browser — nothing is uploaded. The user ` +
+            `has the link; tell them it is here and what it opens. The URL is kept out of this ` +
+            `conversation on purpose: say so if they ask you to paste it.`,
+          link: { url, label: config.title || "playground" },
+        };
+      },
+    },
     {
       name: "export_zip",
       kind: "read",
@@ -577,6 +689,12 @@ window.Tools = (function () {
 
   const byName = Object.fromEntries(DEFS.map((d) => [d.name, d]));
 
+  /* Why a tool is unavailable right now, or "" when it is fine. Separate from
+     the on/off switch: `off` is the user's choice about a working tool, while
+     this is a tool that cannot work yet — a setting elsewhere gates it. Both end
+     up withholding the declaration, so the model never calls a dead tool. */
+  const why = (d) => (d.blocked ? d.blocked() : "");
+
   // Lean mode: small-context engines see only the core set, and anything
   // outside it is refused at run() time too.
   let leanMode = false;
@@ -610,7 +728,13 @@ window.Tools = (function () {
 
     /** The tools the model actually gets, in declaration order. */
     enabledDefs() {
-      return DEFS.filter((d) => !off.has(d.name));
+      return DEFS.filter((d) => !off.has(d.name) && !why(d));
+    },
+
+    /** Why this tool is unavailable whatever its switch says, or "". */
+    blockedReason(name) {
+      const def = byName[name];
+      return def ? why(def) : "";
     },
 
     /** Whether this session's provider gets the lean toolset — set by the
@@ -623,7 +747,7 @@ window.Tools = (function () {
     /** Tool declarations; `lean` further drops the non-core tools and
         compresses the rest to first-sentence descriptions with bare types. */
     schemas(lean = false) {
-      const pool = DEFS.filter((d) => !off.has(d.name) && (!lean || CORE.has(d.name)));
+      const pool = DEFS.filter((d) => !off.has(d.name) && !why(d) && (!lean || CORE.has(d.name)));
       if (!lean) {
         return pool.map((d) => ({ name: d.name, description: d.description, input_schema: d.input_schema }));
       }
@@ -672,27 +796,35 @@ window.Tools = (function () {
     },
 
     /**
-     * Run one call. Always resolves `{ output, shots }`: a tool that returns a
-     * bare string has no pictures, and `screenshot` is the one that does — so
-     * the caller has a single result shape rather than two.
+     * Run one call. Always resolves `{ output, shots, link }`: a tool that
+     * returns a bare string has no pictures and no link, and `screenshot` and
+     * `playground_url` are the ones that do — so the caller has a single
+     * result shape rather than three.
      */
     async run(name, input) {
       const def = byName[name];
-      const available = () => DEFS.filter((d) => !off.has(d.name) && (!leanMode || CORE.has(d.name))).map((d) => d.name).join(", ");
+      const available = () => DEFS.filter((d) => !off.has(d.name) && !why(d) && (!leanMode || CORE.has(d.name))).map((d) => d.name).join(", ");
       if (!def) throw new Error(`unknown tool '${name}'. Available: ${available()}`);
       // Reachable from an earlier turn: the model saw this tool before the
       // user switched it off, or it was never offered in lean mode.
       if (off.has(name)) {
         throw new Error(`tool '${name}' is switched off in the TOOLS panel. Available: ${available()}`);
       }
+      // Same, for a tool a setting has since withdrawn.
+      const blocked = why(def);
+      if (blocked) throw new Error(`tool '${name}' is unavailable — ${blocked}`);
       if (leanMode && !CORE.has(name)) {
         throw new Error(`tool '${name}' is not offered in this mode. Available: ${available()}`);
       }
       const out = await def.run(input || {});
       if (out && typeof out === "object" && !Array.isArray(out)) {
-        return { output: String(out.output ?? "(no output)"), shots: out.shots || [] };
+        return {
+          output: String(out.output ?? "(no output)"),
+          shots: out.shots || [],
+          link: out.link || null,
+        };
       }
-      return { output: String(out ?? "(no output)"), shots: [] };
+      return { output: String(out ?? "(no output)"), shots: [], link: null };
     },
   };
 })();

@@ -730,10 +730,13 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
           try {
             // A tool may hand back pictures as well as words — `screenshot`
             // does — and they ride on the result part into the next request.
-            const { output, shots } = await Tools.run(call.name, call.input);
+            // `link` is for the user's eyes only: it goes to the transcript and
+            // never onto the wire, which is the point of it — see Tools' contract.
+            const { output, shots, link } = await Tools.run(call.name, call.input);
             log(`← ${call.name} ${output.length} chars ≈${Math.round(output.length / 4)} tok` +
-                `${shots.length ? ` +${shots.length} img` : ""} in ${(performance.now() - t0).toFixed(0)}ms`);
-            hooks.onToolEnd(handle, { ok: true, output, shots });
+                `${shots.length ? ` +${shots.length} img` : ""}${link ? ` +link ${link.url.length} chars (not sent)` : ""}` +
+                ` in ${(performance.now() - t0).toFixed(0)}ms`);
+            hooks.onToolEnd(handle, { ok: true, output, shots, link });
             results.push({ type: "tool_result", id: call.id, name: call.name, output, ...(shots.length ? { shots } : {}) });
           } catch (err) {
             const output = errText(err);

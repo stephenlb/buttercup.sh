@@ -656,6 +656,14 @@ You are running in a browser tab. There is no shell, no node, no server.
   reports what it logged. Neither can touch this page.
 - **Showing work** — \`preview\` mounts a workspace HTML file in the PREVIEW pane
   with its relative \`<script src>\`/\`<link>\`/\`import\` references wired up.
+- **Nothing here transpiles.** The sandbox runs plain ES modules, so a \`.jsx\`,
+  \`.tsx\`, \`.vue\`, \`.svelte\`, \`.scss\` or \`.py\` file is text it cannot execute.
+  Write for the platform when you can. When the user wants a source language,
+  \`compile\` (LiveCodes; if it is not in your tool list the user has switched it
+  off in the KEYS panel) compiles one markup + style + script trio into a
+  self-contained page, which \`preview\` and \`screenshot\` then treat like any
+  other. It is not a bundler: the entry cannot import sibling workspace files,
+  so keep it self-contained and take packages from a CDN.
 - **Network** — CORS applies. \`npm_info\`, \`npm_file\` and CDN imports work;
   arbitrary site fetches usually don't. \`http_get\` will tell you which it was.
 - **Circular imports** are the one module pattern \`run_agent\` cannot resolve.

@@ -40,10 +40,17 @@ deploy and nothing to proxy through, because there is nothing in the middle: the
 tab talks to whichever model endpoint you point it at, directly.
 
 **Point it at a local model and nothing leaves your machine.** With Ollama or
-vLLM the harness makes no network request to any third party — not for telemetry,
-not for analytics, not for updates, not for the code it writes. Your keys, your
-conversation and your files live in this browser's `localStorage` and are never
-transmitted anywhere except to the vendor you explicitly selected.
+vLLM the harness makes no network request to any third party of its own accord —
+not for telemetry, not for analytics, not for updates, not for the code it writes.
+Your keys, your conversation and your files live in this browser's `localStorage`
+and are never transmitted anywhere except to the vendor you explicitly selected.
+
+Some *tools* fetch when the agent uses them: `http_get`, `npm_info`, `npm_file`
+and `compile` reach a network by definition, and `framework_docs` and `scaffold`
+write code that imports from a CDN. Nothing there is background traffic — every
+one is a tool call, named in the transcript, and switchable off in the TOOLS
+panel. Unticking **use LiveCodes compiler** and switching those off makes the
+promise absolute.
 
 Code the agent writes runs in a `sandbox="allow-scripts"` iframe on an opaque
 origin, so it cannot reach this page, this DOM, or your keys.
@@ -124,6 +131,8 @@ Running from `file://` works, but a local origin is better — browsers give
 - **auto-compact** and **compact at** — summarize the session when the last
   reply's token count crosses the threshold (120 000 by default).
 - **show reasoning** — stream thinking blocks into the transcript.
+- **use LiveCodes compiler** — on by default; the `compile` tool. Untick it to
+  withdraw the one tool that loads third-party code onto this origin.
 - **AUTO / DAY / NIGHT** — the tube. `?theme=light` pins one for a load.
 
 > Keys live in this browser's `localStorage`. Anything that can run script on
@@ -149,6 +158,7 @@ spends one completion.
 | `/init` | Asks the agent to read the workspace and write `AGENTS.md`. |
 | `/rules` | Shows which rules files are in the system prompt right now. |
 | `/queue` | Shows what is waiting behind the running request; `/queue clear` drops it. |
+| `/livecodes` | Shows what the LiveCodes tools do; `on` / `off` switches the compiler. |
 | `/undo` | Rewinds the conversation *and* the files to before the last request. |
 | `/redo` | Puts back what `/undo` rewound. |
 | `/compact` | Summarizes the session into a handover note and continues from it. |
@@ -169,10 +179,12 @@ so an edit lands on the next turn with no reload.
 
 ## What's in the box
 
-21 tools handed to the model on every turn: `read`, `list`, `glob`, `grep`,
-`todo`, `set_mode`, `export_zip`, `write`, `edit`, `delete`, `move`, `scaffold`,
-`run_js`, `run_agent`, `preview`, `screenshot`, `navigate`, `http_get`,
-`npm_info`, `npm_file`, `framework_docs`.
+23 tools handed to the model on every turn: `read`, `list`, `glob`, `grep`,
+`todo`, `set_mode`, `export_zip`, `playground_url`, `write`, `edit`, `delete`,
+`move`, `scaffold`, `compile`, `run_js`, `run_agent`, `preview`, `screenshot`,
+`navigate`, `http_get`, `npm_info`, `npm_file`, `framework_docs`. One fewer if
+you untick **use LiveCodes compiler** in the KEYS panel: `compile` is the only
+tool a setting can withdraw.
 
 `set_mode` is `/mode` handed to the model. Ask general mode for an agent — an
 agent loop, tools for a model, MCP, anything on blocks.ai — and it switches
@@ -186,6 +198,38 @@ request carries.
 page, photographs it, clicks and types in it, and looks again. The preview is an
 opaque-origin sandbox, so neither one reaches into it — the frame photographs and
 operates itself and posts the result back out (`js/capture.js`, `js/drive.js`).
+
+Nothing here transpiles: the sandbox runs plain ES modules, so `.jsx`, `.vue`,
+`.svelte`, `.scss` and `.py` are text it cannot execute. Two tools from
+[LiveCodes](https://livecodes.io/) (MIT, client-side) cover that gap, and they
+are gated differently because they are not the same kind of thing.
+
+`compile` runs a *headless* playground and takes back the generated result page,
+which lands in the workspace as one self-contained HTML file — so `preview`,
+`screenshot` and `navigate` treat a Svelte component exactly like hand-written
+HTML. An embedded LiveCodes preview would not work here: that iframe is
+cross-origin, and the agent's eyes and hands have to be injected into the page
+they operate. This is the one that reaches the network — the SDK from a CDN, the
+playground from livecodes.io — and the SDK is the sharp end of that, because it
+runs on the origin holding your keys. So it is pinned twice: to a version, and to
+a SHA-256 of that version's published file. The harness fetches it, hashes it,
+refuses to execute anything that does not match, and imports the verified bytes
+themselves rather than a second request that could answer differently. Untick
+**use LiveCodes compiler** for a session that must make no third-party request at
+all, and the tool is withheld from the model rather than failing after it calls
+it. The playground beyond it is not covered by that checksum and cannot be: it
+runs in an iframe on its own origin, where the browser — not a hash — is what
+keeps it away from this page.
+
+`playground_url` is the export side — a livecodes.io link with the project
+compressed into its `#fragment`, which a browser never sends to a server. It is
+an ordinary tool, on by default, because making the link contacts nothing: the
+SDK's `getPlaygroundUrl` is a compressor and a `new URL`, so `js/livecodes.js`
+writes both out and imports nothing. The link then goes to *you*, as an OPEN /
+COPY row under the tool call, and never into the conversation: a compressed
+project is tens of thousands of characters, and a tool result is re-sent on every
+turn that follows it. The model gets a receipt saying the link is waiting.
+See `js/livecodes.js`.
 
 Around them: a virtual filesystem in `localStorage` — one per workspace, with
 the conversation about it — a 25-deep undo stack that

@@ -26,6 +26,10 @@
     maxSteps:     { def: 40, read: (v) => Number(v) || FIELDS.maxSteps.def },
     autoCompact:  { def: true, flag: true },
     compactAt:    { def: 120000, read: (v) => Number(v) || FIELDS.compactAt.def },
+    /* On, because the SDK it fetches is pinned to a checksum and refuses to run
+       if it does not match (js/livecodes.js). Off is for a session that must make
+       no third-party request at all; `playground_url` is local either way. */
+    livecodes:    { def: true, flag: true },
   };
 
   const DEFAULTS = Object.fromEntries(Object.entries(FIELDS).map(([id, f]) => [id, f.def]));
@@ -54,6 +58,11 @@
   function saveSettings() {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
     Agent.setSettings(settings);
+    // The checkbox is the only switch: while it is off `compile` is withheld from
+    // the model, so the TOOLS panel has to be repainted with it.
+    const wasBlocked = !!Tools.blockedReason("compile");
+    LiveCodes.setEnabled(settings.livecodes);
+    if (wasBlocked !== !!Tools.blockedReason("compile")) UI.renderTools();
     paintStats();
   }
 
@@ -898,6 +907,14 @@
     setMode,
     queue: () => queue.slice(),
     clearQueue: () => dropQueue(),
+    // One switch, three ways in: the checkbox, `/livecodes`, and a reload of the
+    // saved setting — all of them land here, so the panel cannot disagree with
+    // what the next request carries.
+    setLiveCodes: (on) => {
+      settings.livecodes = on;
+      $("livecodes").checked = on;
+      saveSettings();
+    },
     switchWorkspace: (id) => switchTo(id),
     renameWorkspace: (id, name) => {
       const ws = Workspaces.rename(id, name);
@@ -932,6 +949,7 @@
   /* ── boot ───────────────────────────────────────────────────────────────── */
 
   Agent.setSettings(settings);
+  LiveCodes.setEnabled(settings.livecodes);
   paintSettings();
   UI.renderTools();
   paintWorkspaces();
