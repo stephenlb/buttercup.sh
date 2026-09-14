@@ -37,7 +37,7 @@
          weather, read a file, or send an email. It can only write text.
          <strong>Tool calling is the agreement that turns some of that text
          into an instruction you agree to carry out.</strong> That agreement is
-         the whole of agents, everything later in this course refines it. No
+         the whole of agents. Everything later in this course refines it. No
          prior agent code assumed, and the exercise runs in the browser tab
          next to this one.</p>
       <!-- the form itself rather than a link down to it: one field, one
@@ -58,12 +58,27 @@
       </form>
     </header>
 
+    <figure class="diag tube">
+      <div class="screen">
+        <iframe src="https://www.youtube-nocookie.com/embed/5HgVRv37E_U"
+                title="Lesson 2, tool calling: how a chat model gets hands"
+                loading="lazy" allowfullscreen
+                referrerpolicy="strict-origin-when-cross-origin"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"></iframe>
+      </div>
+      <figcaption>The same lesson, walked through end to end: the loop written by
+        hand, one trip round the ring, and what a mismatched
+        <code>tool_use_id</code> looks like when it fails. Prefer to read?
+        Everything in the video is below, and the code blocks are copyable.
+        <a href="https://youtu.be/5HgVRv37E_U">Watch on YouTube</a>.</figcaption>
+    </figure>
+
     <h2>The one idea</h2>
 
-    <p>Beginners arrive expecting something clever. It is flatter than that:
+    <p>Beginners arrive expecting something clever. It's flatter than that:
        <em>the model never runs anything</em>. You hand it a list of functions
-       it is allowed to ask for. When it wants one, it stops writing prose and
-       emits a small structured block, a name and some JSON arguments. Your
+       it's allowed to ask for. When it wants one, it stops writing prose and
+       emits a small structured block: a name and some JSON arguments. Your
        program reads that block, calls your own ordinary function, and pastes
        the return value back into the conversation. Then you ask the model
        again.</p>
@@ -89,13 +104,13 @@
           fetch, disk, database</div>
       </div>
       <figcaption>The agent loop. Station 3 is the only place anything
-        actually happens, and it is <b>your</b> code, not the model's. Keep
+        actually happens, and it's <b>your</b> code, not the model's. Keep
         going round until the model answers with plain text instead of a tool
-        call, that condition, and nothing more, is what &ldquo;the agent
+        call. That condition, and nothing more, is what &ldquo;the agent
         finished&rdquo; means.</figcaption>
     </figure>
 
-    <p>Notice what is <em>not</em> in that picture. No memory. No planning
+    <p>Notice what's <em>not</em> in that picture. No memory. No planning
        module. No framework. The conversation array is the state, and the loop
        is the program. A model with no tools is a writer. A model with tools and
        this loop is an agent.</p>
@@ -134,10 +149,10 @@
       </div>
       <figcaption>The right-hand side is <b>generated text</b>, the same
         machinery that writes sentences, aimed at a schema. The two lit lines are
-        all it is actually held to: the name it must use, and the fact that it
-        cannot leave it out. Everything else on the left, the description above
-        all, is a <b>prompt</b> rather than documentation, and you will spend more
-        time editing that one sentence than editing the loop.</figcaption>
+        all it's actually held to: the name it must use, and the fact that it
+        can't leave it out. Everything else on the left, the description above
+        all, is a <b>prompt</b> rather than documentation. You'll spend more time
+        editing that one sentence than editing the loop.</figcaption>
     </figure>
 
     <p>Two consequences. First, arguments arrive as JSON, so <strong>parse
@@ -145,6 +160,10 @@
        a prompt, so a tool the model keeps misusing is usually a tool you
        described badly. Writing descriptions the model reads the way you meant
        is the follow-on to this lesson.</p>
+
+    <p>You don't need a framework for any of this. A framework will run the
+       loop for you later in the lesson, and it's the same four stations
+       underneath.</p>
 
     <h2>The code, JavaScript</h2>
 
@@ -213,9 +232,9 @@ while (true) {
 }</code></pre>
 
     <p>The odd-looking part: tool results go back with
-       <code>role: "user"</code>. They are not from a user. It still reads
-       strangely on the hundredth time. It is simply where the protocol puts
-       them, the model's turn, then the turn that answers it.</p>
+       <code>role: "user"</code>. They aren't from a user. It still reads
+       strangely on the hundredth time. It's simply where the protocol puts
+       them: the model's turn, then the turn that answers it.</p>
 
     <h2>The code, Python</h2>
 
@@ -299,13 +318,13 @@ while True:
         <code>tool_use_id</code> must be the <b>exact id</b> from turn 2, and
         every <code>tool_use</code> needs a matching result before you send the
         array again. Mismatch the ids or skip one and the request is rejected.
-        Of the errors you hit this week, that is the kind to hope for, it
-        fails loudly.</figcaption>
+        Of the errors you hit this week, that's the kind to hope for. It fails
+        loudly.</figcaption>
     </figure>
 
     <p>You send that whole array again on every turn. The model has no memory
-       between requests, the array <em>is</em> the memory. A ten-step agent's
-       last request carries all ten steps. That is why lesson 5 is about
+       between requests. The array <em>is</em> the memory. A ten-step agent's
+       last request carries all ten steps. That's why lesson 5 is about
        context, and why the bill grows the way it does.</p>
 
     <figure class="diag">
@@ -338,8 +357,8 @@ while True:
       </div>
       <figcaption>One agent run, five requests. The hatched part of each bar is
         the conversation you already sent; the solid part is the only new thing
-        in it. Nothing here is a leak or a mistake, <b>this is what stateless
-        means</b>. It is also why tool output that comes back fat (a whole file,
+        in it. Nothing here is a leak or a mistake. <b>This is what stateless
+        means</b>. It's also why tool output that comes back fat (a whole file,
         a whole page of JSON) costs you on every remaining turn, not just the
         one that asked for it.</figcaption>
     </figure>
@@ -358,6 +377,11 @@ while True:
        $0.32, from one tool result. Run that agent a thousand times a day and
        the single <code>read_file</code> you never trimmed costs
        <strong>$320 a day</strong>. Ouch.</p>
+
+    <p>We hit this in the harness too. Every step it takes resends the whole
+       array, so the setting that earns its place in the panel is <em>max
+       steps</em>, <strong>40</strong> by default. It's the ceiling on how many
+       more times one fat tool result gets billed.</p>
 
     <figure class="diag">
       <div class="spill">
@@ -379,7 +403,7 @@ while True:
         that same 8k again, because you send the whole array every time and
         nothing ever takes the file back out of it. The bar underneath steps up
         once per request, and it steps rather than slides for a reason: the bill
-        grows in <b>whole tool results</b>, so the cheapest edit you will ever
+        grows in <b>whole tool results</b>, so the cheapest edit you'll ever
         make is the one that decides how much comes back at station 3. Return
         the twelve lines you needed and seven of these eight blocks go
         away.</figcaption>
@@ -390,21 +414,21 @@ while True:
 
     <p>Two fixes, and you can use both. Return less: line ranges instead of
        whole files, counts instead of dumps, the twenty matching rows instead of
-       the table. And cache the prefix, <code>cache_control</code> makes a
+       the table. And cache the prefix. <code>cache_control</code> makes a
        repeated prefix bill at roughly <strong>0.1&times;</strong> the input
-       rate, against a <strong>1.25&times;</strong> premium the one time it is
-       written. Two requests over the same prefix and you are already ahead.
-       That is lesson 5's whole subject; the number is here so you know why it
+       rate, against a <strong>1.25&times;</strong> premium the one time it's
+       written. Two requests over the same prefix and you're already ahead.
+       That's lesson 5's whole subject. The number is here so you know why it
        gets a lesson.</p>
 
     <h2>Four rules that will save you a weekend</h2>
 
     <ul>
       <li><strong>Answer every call, including the failures.</strong> If your
-          function throws, do not drop the result, send it back as a
+          function throws, don't drop the result. Send it back as a
           <code>tool_result</code> with <code>is_error: true</code> and the
           message in the content. The model reads errors and retries
-          sensibly. A missing result is a protocol violation; a returned error
+          sensibly. A missing result is a protocol violation. A returned error
           is just information.</li>
       <li><strong>Return all results in one message.</strong> The model may ask
           for three tools at once. Run them, then send all three
@@ -418,10 +442,10 @@ while True:
           them costs you quality on the next turn with no error to point
           at.</li>
       <li><strong>Cap the loop.</strong> <code>while (true)</code> is fine in a
-          lesson. In anything real, count the turns and stop at twenty, a
-          model that has misread a tool description will happily call it
-          forty times, and you would rather find that out from a counter than
-          from an invoice.</li>
+          lesson. In anything real, count the turns and stop at twenty. A
+          model that has misread a tool description will happily call it forty
+          times, and you'd rather find that out from a counter than from an
+          invoice.</li>
     </ul>
 
     <figure class="diag">
@@ -441,8 +465,8 @@ while True:
       </div>
       <figcaption>A failing tool is not an error in the loop; a
         <b>missing</b> result is. Catch around your own function, put whatever it
-        threw into the content, and the model does the sensible thing, fixes the
-        path, tries the other tool, or tells the user it cannot. Let the exception
+        threw into the content, and the model does the sensible thing: fixes the
+        path, tries the other tool, or tells the user it can't. Let the exception
         escape instead and you break the protocol one turn later, which is where
         the confusing stack trace comes from.</figcaption>
     </figure>
@@ -466,7 +490,7 @@ while True:
         </div>
       </div>
       <figcaption>Three calls out, <b>one</b> message back. The shape to avoid
-        is three user messages carrying one result each: it is legal, it works,
+        is three user messages carrying one result each: it's legal, it works,
         and it quietly trains the model out of asking in parallel, so your
         agent takes three round trips where it used to take one, with nothing
         in the logs to blame.</figcaption>
@@ -492,9 +516,9 @@ while True:
           <span class="r">turn 20, you stop</span>
         </div>
       </div>
-      <figcaption>The counter is four lines of code and it is the difference
+      <figcaption>The counter is four lines of code and it's the difference
         between a bug and an invoice. A model that has misread one tool
-        description does not crash, it calls the tool again, reasonably, forever,
+        description doesn't crash. It calls the tool again, reasonably, forever,
         and every one of those turns carries the whole array with it. The hatched
         ticks past the wall are the calls you never paid for. Pick a number,
         <code>break</code> at it, and log the fact that you did: hitting the cap
@@ -514,9 +538,16 @@ while True:
        you want <em>between</em> turns, an approval gate before a write, a log
        line per call, a retry with a rewritten argument, a turn counter you own,
        goes through its per-turn hooks instead of a line you drop into your
-       own <code>while</code>. That is a fair trade in a real project and a bad
-       trade while you are learning. Write the loop yourself exactly once, which
+       own <code>while</code>. That's a fair trade in a real project. It's a bad
+       trade while you're learning. Write the loop yourself exactly once, which
        is now, so the runner never surprises you.</p>
+
+    <p>Straight about what we run: the harness in the next tab doesn't use a
+       tool runner. It has the loop from this lesson written out by hand in
+       <code>js/agent.js</code>, because it runs in a browser tab against
+       <code>fetch</code> with no dependencies at all. Read it after the
+       exercise. It's the same four stations, plus a step counter and a settings
+       panel.</p>
 
     <p>The same four stations show up everywhere, under different names:</p>
 
@@ -541,7 +572,7 @@ while True:
 
     <h2>The exercise</h2>
 
-    <p>Do this in <a href="/">the harness</a>, it is the same loop, already
+    <p>Do this in <a href="/">the harness</a>. It's the same loop, already
        running, with twenty-one tools wired to a virtual filesystem. Open
        <em>KEYS</em>, paste a key or point it at Ollama, then:</p>
 
@@ -570,7 +601,7 @@ while True:
             says…</li>
       </ol>
       <figcaption>The shape to check your run against. Six entries, two trips,
-        and note that the model does <b>not</b> ask permission between them, it
+        and note that the model does <b>not</b> ask permission between them. It
         writes, sees that the write worked, and only then reads. If your
         transcript shows the read before the result of the write has landed, you
         have found the bug this whole lesson is about: the loop must wait at
@@ -581,14 +612,24 @@ while True:
 
     <ul>
       <li>Turn a tool off in <em>TOOLS</em> and ask for it anyway. The model
-          does not error, it improvises, and watching it improvise badly
-          teaches you more about tool descriptions than any amount of
-          reading.</li>
+          doesn't error. It improvises, and watching it improvise badly teaches
+          you more about tool descriptions than any amount of reading.</li>
       <li>Ask for something no tool covers. See whether it says so or invents a
           plausible answer.</li>
       <li>In your own script, misspell <code>tool_use_id</code>. Read the error
-          text. You will meet it again.</li>
+          text. You'll meet it again.</li>
     </ul>
+
+    <h2>Safe to break</h2>
+
+    <p>Nothing in that list can hurt anything. The harness writes to a virtual
+       filesystem in <code>localStorage</code> in your own tab, so
+       <code>write_file</code> never touches your disk. <code>/wipe</code>
+       deletes every file and the conversation with it, and
+       <code>/undo</code> puts them back until you close the tab. Your key
+       stays in the browser. The only real cost is tokens, and a run like the
+       one above is a fraction of a cent. Break it on purpose while it's
+       cheap.</p>
 
     <h2>Next week</h2>
 
@@ -598,7 +639,7 @@ while True:
        apart properly and asks the question this one dodged. Here we stopped
        when the model stopped calling tools. What if it never stops?</p>
 
-    <p>Twenty lines. Four stations. That is the whole distance between a model
+    <p>Twenty lines. Four stations. That's the whole distance between a model
        that writes about the weather and a program that goes and checks. Every
        tool you add from here is a thing your software can now do on someone's
        behalf, and choosing which ones deserve to be in that array is the
