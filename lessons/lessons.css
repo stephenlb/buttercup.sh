@@ -87,7 +87,6 @@ body {
   50%      { background: var(--good);
              box-shadow: 0 0 .35rem var(--good) }
 }
-/* (frozen state for this lives with the diagrams, under `data-motion="off"`) */
 
 /* ── prose ────────────────────────────────────────────────────────────────── */
 
@@ -149,10 +148,11 @@ table.ref td { vertical-align: top; }
 /* ── animated diagrams ────────────────────────────────────────────────────────
    Every figure in the archive, all pure CSS on one shared 8s clock so they read as the same
    machine ticking. No JS, no SVG, no images — a diagram that needs a build step
-   is a diagram nobody updates. Every figure also has a legible static state,
-   kept in the `data-motion="off"` block at the end of this section, so the
-   motion is never load-bearing — but it is on by default for everyone,
-   including OS Reduce Motion. See that block for why. */
+   is a diagram nobody updates. The motion runs for everyone, including OS Reduce
+   Motion: these figures are the explanation, not decoration around it, and a
+   frozen picture is no diagram at all on a page whose whole point is a loop
+   going round. It stays safe to leave on — one slow 8s cycle, small, no
+   flashing. */
 
 .diag {
   position: relative;
@@ -459,6 +459,30 @@ table.ref td { vertical-align: top; }
               transform: translateY(-.2rem) }
 }
 
+/* two chips that arrive on `chipin`'s beat and must not flare green while they
+   are lit, because green is this archive's word for "and this one held". They
+   exist because a chip's meaning has to survive being on screen: a chip that
+   says ✗ inside a green box, or a chip you are only showing to be counted,
+   both read as the opposite of themselves for the two seconds they are up.
+
+   `chipno` is the negative: hot border, full strength, same travel.
+   `chipheld` is the quiet one — the backoff gaps in figure 15 and the carried
+   evidence in figure 17, present and countable but never the point of the row. */
+@keyframes chipno {
+  0%        { opacity: .2; border-color: var(--rule);
+              transform: translateY(-.2rem) }
+  6%, 74%   { opacity: 1;  border-color: var(--ink-hot); transform: none }
+  86%, 100% { opacity: .2; border-color: var(--rule);
+              transform: translateY(-.2rem) }
+}
+@keyframes chipheld {
+  0%        { opacity: .2;  border-color: var(--rule);
+              transform: translateY(-.2rem) }
+  6%, 74%   { opacity: .72; border-color: var(--rule); transform: none }
+  86%, 100% { opacity: .2;  border-color: var(--rule);
+              transform: translateY(-.2rem) }
+}
+
 /* the reply, in pieces (`chipin`, the travelling form of figure 5's chip) */
 .pair .toks {
   list-style: none; margin: 0; padding: 0;
@@ -476,6 +500,51 @@ table.ref td { vertical-align: top; }
 .pair .toks li:nth-child(5) { animation-delay: 3.6s; }
 .pair .toks li:nth-child(6) { animation-delay: 3.9s; }
 .pair .toks li:nth-child(7) { animation-delay: 4.2s; }
+
+/* ‥ the same panel pair, read across instead of down ‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥
+   Lesson 3's vibe/condition pair. The figure only works if you see that each row
+   is one goal said twice, so the two sides are blocked into three matched cells
+   and each pair lights together — a static version asks the reader to guess the
+   mapping, and the guess is usually wrong. The vibe lands in ordinary ink and
+   the condition in green: the colour is the argument, since only one of the two
+   is a thing your loop can run.
+
+   Clock: a pair every 2.1s from 0.3s, and the arrow between them ticks three
+   times rather than once, on the same three beats. */
+
+.pair.goals .g {
+  display: block; min-height: 3.9em;
+  color: var(--ink-dim); opacity: .35;
+  animation: goallit 8s linear infinite;
+  animation-delay: calc(.3s + var(--i) * 2.1s);
+}
+@keyframes goallit {
+  0%        { opacity: .35; color: var(--ink-dim) }
+  4%, 22%   { opacity: 1;   color: var(--ink) }
+  30%, 100% { opacity: .35; color: var(--ink-dim) }
+}
+/* the checkable side is the one worth having, so it is the one that goes green */
+@keyframes goalmet {
+  0%        { opacity: .35; color: var(--ink-dim) }
+  4%, 22%   { opacity: 1;   color: var(--good) }
+  30%, 100% { opacity: .35; color: var(--ink-dim) }
+}
+.pair.goals .side:last-child .g { animation-name: goalmet; }
+/* the last cell has nothing under it, so it does not need the gap the other two
+   are holding open for their neighbour */
+.pair.goals .g:last-child { min-height: 0; }
+/* three crossings, not one — the arrow is what pairs the rows, so it has to tick
+   once per row. Same colours and glow as `shove`, three times over. */
+.pair.goals .cross { animation: shove3 8s linear infinite; }
+@keyframes shove3 {
+  0%,   2%           { color: var(--ink-faint); text-shadow: none }
+  5%,  20%           { color: var(--good); text-shadow: 0 0 .45rem var(--good) }
+  28%, 28.5%         { color: var(--ink-faint); text-shadow: none }
+  31%, 46%           { color: var(--good); text-shadow: 0 0 .45rem var(--good) }
+  54%, 54.5%         { color: var(--ink-faint); text-shadow: none }
+  57%, 72%           { color: var(--good); text-shadow: 0 0 .45rem var(--good) }
+  80%, 100%          { color: var(--ink-faint); text-shadow: none }
+}
 
 /* ‥ figure 4: the syllabus ladder ‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥
    Six rungs, easiest at the top. A green line climbs the track and each rung
@@ -819,6 +888,43 @@ table.ref td { vertical-align: top; }
   animation: verdictin 8s linear infinite 4.4s;
 }
 
+/* ‥ the same fork, where the tool hangs instead of throwing ‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥
+   Lesson 3's version, and the difference is the whole point of the section:
+   nothing threw. So the source panel does not flash ink-hot — `threw` is a
+   moment, and this figure's failure is the absence of one. It fills a deadline
+   instead, a rule creeping along the bottom edge that reaches the ten-second
+   mark and then just stays there, which is what a hang looks like from the
+   outside: something that was going to finish, still not finishing.
+
+   The two verdicts have to be this lesson's, too. A dropped result gets your
+   next request rejected; a result that never arrives gets you nothing at all,
+   which is the more expensive of the two and the one with no log line. */
+.fork.wait .src {
+  position: relative; overflow: hidden; animation: none;
+  border-color: var(--rule); box-shadow: inset 3px 0 0 var(--ink-hot);
+  padding-left: .8rem;
+}
+.fork.wait .src::after {
+  content: ""; position: absolute; left: 0; bottom: 0; height: 2px; width: 0;
+  background: var(--ink-hot);
+  animation: deadline 8s linear infinite;
+}
+/* creeps for two seconds, flares as it blows, then holds full width and dim for
+   the rest of the cycle. Both halves are load-bearing: the creep is the ten
+   seconds nobody is watching, and the long flat run afterwards is the hang. It
+   blows at 2.2s, a beat before the road that times out lights at 2.4s, while the
+   road that keeps waiting has been lit since 1.4s — which is the order these
+   actually happen in, and the reason one of them is cheap to write. */
+@keyframes deadline {
+  0%         { width: 0;    opacity: .3 }
+  26%        { width: 100%; opacity: .55 }
+  27.5%, 30% { width: 100%; opacity: 1 }
+  36%, 86%   { width: 100%; opacity: .55 }
+  94%, 100%  { width: 0;    opacity: .3 }
+}
+.fork.wait .dead::after { content: "✕ no next turn, and no line in the log"; }
+.fork.wait .live::after { content: "↻ model tries another source"; }
+
 /* ‥ figure 10: the array is the memory ‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥
    Five requests in one run. The hatched part of each bar is what you are sending
    again, the solid part is the only new thing in it. Rows land in sequence, so
@@ -884,7 +990,10 @@ table.ref td { vertical-align: top; }
    Twenty turns tick past, the counter trips, and the ghosts to the right of the
    wall are the calls a misread tool description would have gone on making. Each
    tick carries its own `--i`, so the delay is arithmetic rather than twenty
-   hand-written rules. */
+   hand-written rules.
+
+   Lesson 3 counts to twelve instead, and gets `.capped` for it — see the foot of
+   this section. Everything the two versions share stays here. */
 
 .limit { display: grid; gap: .45rem; }
 .limit .cap {
@@ -899,7 +1008,7 @@ table.ref td { vertical-align: top; }
   flex: 1 1 0; height: 1.2rem; opacity: .2;
   border: 1px solid var(--rule); background: var(--paper);
   animation: tick 8s linear infinite;
-  animation-delay: calc(var(--i) * 0.24s);
+  animation-delay: calc(var(--i) * var(--beat, 0.24s));
 }
 /* a turn that has gone by stays filled — at half strength, so the tick being
    taken right now is still the brightest thing in the row. Border colour is
@@ -934,6 +1043,41 @@ table.ref td { vertical-align: top; }
 }
 .limit .legs .l { color: var(--ink); }
 .limit .legs .r { color: var(--ink-hot); }
+
+/* ‥ the same counter, capped at twelve ‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥
+   Lesson 3's version. Twelve ticks, so the beat is slower and everything after it
+   moves up: the wall trips at 3.6s, right behind the twelfth turn, instead of
+   sitting there for two seconds with nothing happening.
+
+   The ghosts are the change worth having. Held still they are a statement — these
+   calls exist. Ticking on the same 0.3s beat, dim, one after another, they are the
+   argument: a model does not slow down as it approaches your cap, it just stops
+   being asked, and what you are watching past the wall is the run you would have
+   paid for. */
+.limit.capped { --beat: 0.3s; }
+.limit.capped .ticks .wall { animation-name: tripshort; }
+@keyframes tripshort {
+  0%, 44%   { opacity: .35; box-shadow: none }
+  48%, 88%  { opacity: 1;   box-shadow: 0 0 .45rem var(--ink-hot) }
+  94%, 100% { opacity: .35; box-shadow: none }
+}
+.limit.capped .ticks li.ghost {
+  opacity: 0;
+  animation: ghosttick 8s linear infinite;
+  animation-delay: calc(3.9s + (var(--i) - 12) * var(--beat));
+}
+/* a third of the strength of a real turn, because these never happened */
+@keyframes ghosttick {
+  0%        { opacity: 0 }
+  3%        { opacity: .5 }
+  9%, 80%   { opacity: .28 }
+  90%, 100% { opacity: 0 }
+}
+/* the right-hand label is the wall's caption, so it arrives with the wall rather
+   than announcing a stop that hasn't happened yet */
+.limit.capped .legs .r {
+  opacity: 0; animation: verdictin 8s linear infinite 3.6s;
+}
 
 /* ‥ figure 12: one fat tool_result, billed eight more times ‥‥‥‥‥‥‥‥‥‥‥‥‥‥
    The arithmetic in lesson 2 that costs real money, drawn. A read_file comes
@@ -1044,8 +1188,449 @@ table.ref td { vertical-align: top; }
    id-matching flare from figure 2 is not what this one is about */
 .tape.six li:nth-child(5) { border-left: 3px solid var(--good); }
 .tape.six .id { animation: none; }
+/* lesson 3's tape only: the caption says turn 3 is the interesting row, so the
+   row has to look it — an ink-hot rail rather than the green one the base tape
+   gives every third row, because this result is the one that disagrees with the
+   goal. Lesson 2's third row wrote all three lines and keeps its green. */
+.tape.six.miss li:nth-child(3) { border-left-color: var(--ink-hot); }
+/* and the two words it disagrees on. Underlined rather than boxed — a chip in
+   the middle of a sentence reads as a different kind of thing than the sentence,
+   and this is just a number the agent read back off its own work. */
+.tape .off {
+  color: var(--ink-hot);
+  border-bottom: 1px dashed var(--ink-hot);
+}
+
+/* ‥ figure 13: the switchboard ‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥
+   The table above says what each `stop_reason` means; this says what your loop
+   *does* about it, which is three things, not six. Each row lights for its own
+   1.2s so the reader arrives at one door at a time — a reply picks exactly one —
+   and the left rail is the answer: green goes round again, hot ends the run, and
+   `end_turn` is the one row whose rail is neither, because the goal check
+   decides it. That single undecided row is what figure 14 is about. */
+
+.board { display: grid; gap: .45rem; }
+.board .cap {
+  color: var(--ink-faint); font-size: .62rem;
+  letter-spacing: .16em; text-transform: uppercase;
+}
+.board .doors { list-style: none; margin: 0; padding: 0; display: grid; gap: .28rem; }
+.board .doors li {
+  display: grid; grid-template-columns: 8.4rem 1fr 1rem;
+  gap: .5rem; align-items: baseline; opacity: .22;
+  border: 1px solid var(--rule); border-left: 3px solid var(--rule);
+  background: var(--paper); padding: .3rem .5rem;
+  font-size: .72rem; line-height: 1.4; color: var(--ink);
+  animation: doorlit 8s linear infinite;
+  animation-delay: calc(var(--i) * 1.2s);
+}
+/* the same shape as `tick`: flare on arrival, then sit at part strength, because
+   a value you have already handled is still one of the six you have to handle */
+@keyframes doorlit {
+  0%        { opacity: .22; background: var(--paper) }
+  3%        { opacity: 1;   background: var(--paper-3) }
+  9%, 86%   { opacity: .6;  background: var(--paper) }
+  95%, 100% { opacity: .22; background: var(--paper) }
+}
+.board .doors b { color: var(--ink-hot); font-weight: 600; }
+.board .doors .w { color: var(--ink-dim); }
+/* the verdict glyph is the third column, so it sits in the grid rather than
+   floating: one character, and it is the whole reason the row is here */
+.board .doors li::after { font-size: .74rem; text-align: right; }
+.board .loop { border-left-color: var(--good); }
+.board .loop::after { content: "↻"; color: var(--good); }
+.board .stop { border-left-color: var(--ink-hot); }
+.board .stop::after { content: "✕"; color: var(--ink-hot); }
+/* the one row nothing here settles: a broken rail rather than a solid one, which
+   is the same dashed-means-unfinished this archive uses everywhere else */
+.board .ask { border-left-color: var(--ink-dim); border-left-style: dashed; }
+.board .ask::after { content: "?"; color: var(--ink); }
+.board .legs {
+  display: flex; justify-content: space-between; gap: .5rem;
+  color: var(--ink-faint); font-size: .62rem; letter-spacing: .04em;
+}
+.board .legs .l { color: var(--good); }
+.board .legs .m { color: var(--ink); }
+.board .legs .r { color: var(--ink-hot); }
+/* the tally is the conclusion, so it arrives after the sixth door has lit at
+   6.0s — three, one and two, which is the whole of the six accounted for */
+.board .legs span {
+  opacity: 0; animation: verdictin 8s linear infinite 6.4s;
+}
+
+/* ‥ figure 14: two conditions, one exit ‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥
+   The exit everyone forgets, drawn as an AND. Two passes on one clock: the first
+   has `end_turn` ticked and the check failing, so the nudge goes back in; the
+   second has both, and that is the only frame in which the run ends. Both rows
+   stay up once they arrive (`roadlit`, figure 9) because the point is the pair
+   read together — pass 2 is not a correction of pass 1, it is what pass 1 buys.
+   Clock: pass 1 at 0.4s and its nudge at 1.6s, pass 2 at 3.6s, its verdict at
+   4.8s, everything down by 7.5s. */
+
+.gate { display: grid; gap: .45rem; }
+.gate .cap {
+  color: var(--ink-faint); font-size: .62rem;
+  letter-spacing: .16em; text-transform: uppercase;
+}
+.gate .passes { list-style: none; margin: 0; padding: 0; display: grid; gap: .45rem; }
+.gate .passes > li {
+  display: grid; grid-template-columns: auto auto 1fr;
+  gap: .3rem .45rem; align-items: center; opacity: .22;
+  border: 1px solid var(--rule); background: var(--paper);
+  padding: .45rem .55rem; font-size: .72rem; color: var(--ink);
+  animation: roadlit 8s linear infinite;
+  animation-delay: var(--d);
+}
+.gate .miss { border-left: 3px solid var(--ink-hot); --d: 0.4s; }
+.gate .hit  { border-left: 3px solid var(--good);    --d: 3.6s; }
+.gate .passes > li > b {
+  grid-column: 1 / -1; color: var(--ink-hot);
+  font-size: .62rem; font-weight: 600;
+  letter-spacing: .14em; text-transform: uppercase;
+}
+/* the two conditions as chips, arriving in order — the model's claim first,
+   then the filesystem's, because that is the order they happen in */
+.gate .c {
+  border: 1px solid var(--rule); background: var(--paper-2);
+  padding: .18rem .4rem; font-size: .7rem; opacity: .2;
+  animation: chipin 8s cubic-bezier(.2,.9,.3,1) infinite;
+  animation-delay: calc(var(--d) + var(--n) * .5s);
+}
+.gate .c.yes { color: var(--good); }
+/* the failed check keeps figure 10's hatch: in this archive a 45° hatch always
+   means *this is going round again*. Hatched in `--rule` rather than the row's
+   own ink-hot, because ink-hot is near-white in dark mode and a chip you cannot
+   read is not a diagram. */
+.gate .c.no {
+  color: var(--ink-hot); border-color: var(--ink-hot);
+  background: repeating-linear-gradient(45deg,
+    var(--rule) 0 3px, rgba(0,0,0,0) 3px 6px);
+  /* `chipin` would flare this one's border green as it lands, which is the one
+     colour a failed check must not be */
+  animation-name: chipno;
+}
+/* what happens next, on its own line, a beat after the two chips have settled */
+.gate .act {
+  grid-column: 1 / -1; font-size: .68rem; opacity: 0;
+  padding-top: .3rem; border-top: 1px dashed var(--rule);
+  color: var(--ink-dim);
+  animation: verdictin 8s linear infinite;
+  animation-delay: calc(var(--d) + 1.2s);
+}
+.gate .miss .act { color: var(--ink-hot); }
+.gate .hit  .act { color: var(--good); }
+/* the nudge, drawn between the passes rather than only described in one. It is
+   not a row in the sense the other two are — no panel, no rail, no chips —
+   because it is one user message, and it lights after the action line that puts
+   it there and before the pass it buys. Without it the second row looks like a
+   correction of the first instead of its consequence. */
+.gate .passes li.link {
+  display: block; border: 0; background: none;
+  padding: .1rem 0 .1rem 1.1rem; margin: -.1rem 0;
+  color: var(--ink-faint); font-size: .64rem; letter-spacing: .04em;
+  opacity: 0; animation: verdictin 8s linear infinite 2.4s;
+}
+
+/* ‥ figure 15: what a failure is allowed to loop on ‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥
+   Rule 5, drawn. The top lane is transport: two 429s, two backoffs, then a 200,
+   and the whole row happens under the model — the hops are inside one turn, so
+   they run fast and close together. The bottom lane is a decision, and it has
+   exactly one hop, upwards: the tool ran, you didn't like the answer, and that
+   is a `tool_result`, not a retry. The asymmetry is the argument, so the two
+   lanes are drawn to the same width and one of them is nearly empty. */
+
+.lanes { display: grid; gap: .55rem; }
+.lanes .cap {
+  color: var(--ink-faint); font-size: .62rem;
+  letter-spacing: .16em; text-transform: uppercase;
+}
+.lanes .lane {
+  display: grid; gap: .3rem;
+  border: 1px solid var(--rule); border-left: 3px solid var(--rule);
+  background: var(--paper); padding: .45rem .55rem;
+}
+.lanes .lane > b {
+  color: var(--ink-hot); font-size: .62rem; font-weight: 600;
+  letter-spacing: .14em; text-transform: uppercase;
+}
+.lanes .t { border-left-color: var(--good); }
+.lanes .d { border-left-color: var(--ink-hot); }
+.lanes .hops {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-wrap: wrap; align-items: center; gap: .3rem;
+}
+.lanes .hops li {
+  border: 1px solid var(--rule); background: var(--paper-2);
+  padding: .18rem .4rem; font-size: .7rem; color: var(--ink); opacity: .2;
+  animation: chipin 8s cubic-bezier(.2,.9,.3,1) infinite;
+  animation-delay: calc(var(--i) * .55s + var(--o, 0s));
+}
+/* the waits are the part people leave out, so they are drawn and dimmed rather
+   than skipped — a retry with no gap between the tries is not a backoff */
+.lanes .hops li.wait {
+  border-style: dashed; color: var(--ink-faint);
+  background: none;
+  /* a gap you are waiting out is not an event: it arrives on the beat, quietly,
+     and never takes the green flare the tries either side of it get */
+  animation-name: chipheld;
+}
+.lanes .hops li.ok { color: var(--good); border-color: var(--good); }
+/* the one hop that leaves the lane: it goes up to the model, and it is the only
+   arrow in the figure that does */
+.lanes .hops li.up {
+  color: var(--ink-hot); border-color: var(--ink-hot);
+  background: var(--paper-3);
+  animation-name: chipno;
+}
+.lanes .who {
+  font-size: .66rem; color: var(--ink-faint); letter-spacing: .04em;
+  opacity: 0; animation: verdictin 8s linear infinite;
+  animation-delay: calc(var(--o, 0s) + 2.6s);
+}
+.lanes .t .who { color: var(--good); }
+.lanes .d .who { color: var(--ink-hot); }
+/* the decision lane runs after the transport lane rather than beside it, so the
+   reader is never asked to watch two rows of chips at once */
+.lanes .d { --o: 3.4s; }
+
+/* ‥ the same two lanes, carrying the improve/verify stack ‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥
+   Same shape, different argument, and the colours have to move with it. In the
+   retry figure the second lane is the thing you must not do, so it is ink-hot.
+   Here the second lane is the *recommendation* — a fresh array with read-only
+   tools — and painting it in the archive's don't-do-this colour tells the reader
+   the opposite of the paragraph above it. So the rail goes dim, the ✕ in its own
+   line stays, because there it means "has none of these", and the one hop that
+   leaves the lane goes green: that report is the thing you were buying. */
+.lanes.stacked .d { border-left-color: var(--ink-dim); }
+.lanes.stacked .d .who { color: var(--ink-dim); }
+.lanes.stacked .d .hops li.up {
+  color: var(--good); border-color: var(--good);
+  animation-name: chipin;
+}
+/* the round trip the code makes but the two lanes on their own don't: the
+   reviewer's list becomes the next improve loop's prompt, which is the entire
+   reason for stacking them. Last thing to light, because it is what closes. */
+.lanes.stacked .d::after {
+  content: "↻ that list is round 2's prompt — better than anything you'd type";
+  display: block; margin-top: .1rem; padding-top: .3rem;
+  border-top: 1px dashed var(--rule);
+  font-size: .66rem; color: var(--good); letter-spacing: .04em;
+  opacity: 0; animation: verdictin 8s linear infinite 6.4s;
+}
+
+/* ‥ figure 16: the bill is the area, not the last row ‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥
+   The turn-cap arithmetic, drawn to scale. Every bar is the *cumulative* input
+   bill at that turn, as a share of the 40-turn runaway, so the widths are the
+   triangle: 300n². Turn 12 lands at 9% of turn 40, which is the entire argument
+   and is impossible to feel from two numbers in a sentence. The three rows past
+   the cap wear figure 12's ink-hot hatch, because that is what this archive's
+   hatch has always meant — tokens you are paying for and will not get back.
+
+   Clock: a bar every 0.5s from 0.3s, each total a beat behind its own bar, the
+   last one landing at 4.4s. */
+
+.tri { display: grid; gap: .45rem; }
+.tri .cap {
+  color: var(--ink-faint); font-size: .62rem;
+  letter-spacing: .16em; text-transform: uppercase;
+}
+.tri .rows { list-style: none; margin: 0; padding: 0; display: grid; gap: .22rem; }
+.tri .rows li {
+  display: grid; grid-template-columns: 4rem 1fr 6.6rem;
+  gap: .5rem; align-items: center;
+  font-size: .66rem; color: var(--ink-dim);
+}
+.tri .rows b { color: var(--ink); font-weight: 400; letter-spacing: .04em; }
+.tri .bar {
+  height: .82rem; overflow: hidden;
+  border: 1px solid var(--rule); background: var(--paper);
+}
+/* min-width so turn 4 is a visible sliver rather than nothing — 1% of the
+   runaway is the honest number and it deserves to be seen, not rounded away */
+.tri .bar i {
+  display: block; height: 100%; width: 0; min-width: .1rem;
+  background: var(--good);
+  animation: widen 8s cubic-bezier(.2,.9,.3,1) infinite;
+  animation-delay: calc(.3s + var(--i) * .5s);
+}
+/* draws out, holds, then retracts — the wipe has to be a movement too, or six
+   bars at six different delays all snap to nothing at six different moments */
+@keyframes widen {
+  0%        { width: 0 }
+  18%, 92%  { width: var(--w) }
+  100%      { width: 0 }
+}
+.tri .past .bar i {
+  background: repeating-linear-gradient(45deg,
+    var(--ink-hot) 0 3px, rgba(0,0,0,0) 3px 6px);
+}
+.tri .t {
+  text-align: right; opacity: 0; color: var(--ink);
+  animation: verdictin 8s linear infinite;
+  animation-delay: calc(.6s + var(--i) * .5s);
+}
+.tri .past .t { color: var(--ink-hot); }
+/* the cap itself: a dashed rule across all three columns, which is the same
+   wall figure 11 draws, seen from the side the money is on. It arrives with turn
+   12's total and before turn 20's bar, so the three hatched rows below it are
+   read as already past a line that had been drawn — which is the order they
+   happen in, and the order the argument works in. */
+.tri .rows li.mark {
+  grid-template-columns: 1fr; margin: .18rem 0;
+  border-top: 1px dashed var(--ink-hot); padding-top: .3rem;
+  color: var(--ink-hot); font-size: .62rem; letter-spacing: .04em;
+  opacity: 0; animation: verdictin 8s linear infinite 1.8s;
+}
+.tri .legs {
+  display: flex; justify-content: space-between; gap: .5rem;
+  color: var(--ink-faint); font-size: .62rem; letter-spacing: .04em;
+}
+/* each leg waits for the bars it is a claim about: 9% is only true once turn 12
+   is drawn, and the other 91% only once turn 40 is */
+.tri .legs .l {
+  color: var(--good);
+  opacity: 0; animation: verdictin 8s linear infinite 2.0s;
+}
+.tri .legs .r {
+  color: var(--ink-hot);
+  opacity: 0; animation: verdictin 8s linear infinite 3.4s;
+}
+
+/* ‥ figure 17: every pass knows more than the last ‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥
+   Why the loop is the point and not the plumbing. Three rows, and the only thing
+   that changes down the page is how many chips a turn has to reason from: the
+   carried-over evidence sits dim, the chip that is new this turn arrives lit.
+   Row 1 is also the whole of a one-shot call, which is the comparison — a bigger
+   model does not add a chip to that row, because there is no second look.
+
+   Clock: a row every 2s from 0.3s, its newest chip a third of a second behind
+   the ones it inherited, and the verdict line after both. */
+
+.stack { display: grid; gap: .45rem; }
+.stack .cap {
+  color: var(--ink-faint); font-size: .62rem;
+  letter-spacing: .16em; text-transform: uppercase;
+}
+.stack .rows { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; }
+.stack .rows > li {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .3rem;
+  border: 1px solid var(--rule); border-left: 3px solid var(--rule);
+  background: var(--paper); padding: .45rem .55rem;
+  opacity: .22; animation: roadlit 8s linear infinite;
+  animation-delay: var(--d);
+}
+.stack .rows > li > b {
+  flex: 0 0 3.4rem; color: var(--ink-hot);
+  font-size: .62rem; font-weight: 600;
+  letter-spacing: .14em; text-transform: uppercase;
+}
+/* the newest chip is the row's reason for existing, so it is the lit one; the
+   inherited ones are drawn because the point is the *count*, not the content */
+.stack .e {
+  position: relative;
+  border: 1px solid var(--good); background: var(--paper-2);
+  color: var(--ink); padding: .18rem .4rem; font-size: .7rem; opacity: .2;
+  animation: chipin 8s cubic-bezier(.2,.9,.3,1) infinite;
+  animation-delay: calc(var(--d) + var(--n) * .35s);
+}
+/* carried, not new: `chipheld` keeps these off the green flare, so the chip the
+   turn actually gained is the only lit thing in the row. On `chipin` all three
+   of turn 3's chips came up identical, and the figure's whole claim is that one
+   of them is different. */
+.stack .e.old {
+  border-color: var(--rule); color: var(--ink-dim); background: none;
+  animation-name: chipheld;
+}
+/* the carried chips are not copies, they are the same chips one row up, so each
+   one draws a short leg to where it came from. The chip text is identical down a
+   column, so the widths are too, and the legs line up without a grid — which is
+   the cheapest possible way to say "appended to" rather than "assembled again".
+
+   The leg lives in the gap between the rows, not inside them: back up past this
+   row's padding and border, then the .4rem of the grid gap itself, so it never
+   draws across a panel edge. */
+.stack .rows > li + li .e.old::before {
+  content: ""; position: absolute; left: 50%; top: calc(-.85rem - 1px);
+  height: .4rem; border-left: 1px dashed var(--rule);
+}
+.stack .act {
+  flex: 0 0 100%; font-size: .68rem; opacity: 0;
+  padding-top: .3rem; border-top: 1px dashed var(--rule);
+  color: var(--ink-dim);
+  animation: verdictin 8s linear infinite;
+  animation-delay: calc(var(--d) + 1.3s);
+}
+/* the row where the agent fixes its own work without being told */
+.stack .hit { border-left-color: var(--good); }
+.stack .hit .act { color: var(--good); }
+
+/* ‥ figure 18: three limits, and only one of them ends a run ‥‥‥‥‥‥‥‥‥‥‥‥‥‥
+   The task-budget section's three-way distinction, which is the kind of thing a
+   reader nods along to and then conflates a week later. Two boolean columns —
+   can the model see it, is it actually enforced — and the useful cell is the one
+   that is true nowhere else: a task budget is the only limit the model can plan
+   against, and the only one it can also ignore.
+
+   Clock: a row every 1.9s from 0.4s, chips half a second apart, and each row's
+   action line a beat after its second chip. Borrows `roadlit`, `chipin` and
+   `verdictin` from figures 9 and 14 — same meanings, so the same motion. */
+
+.caps { display: grid; gap: .45rem; }
+.caps .cap {
+  color: var(--ink-faint); font-size: .62rem;
+  letter-spacing: .16em; text-transform: uppercase;
+}
+.caps .rows { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; }
+.caps .rows > li {
+  display: grid; grid-template-columns: auto auto 1fr;
+  gap: .3rem .45rem; align-items: center; opacity: .22;
+  border: 1px solid var(--rule); border-left: 3px solid var(--rule);
+  background: var(--paper); padding: .45rem .55rem;
+  font-size: .72rem; color: var(--ink);
+  animation: roadlit 8s linear infinite;
+  animation-delay: var(--d);
+}
+.caps .rows > li > b {
+  grid-column: 1 / -1; color: var(--ink-hot);
+  font-size: .66rem; font-weight: 600; letter-spacing: .08em;
+}
+.caps .c {
+  border: 1px solid var(--rule); background: var(--paper-2);
+  padding: .18rem .4rem; font-size: .68rem; opacity: .2;
+  animation: chipin 8s cubic-bezier(.2,.9,.3,1) infinite;
+  animation-delay: calc(var(--d) + var(--n) * .5s);
+}
+/* each chip carries its own ✓ or ✗ in the markup, the way figure 14's do. Style
+   alone cannot negate a sentence: a hatched chip reading "the model can see it"
+   means the opposite of what it says, and a reader scanning three rows of them
+   should not have to learn the hatch first. */
+.caps .c.yes { color: var(--good); border-color: var(--good); }
+/* hatched, as everywhere else in this archive, for the thing that is not so */
+.caps .c.no {
+  color: var(--ink-hot); border-color: var(--ink-hot);
+  background: repeating-linear-gradient(45deg,
+    var(--rule) 0 3px, rgba(0,0,0,0) 3px 6px);
+  animation-name: chipno;
+}
+.caps .act {
+  grid-column: 1 / -1; font-size: .68rem; opacity: 0;
+  padding-top: .3rem; border-top: 1px dashed var(--rule);
+  color: var(--ink-dim);
+  animation: verdictin 8s linear infinite;
+  animation-delay: calc(var(--d) + 1.4s);
+}
+/* the counter is the only row that stops a run, so it is the only green rail */
+.caps .ends { border-left-color: var(--good); }
+.caps .ends .act { color: var(--good); }
+.caps .soft { border-left-color: var(--ink-hot); }
 
 @media (max-width: 34rem) {
+  /* the value, the action and the glyph stack rather than squeezing the middle
+     column to one word per line */
+  .board .doors li { grid-template-columns: 1fr auto; }
+  .board .doors .w { grid-column: 1 / -1; }
+  .board .legs { flex-direction: column; }
+  .gate .passes > li { grid-template-columns: 1fr; }
   .pair { grid-template-columns: 1fr; }
   .fork .roads { grid-template-columns: 1fr; }
   .grow .row { grid-template-columns: 1fr; gap: .2rem; }
@@ -1058,76 +1643,28 @@ table.ref td { vertical-align: top; }
   .gauge .row { grid-template-columns: 1fr; gap: .2rem; }
   .scale .legs { flex-direction: column; }
   /* stacked: the arrow turns to point down the page and the seam goes away */
-  .pair .cross {
+  .pair .cross, .pair.goals .cross {
     width: auto; height: 1.2rem; transform: rotate(90deg);
     animation: none; color: var(--good);
   }
+  /* stacked, the two columns are one above the other, so the matched cells are
+     no longer side by side and the gaps holding them level are dead space */
+  .pair.goals .g { min-height: 0; margin-bottom: .8rem; }
   .pair .cross::before { display: none; }
   .wire.h { width: 1.8rem; }
   .wire i { display: none; }
   .node { font-size: .7rem; }
   .fan .calls { grid-template-columns: 1fr; }
   .fan .funnel { display: none; }
+  /* the turn label goes above its bar and the total below it — the bar is the
+     part that has to stay wide, because the bar is the argument */
+  .tri .rows li { grid-template-columns: 3.2rem 1fr; }
+  .tri .t { grid-column: 2; text-align: left; }
+  .tri .legs { flex-direction: column; }
+  /* the turn label takes its own line rather than squeezing the chips */
+  .stack .rows > li > b { flex: 0 0 100%; }
+  .caps .rows > li { grid-template-columns: 1fr; }
 }
-
-/* Motion off: freeze every figure in its finished state. The pulse parks on the
-   wire, all four stations stay lit, the tape is full, the JSON is complete, and
-   the ladder is climbed.
-
-   NOT wired to `prefers-reduced-motion` any more, on purpose. These figures are
-   the explanation, not decoration around it — a reader with Reduce Motion set
-   at the OS level was getting the frozen picture and no diagram, which is the
-   wrong trade for a lesson whose whole point is a loop going round. The motion
-   is slow (one 8s cycle), small, and never flashes, so it stays on for
-   everyone. Put `data-motion="off"` on <html> to get the frozen state back. */
-[data-motion="off"] .diag *,
-[data-motion="off"] .diag *::before,
-[data-motion="off"] .diag *::after,
-[data-motion="off"] .lamps i { animation: none !important; }
-[data-motion="off"] .lamps i:first-child { background: var(--good); }
-[data-motion="off"] .node::after { opacity: 1; }
-[data-motion="off"] .ring .node { background: var(--paper-3); }
-[data-motion="off"] .pair .cross { color: var(--good); }
-[data-motion="off"] .fan .calls li,
-[data-motion="off"] .fan .bundle li { opacity: 1; }
-[data-motion="off"] .fan .bundle { border-color: var(--good); }
-[data-motion="off"] .fan .funnel::after { opacity: 1; }
-[data-motion="off"] .ladder li { opacity: 1; }
-[data-motion="off"] .ladder::after { height: calc(100% - 1rem); }
-[data-motion="off"] .tape li { opacity: 1; }
-[data-motion="off"] .pair .out { width: 17ch; border-right-color: var(--good); }
-[data-motion="off"] .pair .msgs .msg { opacity: 1;
-                                       border-left-color: var(--good); }
-[data-motion="off"] .pair .keys .msg { background: var(--paper-3);
-                                       color: var(--ink-hot); }
-[data-motion="off"] .pair .toks li { opacity: 1; }
-[data-motion="off"] .wire::after { opacity: 1 }
-[data-motion="off"] .wire.h::after { left: 50% }
-[data-motion="off"] .wire.v::after { top: 50% }
-[data-motion="off"] .stream .chunks li { opacity: 1; }
-[data-motion="off"] .stream .line span { width: 34ch;
-                                         border-right-color: var(--good); }
-[data-motion="off"] .gauge .bar i { flex-basis: var(--w); }
-[data-motion="off"] .gauge .v { opacity: 1; }
-[data-motion="off"] .gauge .row.over .bar { border-color: var(--ink-hot); }
-[data-motion="off"] .scale .track i { width: 4.1%; }
-[data-motion="off"] .scale .wall { opacity: 1; }
-[data-motion="off"] .fork .src { border-color: var(--ink-hot); }
-[data-motion="off"] .fork .roads li { opacity: 1; }
-[data-motion="off"] .fork .roads li::after { opacity: 1; }
-[data-motion="off"] .grow .row { opacity: 1; }
-[data-motion="off"] .grow .bar i { flex-basis: var(--w); }
-[data-motion="off"] .spill .src { border-color: var(--ink-hot); }
-[data-motion="off"] .spill .tail li { opacity: .6; }
-[data-motion="off"] .spill .tally .bar i { width: 100%; }
-[data-motion="off"] .spill .tally .t { opacity: 1; }
-[data-motion="off"] .limit .ticks li { opacity: 1; background: var(--paper-3); }
-[data-motion="off"] .limit .ticks li.ghost {
-  opacity: .5;
-  background: repeating-linear-gradient(45deg,
-    var(--rule) 0 3px, rgba(0,0,0,0) 3px 6px);
-}
-[data-motion="off"] .limit .ticks .wall { opacity: 1; }
 
 /* ── the screen ───────────────────────────────────────────────────────────────
    A video embed, wearing the same dashed panel the figures wear so it reads as

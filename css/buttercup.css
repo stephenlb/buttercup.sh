@@ -67,14 +67,14 @@ body {
       rgba(0,0,0,0) 60%, var(--veil-edge) 100%);
   mix-blend-mode: multiply;
 }
-@media (prefers-reduced-motion: no-preference) {
-  .crt::after {
-    content: ""; position: absolute; inset: -20% 0;
-    background: linear-gradient(to bottom, transparent, var(--sheen), transparent);
-    height: 22%; animation: sweep 9s linear infinite;
-  }
-  @keyframes sweep { from { transform: translateY(-120%); } to { transform: translateY(560%); } }
+/* The sweep runs for everyone. It is a 9s translate on a 22%-tall gradient with
+   no flash in it, and it is the tell that the tube is live. */
+.crt::after {
+  content: ""; position: absolute; inset: -20% 0;
+  background: linear-gradient(to bottom, transparent, var(--sheen), transparent);
+  height: 22%; animation: sweep 9s linear infinite;
 }
+@keyframes sweep { from { transform: translateY(-120%); } to { transform: translateY(560%); } }
 
 /* ── load bar ─────────────────────────────────────────────────────────────── */
 /* A hairline across the very top of the glass, above even the CRT dressing,
@@ -211,11 +211,10 @@ body {
   content: "█"; color: var(--ink-hot); margin-left: 1px;
   animation: blink 1s steps(2) infinite;
 }
+/* The caret blinks for everyone: it is the only thing on the page that says a
+   reply is still arriving, so freezing it would cost a reader the one signal
+   they need. */
 @keyframes blink { 50% { opacity: 0; } }
-@media (prefers-reduced-motion: reduce) {
-  .entry.model.live .body::after,
-  .entry.model.live .body *::after { animation: none; }
-}
 
 /* ── markdown the renderer emits ──────────────────────────────────────────────
    A reply is parsed into these blocks as it streams, once per frame, so a live
@@ -755,11 +754,10 @@ button.danger:hover { background: var(--bad); color: var(--paper); }
 @property --cloud-a { syntax: "<length>"; inherits: false; initial-value: 0px; }
 @property --cloud-b { syntax: "<length>"; inherits: false; initial-value: 0px; }
 
-/* The scene animates regardless of prefers-reduced-motion, on the same grounds
-   as the mascot: nothing here travels across the page or parallaxes the layout,
-   it is a handful of pixels sliding a pixel at a time inside a decorative box
-   that is `aria-hidden` anyway. The page's own motion — CRT sweep, caret blink,
-   entry transitions — still honours the setting. */
+/* The scene animates, on the same grounds as the mascot: nothing here travels
+   across the page or parallaxes the layout, it is a handful of pixels sliding a
+   pixel at a time inside a decorative box that is `aria-hidden` anyway. Nothing
+   on the page is wired to prefers-reduced-motion — see the CRT sweep. */
 .beach {
   animation:
     surf-in   3.5s  steps(7, end)  infinite,
@@ -4701,10 +4699,10 @@ button.danger:hover { background: var(--bad); color: var(--paper); }
 .mascot .spark { opacity: 0; }   /* only lit while a task is running */
 .mascot .spark .big, .mascot .spark .dot { opacity: 0; }
 
-/* The twinkle is the "working" tell, so it runs outside the reduced-motion
-   guard: a handful of 3-cell stars popping in place carry no vestibular risk,
-   and without it the busy state has no motion at all on a reduce-motion
-   machine. Each star cuts dot → plus → dot, no in-between sizes. */
+/* The twinkle is the "working" tell, and it always runs: a handful of 3-cell
+   stars popping in place carry no vestibular risk, and without it the busy state
+   has no motion at all. Each star cuts dot → plus → dot, no in-between
+   sizes. */
 body[data-agent="busy"] .mascot .spark .big {
   animation: cup-spark-big 1.3s steps(1, end) infinite;
 }
@@ -4826,10 +4824,9 @@ body[data-agent="busy"][data-busy="brew"]  .mascot-say::before { content: "on it
 body[data-agent="busy"][data-busy="books"] .mascot-say::before { content: "on it — in the books"; }
 body[data-agent="busy"][data-busy="button"] .mascot-say::before { content: "on it — pushing the button"; }
 
-/* The whole rig animates regardless of prefers-reduced-motion: it is a 6rem
-   sprite hopping one cell in place, no travel and no parallax, and the
-   liveliness is the point of it being here. The page's own motion — CRT sweep,
-   caret blink, entry transitions — still honours the setting.
+/* The whole rig animates: it is a 6rem sprite hopping one cell in place, no
+   travel and no parallax, and the liveliness is the point of it being here.
+   Nothing on the page is wired to prefers-reduced-motion — see the CRT sweep.
 
    `steps(1, end)` is what keeps this pixel art: every keyframe holds its value
    until the next one, so the bob is a two-frame hop and the wave is two arm

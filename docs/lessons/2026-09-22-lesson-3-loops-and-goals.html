@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>lesson 3: loops and goals - free AI Agent training from buttercup.sh</title>
-<meta name="description" content="Lesson 3 of the free buttercup.sh agent course: every value stop_reason can hold, the turn cap that turns a $2.40 runaway into 22 cents, goals a program can check, what to do when a tool hangs, and a multi-step agent in JavaScript and Python.">
+<meta name="description" content="Lesson 3 of the free buttercup.sh agent course: every value stop_reason can hold, the turn cap that turns a $2.40 runaway into 22 cents, goals a program can check, what to do when a tool hangs, why every pass round the loop gets better, stacking an improve loop with a verify loop, and a multi-step agent in JavaScript and Python.">
 <link rel="canonical" href="https://buttercup.sh/lessons/2026-09-22-lesson-3-loops-and-goals.html">
 <link rel="stylesheet" href="lessons.css">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23191204'/%3E%3Ctext x='2' y='12' font-family='monospace' font-size='11' fill='%23ffd873'%3E%26gt;%3C/text%3E%3C/svg%3E">
@@ -22,7 +22,7 @@
       <a href="./">lessons</a> &middot;
       <a href="https://github.com/stephenlb/buttercup.sh">github</a> &middot;
       <a href="https://github.com/stephenlb/buttercup.sh/issues/new">feedback</a> &middot;
-      <a href="https://blocks.ai/" target="_blank" rel="sponsored noopener" title="sponsor">blocks.ai</a>
+      <a href="https://blocks.ai/docs/what-is-blocks" target="_blank" rel="sponsored noopener" title="sponsor">blocks.ai</a>
     </nav>
     <span class="where">lesson 3</span>
   </header>
@@ -143,6 +143,41 @@
        back as the final message with no error and a silently truncated
        answer.</p>
 
+    <figure class="diag">
+      <div class="board">
+        <span class="cap">six values &middot; three things to do about them</span>
+        <ul class="doors">
+          <li class="ask" style="--i:0"><b>end_turn</b>
+            <span class="w">run your goal check, and let <em>that</em>
+              decide</span></li>
+          <li class="loop" style="--i:1"><b>tool_use</b>
+            <span class="w">run every call, answer every call, round again</span></li>
+          <li class="loop" style="--i:2"><b>max_tokens</b>
+            <span class="w">drop the reply, raise the ceiling, same request</span></li>
+          <li class="stop" style="--i:3"><b>stop_sequence</b>
+            <span class="w">your own exit — you set it, so you know</span></li>
+          <li class="loop" style="--i:4"><b>pause_turn</b>
+            <span class="w">send the conversation back unchanged</span></li>
+          <li class="stop" style="--i:5"><b>refusal</b>
+            <span class="w">read <code>stop_details</code>, stop, tell the
+              user</span></li>
+        </ul>
+        <div class="legs">
+          <span class="l">↻ three go round</span>
+          <span class="m">? one waits on your check</span>
+          <span class="r">✕ two end it</span>
+        </div>
+      </div>
+      <figcaption>Six values, but only three behaviours, which is why this is
+        worth drawing rather than memorising. Three go round the loop, and
+        <code>max_tokens</code> is the one that surprises people: it's a
+        <em>retry</em>, not an answer, and the reply you just paid for gets
+        thrown away. Two end the run outright. And one has no rail, because
+        <b><code>end_turn</code> on its own decides nothing</b> — it's a claim
+        about the model, and the row below it in your code is the goal
+        check.</figcaption>
+    </figure>
+
     <p>Other endpoints spell it differently and mean the same three things.
        OpenAI-compatible servers, Ollama and vLLM included, send
        <code>finish_reason</code> with <code>stop</code>, <code>length</code>
@@ -161,7 +196,8 @@
        carries the whole conversation with it.</p>
 
     <figure class="diag">
-      <div class="limit">
+      
+      <div class="limit capped">
         <span class="cap">turns taken · a runaway, capped at 12</span>
         <ol class="ticks">
           <li style="--i:0"></li><li style="--i:1"></li><li style="--i:2"></li>
@@ -170,9 +206,14 @@
           <li style="--i:9"></li><li style="--i:10"></li>
           <li class="last" style="--i:11"></li>
           <li class="wall" aria-hidden="true"></li>
-          <li class="ghost"></li><li class="ghost"></li><li class="ghost"></li>
-          <li class="ghost"></li><li class="ghost"></li><li class="ghost"></li>
-          <li class="ghost"></li><li class="ghost"></li>
+          <li class="ghost" style="--i:12"></li>
+          <li class="ghost" style="--i:13"></li>
+          <li class="ghost" style="--i:14"></li>
+          <li class="ghost" style="--i:15"></li>
+          <li class="ghost" style="--i:16"></li>
+          <li class="ghost" style="--i:17"></li>
+          <li class="ghost" style="--i:18"></li>
+          <li class="ghost" style="--i:19"></li>
         </ol>
         <div class="legs">
           <span class="l">turn 1, the goal</span>
@@ -203,6 +244,46 @@
        tool description and the uncapped version is <strong>$2,400 a day</strong>
        of turns that never had a chance of finishing. Ouch.</p>
 
+    <figure class="diag">
+      <div class="tri">
+        <span class="cap">the running input bill &middot; drawn to scale against
+          the 40-turn runaway</span>
+        <ol class="rows">
+          <li style="--w:1%;--i:0"><b>turn 4</b>
+            <span class="bar"><i></i></span>
+            <span class="t">4,800 &middot; $0.02</span></li>
+          <li style="--w:4%;--i:1"><b>turn 8</b>
+            <span class="bar"><i></i></span>
+            <span class="t">19,200 &middot; $0.10</span></li>
+          <li style="--w:9%;--i:2"><b>turn 12</b>
+            <span class="bar"><i></i></span>
+            <span class="t">43,200 &middot; $0.22</span></li>
+          <li class="mark">↑ your counter stops here &middot; everything below is
+            the four lines of code</li>
+          <li class="past" style="--w:25%;--i:3"><b>turn 20</b>
+            <span class="bar"><i></i></span>
+            <span class="t">120,000 &middot; $0.60</span></li>
+          <li class="past" style="--w:56%;--i:4"><b>turn 30</b>
+            <span class="bar"><i></i></span>
+            <span class="t">270,000 &middot; $1.35</span></li>
+          <li class="past" style="--w:100%;--i:5"><b>turn 40</b>
+            <span class="bar"><i></i></span>
+            <span class="t">480,000 &middot; $2.40</span></li>
+        </ol>
+        <div class="legs">
+          <span class="l">capped: 9% of the bill</span>
+          <span class="r">uncapped: the other 91%, for nothing</span>
+        </div>
+      </div>
+      <figcaption>Each bar is the <em>whole run so far</em>, not that turn, which
+        is why they curve rather than climb. <b>Turn 12 is 9% of turn 40.</b>
+        A runaway spends nine-tenths of its money after the point a sane cap
+        would have stopped it, because every turn re-sends every turn before it
+        and the total is the area of the triangle. Read the bars from the bottom
+        up and you have the argument backwards, which is also how it feels in
+        production: the first dozen turns are free, and then they aren't.</figcaption>
+    </figure>
+
     <blockquote>Pick a number, <code>break</code> at it, and log that you did.
       A capped runaway is a bug report. An uncapped one is an invoice.</blockquote>
 
@@ -225,38 +306,31 @@
        are a feeling:</p>
 
     <figure class="diag">
-      <div class="pair">
+      
+      <div class="pair goals">
         <div class="side">
           <b>a vibe</b>
-<pre><code>"clean up the notes
- directory"
-
-"make the weather
- file better"
-
-"fix the tests"</code></pre>
+<pre><code><span class="g" style="--i:0">"clean up the notes
+ directory"</span><span class="g" style="--i:1">"make the weather
+ file better"</span><span class="g" style="--i:2">"fix the tests"</span></code></pre>
         </div>
         
         <div class="cross" aria-hidden="true">&rarr;</div>
         <div class="side">
           <b>a condition, in code</b>
-<pre><code>read("notes/paris.md")
-  .split("\n")
-  .length === 3
-
-exitCode === 0
-
-files.every(f =&gt;
-  f.endsWith("\n"))</code></pre>
+<pre><code><span class="g" style="--i:0">files.every(f =&gt;
+  f.endsWith("\n"))</span><span class="g" style="--i:1">read("notes/paris.md")
+  .split("\n").length === 3</span><span class="g" style="--i:2">exitCode === 0</span></code></pre>
         </div>
       </div>
       <figcaption>Left is what the user says, and it's fine as a
-        <em>prompt</em>. Right is what your loop needs: an expression that comes
-        back true or false without a human reading anything. Write the right-hand
-        side first. If you can't, you haven't decided what you want yet, and
-        <b>an agent can't decide it for you</b>. It picks something plausible and
-        stops there, which is exactly the failure people describe as &ldquo;it
-        gave up.&rdquo;</figcaption>
+        <em>prompt</em>. Right is the same three wishes as something your loop can
+        run: <b>read across, not down</b> — every row is one goal twice, and the
+        right-hand version comes back true or false without a human reading
+        anything. Write that side first. If you can't, you haven't decided what
+        you want yet, and <b>an agent can't decide it for you</b>. It picks
+        something plausible and stops there, which is exactly the failure people
+        describe as &ldquo;it gave up.&rdquo;</figcaption>
     </figure>
 
     <p>Two rules make this work in practice. State the goal in the prompt
@@ -271,6 +345,41 @@ files.every(f =&gt;
        fails twice, the model is not the problem. Either your check is stricter
        than your prompt, or the tools can't express the job. Stop and read them
        both.</p>
+
+    <figure class="diag">
+      <div class="gate">
+        <span class="cap">the exit is an AND &middot; the model, and then the
+          filesystem</span>
+        <ol class="passes">
+          <li class="miss">
+            <b>the first goodbye</b>
+            <span class="c yes" style="--n:0">end_turn ✓</span>
+            <span class="c no" style="--n:1">goalMet() ✗</span>
+            <span class="act">two lines, not three — one sentence back naming
+              what's missing, and round the loop goes</span>
+          </li>
+          
+          <li class="link">↻ one sentence, appended to the array you already
+            have</li>
+          <li class="hit">
+            <b>the second</b>
+            <span class="c yes" style="--n:0">end_turn ✓</span>
+            <span class="c yes" style="--n:1">goalMet() ✓</span>
+            <span class="act">both agree, so the run ends here — and you can say
+              which exit you took</span>
+          </li>
+        </ol>
+      </div>
+      <figcaption>The same reply, twice, and the only difference is what your own
+        four lines found on disk. The top row is the failure lesson 2 can't see:
+        <code>end_turn</code> arrived, the loop believed it, and the file has two
+        lines in it. <b>Neither chip is enough on its own.</b> The model's is a
+        claim about the model; yours is a claim about the world. Note what the
+        nudge is, too — one sentence appended to the array you already have, not
+        a new conversation. And note that there are only two passes: if the hatched
+        chip comes back a second time, <b>stop</b>, because the third pass is
+        just the second one with your money.</figcaption>
+    </figure>
 
     <div class="tip">
       <b>tip: run the check before the first turn</b>
@@ -554,7 +663,7 @@ print(f"goal met in {turn} turn(s)" if done
        way, in the ordinary place:</p>
 
     <figure class="diag">
-      <div class="fork">
+      <div class="fork wait">
         <div class="src"><b>station 3 never returns</b>
           <code>http_get https://slow.example</code> — 10 seconds gone, the
           socket is open, and your <code>await</code> is still waiting</div>
@@ -584,6 +693,42 @@ print(f"goal met in {turn} turn(s)" if done
        didn't like is not a retry. It's a result, and the model is the one who
        should choose what to do about it.</p>
 
+    <figure class="diag">
+      <div class="lanes">
+        <span class="cap">what a failure is allowed to loop on</span>
+        <div class="lane t">
+          <b>transport &middot; yours to retry</b>
+          <ol class="hops">
+            <li style="--i:0">429</li>
+            <li class="wait" style="--i:1">wait 200ms</li>
+            <li style="--i:2">429</li>
+            <li class="wait" style="--i:3">wait 600ms</li>
+            <li class="ok" style="--i:4">200 · the result</li>
+          </ol>
+          <span class="who">↻ three tries, one turn — the model never hears
+            about it</span>
+        </div>
+        <div class="lane d">
+          <b>a decision &middot; not yours</b>
+          <ol class="hops">
+            <li style="--i:0">the tool ran</li>
+            <li style="--i:1">"no such file: notes/paris.md"</li>
+            <li class="up" style="--i:2">↑ tool_result · the model chooses</li>
+          </ol>
+          <span class="who">✕ retrying this is guessing on the model's
+            behalf</span>
+        </div>
+      </div>
+      <figcaption>Both lanes start with a tool that didn't give you what you
+        wanted, and that's the trap: one of them is a broken pipe and the other
+        is <em>information</em>. Count the hops. The top lane spends three tries
+        inside a single turn and the conversation never grows, so it's cheap and
+        invisible. The bottom lane has one hop and it goes <b>up</b>, because the
+        tool worked perfectly — it told you the file isn't there. Retry that and
+        you'll get the same answer, slower, having hidden it from the one party
+        that could have written the file instead.</figcaption>
+    </figure>
+
     <p>And before you retry anything with a side effect, ask whether running it
        twice is safe. <code>read_file</code> is free to repeat.
        <code>send_email</code> is not. If a tool writes, either make it
@@ -596,14 +741,15 @@ print(f"goal met in {turn} turn(s)" if done
        never sees. Watch where the run actually ends:</p>
 
     <figure class="diag">
-      <ol class="tape six">
+      
+      <ol class="tape six miss">
         <li><b>user</b>, write notes/paris.md with exactly three lines about the
             weather, then read it back</li>
         <li><b>assistant</b>, <span class="k">tool_use</span>
             <code>write_file</code> ·
             <code>{"path": "notes/paris.md", …}</code></li>
-        <li><b>user</b>, <span class="k">tool_result</span> wrote 2 line(s) to
-            notes/paris.md</li>
+        <li><b>user</b>, <span class="k">tool_result</span> wrote
+            <span class="off">2 line(s)</span> to notes/paris.md</li>
         <li><b>assistant</b>, <span class="k">tool_use</span>
             <code>read_file</code> · two lines come back · writes the third</li>
         <li><b>user</b>, <span class="k">tool_result</span> the three lines,
@@ -618,6 +764,135 @@ print(f"goal met in {turn} turn(s)" if done
         conditions agreeing, and if only the first had held, your nudge would go
         in there instead and the tape would keep running.</figcaption>
     </figure>
+
+    <h2>Why the loop is the point, not the plumbing</h2>
+
+    <p>Worth saying out loud, because the exits get all the attention in this
+       lesson: the loop isn't scaffolding for tool calls. <strong>The loop is
+       what makes the answer better.</strong> One request answers from the prompt
+       alone. Turn 2 answers from the prompt <em>plus</em> what turn 1 found on
+       disk. Turn 3 answers from both plus the mistake it just read back in its
+       own <code>tool_result</code>. Every pass has strictly more evidence than
+       the one before it, so every pass can be better than the one before it.</p>
+
+    <figure class="diag">
+      <div class="stack">
+        <span class="cap">what each pass has to reason from</span>
+        <ol class="rows">
+          <li style="--d:0.3s">
+            <b>turn 1</b>
+            <span class="e" style="--n:0">the prompt</span>
+            <span class="act">writes the file from the prompt alone — and this
+              row is also the whole of a one-shot call</span>
+          </li>
+          <li style="--d:2.3s">
+            <b>turn 2</b>
+            <span class="e old" style="--n:0">the prompt</span>
+            <span class="e" style="--n:1">+ &ldquo;wrote 2 line(s)&rdquo;</span>
+            <span class="act">its own tool_result disagrees with the goal, so it
+              reads the file back</span>
+          </li>
+          <li class="hit" style="--d:4.3s">
+            <b>turn 3</b>
+            <span class="e old" style="--n:0">the prompt</span>
+            <span class="e old" style="--n:1">+ &ldquo;wrote 2 line(s)&rdquo;</span>
+            <span class="e" style="--n:2">+ the two lines, verbatim</span>
+            <span class="act">writes the third line — nobody corrected it</span>
+          </li>
+        </ol>
+      </div>
+      <figcaption>The chips only ever get added, never removed, and that's the
+        mechanism: <b>each turn reasons from strictly more evidence than the one
+        before it.</b> Turn 3 fixes turn 1's work because turn 3 can see turn
+        1's work. Note what would happen to the top row if you paid for a bigger
+        model — nothing. It still has one chip. That's the ceiling a one-shot call
+        runs into, and no amount of model buys past it; a second turn does, for
+        the price of one more request.</figcaption>
+    </figure>
+
+    <p>That's the whole reason turn 3 of the tape above wrote a third line.
+       Nobody corrected the agent. It read two lines where it expected three and
+       fixed its own work. A one-shot call cannot do that at any model size,
+       because there is no second look. This is nice to see.</p>
+
+    <p>Which suggests the obvious move: if one pass improves the work, run
+       several on purpose. Don't do it with one loop. A loop that improves and
+       judges at the same time grades its own homework, and it marks generously —
+       it has 4,000 tokens of its own reasoning in the array explaining why the
+       work is good. <strong>Stack two loops instead.</strong></p>
+
+    <figure class="diag">
+      <div class="lanes stacked">
+        <span class="cap">two loops, stacked &middot; three rounds, then stop</span>
+        <div class="lane t">
+          <b>the improve loop &middot; writes</b>
+          <ol class="hops">
+            <li style="--i:0">read the file</li>
+            <li style="--i:1">rewrite it</li>
+            <li class="wait" style="--i:2">read it back</li>
+            <li class="ok" style="--i:3">end_turn · 12-turn cap</li>
+          </ol>
+          <span class="who">↻ keeps the conversation — it needs the context</span>
+        </div>
+        <div class="lane d">
+          <b>the verify loop &middot; only reads</b>
+          <ol class="hops">
+            <li style="--i:0">fresh messages array</li>
+            <li style="--i:1">read the file cold</li>
+            <li class="up" style="--i:2">↑ 2 problems · back to improve</li>
+          </ol>
+          <span class="who">✕ no write tools, no history, no loyalty to the
+            draft</span>
+        </div>
+      </div>
+      <figcaption>The same model twice, and the only difference is what each one
+        is allowed to see and touch. <b>The verify loop starts empty.</b> That's
+        the load-bearing detail: hand it the improver's transcript and you hand
+        it the improver's confidence, and it agrees with the reasoning instead of
+        reading the file. Give it read-only tools and a checklist and it comes
+        back with a list. Then that list is the next improve loop's prompt, which
+        is a far better instruction than &ldquo;make it better&rdquo; because
+        <em>a machine wrote it about your actual file</em>.</figcaption>
+    </figure>
+
+    <p>Wrap the <code>while</code> loop you already wrote in a function and the
+       stack is nine lines:</p>
+
+<pre><code>// runLoop(goal, tools) is the loop from above, returning its final text.
+const MAX_ROUNDS = 3;                    // the same argument as MAX_TURNS, one level up
+let notes = "";
+
+for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
+  await runLoop(`${GOAL}\n${notes}`, [writeTool, readTool]);   // improve: can write
+
+  // verify: a new conversation, read-only tools, and one question.
+  const report = await runLoop(
+    `Read notes/paris.md. List every line that is not weather, or reply PASS.`,
+    [readTool]);
+
+  if (report.includes("PASS")) { console.log(`passed on round ${round}`); break; }
+  notes = `A reviewer found these problems. Fix them:\n${report}`;
+  console.log(`round ${round}: ${report}`);   // your log of what got better, and when
+}</code></pre>
+
+    <p>Now the honest part, because a loop that improves things forever would be
+       a strange thing to be given for free. <strong>The gain per round
+       flattens.</strong> Round 1 fixes the obvious, round 2 fixes what round 1
+       introduced, and round 3 usually reworks phrasing you already liked. The
+       cost doesn't flatten. Reuse the arithmetic from earlier and price it at the
+       caps: an improve loop that runs to 12 turns is 43,200 input tokens, or
+       <strong>$0.22</strong>, and a 4-turn verify loop on a fresh array is 4,800
+       tokens, or <strong>$0.02</strong>. Three rounds of both is
+       <strong>$0.72</strong> against <strong>$0.24</strong> for one round.
+       <strong>3&times; the bill for the second look and the third.</strong>
+       Worth it for a document somebody reads, wasteful for a log line. Cap the
+       rounds, log which round passed, and after a week of logs you'll know
+       whether round 3 ever earns its keep.</p>
+
+    <p>Straight about what we've shipped: the harness runs one loop, not two.
+       There's no improve/verify button in the settings panel. You get the stack
+       by asking for it in your own script, which is why it's nine lines here and
+       not a feature.</p>
 
     <h2>Let the model pace itself: task budgets</h2>
 
@@ -647,6 +922,42 @@ print(f"goal met in {turn} turn(s)" if done
        replaces neither: use all three, and keep the counter, because a budget
        the model chooses to blow through is not a cap.</p>
 
+    <figure class="diag">
+      <div class="caps">
+        <span class="cap">three limits &middot; two questions each</span>
+        <ol class="rows">
+          <li class="soft" style="--d:0.4s">
+            <b><code>task_budget</code></b>
+            <span class="c yes" style="--n:0">the model can see it ✓</span>
+            <span class="c no" style="--n:1">enforced ✗</span>
+            <span class="act">it paces itself and lands the job — a suggestion,
+              and it can spend past one</span>
+          </li>
+          <li style="--d:2.3s">
+            <b><code>max_tokens</code></b>
+            <span class="c no" style="--n:0">the model can see it ✗</span>
+            <span class="c yes" style="--n:1">enforced, per reply ✓</span>
+            <span class="act">cuts one reply mid-sentence, then your loop goes
+              round again — it stops a message, never a run</span>
+          </li>
+          <li class="ends" style="--d:4.2s">
+            <b><code>MAX_TURNS</code></b>
+            <span class="c no" style="--n:0">the model can see it ✗</span>
+            <span class="c yes" style="--n:1">enforced, per run ✓</span>
+            <span class="act">the only one of the three that ends the loop</span>
+          </li>
+        </ol>
+      </div>
+      <figcaption>Three limits people use interchangeably in conversation, and
+        no two rows here are the same shape. <b>Only the bottom row can stop a
+        run</b>, which is why the budget replaces nothing — and only the top row
+        is visible to the thing doing the work, which is why it's worth having
+        anyway. A limit the model can't see it's approaching produces a job
+        abandoned mid-sentence; a limit it can see produces one wrapped up early.
+        Same stopping point, and only one of them leaves you something to
+        ship.</figcaption>
+    </figure>
+
     <p>Straight about what we've shipped: the harness doesn't use task budgets.
        It counts steps, <em>max steps</em>, 40 by default in the settings panel,
        and stops there with a line in the log telling you it was the setting and
@@ -675,7 +986,7 @@ print(f"goal met in {turn} turn(s)" if done
        the runner ended cleanly. <code>pause_turn</code> comes back looking like
        success.</p>
 
-    <h2>Five rules for stopping</h2>
+    <h2>Six rules for a loop that stops</h2>
 
     <ul>
       <li><strong>Cap the turns, and log the cap.</strong> A run that ends at the
@@ -690,6 +1001,10 @@ print(f"goal met in {turn} turn(s)" if done
       <li><strong>Put a deadline on every tool.</strong> A hung tool is worse
           than a failing one, because nothing tells you. Send the timeout back
           as a <code>tool_result</code> with <code>is_error: true</code>.</li>
+      <li><strong>Stack loops on purpose, don't extend one.</strong> Each pass
+          knows more than the last, so a second loop with read-only tools and no
+          history is the cheapest quality you can buy. Cap the rounds too, and
+          log which one passed.</li>
       <li><strong>Retry the transport, never the decision.</strong> Backoff on a
           429 or a dropped socket. Everything else is a result the model should
           see, and anything with a side effect needs to be idempotent before you
@@ -710,6 +1025,16 @@ print(f"goal met in {turn} turn(s)" if done
        a second read, then prose. Three tool calls that had to happen in that
        order, and an agent that verified its own edit before saying it was
        done.</p>
+
+    <p>Then run the stack by hand, in two requests, to feel the second look
+       working. Ask it to improve <code>notes/paris.md</code>. Then send
+       <code>/clear</code>, which empties the conversation and leaves the files
+       alone — that's your fresh array. Now ask &ldquo;read notes/paris.md and
+       list every line that isn't weather, or reply PASS&rdquo; and read what the
+       reviewer found. That list is exactly what round 2 of an improve loop gets
+       handed, and it's more specific than anything you'd have typed yourself.
+       Then ask the same question <em>without</em> the <code>/clear</code> and
+       watch it defend the draft it just wrote.</p>
 
     <p>Then break it on purpose, which is the half that teaches:</p>
 
