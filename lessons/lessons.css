@@ -1274,7 +1274,7 @@ table.ref td { vertical-align: top; }
 }
 .gate .passes { list-style: none; margin: 0; padding: 0; display: grid; gap: .45rem; }
 .gate .passes > li {
-  display: grid; grid-template-columns: auto auto 1fr;
+  display: grid; grid-template-columns: auto auto auto 1fr;
   gap: .3rem .45rem; align-items: center; opacity: .22;
   border: 1px solid var(--rule); background: var(--paper);
   padding: .45rem .55rem; font-size: .72rem; color: var(--ink);
@@ -1297,6 +1297,13 @@ table.ref td { vertical-align: top; }
   animation-delay: calc(var(--d) + var(--n) * .5s);
 }
 .gate .c.yes { color: var(--good); }
+/* the meter chip: dim and neither-coloured on purpose. It is identical in both
+   rows, and it is the one chip that decides nothing, so it must not read as a
+   pass — green here would make a self-reported 100 look like evidence. */
+.gate .c.bar {
+  color: var(--ink-faint); font-size: .62rem;
+  letter-spacing: .04em; white-space: nowrap;
+}
 /* the failed check keeps figure 10's hatch: in this archive a 45° hatch always
    means *this is going round again*. Hatched in `--rule` rather than the row's
    own ink-hot, because ink-hot is near-white in dark mode and a chip you cannot

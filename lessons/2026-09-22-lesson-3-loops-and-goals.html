@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>lesson 3: loops and goals - free AI Agent training from buttercup.sh</title>
-<meta name="description" content="Lesson 3 of the free buttercup.sh agent course: every value stop_reason can hold, the turn cap that turns a $2.40 runaway into 22 cents, goals a program can check, what to do when a tool hangs, why every pass round the loop gets better, stacking an improve loop with a verify loop, and a multi-step agent in JavaScript and Python.">
+<meta name="description" content="Lesson 3 of the free buttercup.sh agent course: every value stop_reason can hold, the turn cap that turns a $2.40 runaway into 22 cents, goals a program can check, a report_status tool with a complete/incomplete enum and a 0-100 progress meter, what to do when a tool hangs, why every pass round the loop gets better, stacking an improve loop with a verify loop, and a multi-step agent in JavaScript and Python.">
 <link rel="canonical" href="https://buttercup.sh/lessons/2026-09-22-lesson-3-loops-and-goals.html">
 <link rel="stylesheet" href="lessons.css">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23191204'/%3E%3Ctext x='2' y='12' font-family='monospace' font-size='11' fill='%23ffd873'%3E%26gt;%3C/text%3E%3C/svg%3E">
@@ -35,10 +35,13 @@
          for a reason you chose. Lesson 2's loop had exactly one way out: the
          model stopped asking for tools. That's one exit, and it's the model's,
          not yours. You'll add the other three, <strong>a turn counter, a goal a
-         program can check, and a deadline on every tool</strong>, and you'll see
-         the arithmetic on why the counter alone is worth $2.18 a run. Forty
-         lines, JavaScript and Python, against the same key you already
-         have.</p>
+         program can check, and a deadline on every tool</strong>, plus a
+         <code>report_status</code> tool so the model's own
+         &ldquo;done&rdquo; arrives as an enum you can branch on
+         instead of a goodbye. You'll see
+         the arithmetic on why the counter alone is worth $2.18 a run. The loop
+         is forty lines of it, JavaScript and Python, and the rest is tool
+         schemas. Same key you already have.</p>
       <!-- the form itself rather than a link down to it: one field, one
            button, no jump. Same list, same sink frame as the foot. -->
       <form class="signup lede" id="signup-lede"
@@ -71,11 +74,15 @@
 
     <ul>
       <li><strong>The model says so.</strong> <code>stop_reason</code> comes back
-          as <code>end_turn</code>. It has nothing left to ask for.</li>
+          as <code>end_turn</code>, or better, it calls a
+          <code>report_status</code> tool and says <code>"complete"</code> on
+          purpose.</li>
       <li><strong>Your counter says so.</strong> Turn 12 of 12. You stop, and
           you log that you stopped here rather than at an answer.</li>
-      <li><strong>Your goal check says so.</strong> The file exists and has three
-          lines, so there's nothing left to want.</li>
+      <li><strong>Your goal check says so.</strong> The model called
+          <code>report_status</code> with <code>"complete"</code>, and your own
+          four lines went and looked: the file exists and has three lines, so
+          there's nothing left to want.</li>
       <li><strong>Something broke and you decided.</strong> A tool hung, a reply
           was truncated, a request was refused.</li>
     </ul>
@@ -233,9 +240,10 @@
     <p>Do the arithmetic, because it's the argument. A stuck turn appends a
        <code>tool_use</code> block and its <code>tool_result</code>: call it
        <strong>600 tokens</strong>, and the request that carries it is 300
-       tokens of prompt plus everything before it. Turn <em>n</em> costs
-       300&nbsp;+&nbsp;600<em>n</em> input tokens, so the whole run is the
-       triangle, not the last row.</p>
+       tokens of prompt plus everything before it. So turn 1 sends 300 tokens,
+       and turn <em>n</em> sends 300 plus 600 for each of the
+       <em>n</em>&nbsp;&minus;&nbsp;1 turns behind it. <strong>The bill is the
+       triangle, not the last row.</strong></p>
 
     <p>Let it run to 40 turns and you bill
        <strong>480,000 input tokens</strong> for one request that produced
@@ -296,7 +304,7 @@
        A purpose-built agent does know, and should say so with a smaller
        number.</p>
 
-    <h2>A goal the model can check itself against</h2>
+    <h2>A goal a program can check</h2>
 
     <p>Here is the exit everyone forgets. The model stopping is not the job
        finishing. <code>end_turn</code> means &ldquo;I have nothing more to
@@ -339,25 +347,71 @@
     <p>Two rules make this work in practice. State the goal in the prompt
        <em>in the same terms your check uses</em>, so the model is aiming at the
        thing you're measuring: &ldquo;three lines&rdquo; in the prompt, and
-       <code>length === 3</code> in the code. And when the check fails after an
-       <code>end_turn</code>, say what's missing in one sentence and let it
+       <code>length === 3</code> in the code. And when the check fails after the
+       model says it's done, say what's missing in one sentence and let it
        continue. Don't restart the conversation. It has the whole array
        already.</p>
 
-    <p>Nudge <strong>once</strong>. If the model claims to be done and the check
-       fails twice, the model is not the problem. Either your check is stricter
-       than your prompt, or the tools can't express the job. Stop and read them
-       both.</p>
+    <h2>Make the claim a tool call, not a goodbye</h2>
+
+    <p>So your side of the exit is settled. The model's side is still
+       <code>end_turn</code>, which is the weakest signal in the whole protocol:
+       it means &ldquo;I stopped talking.&rdquo; You can't tell a finished job
+       from a wandered-off one, and you can't tell either of them from the model
+       running out of things to say two lines short. <strong>Give the model a
+       tool to say it with instead.</strong></p>
+
+    <p>One more schema, alongside <code>read_file</code> and
+       <code>write_file</code>. It doesn't touch the world; it exists so the
+       model's opinion arrives in a shape your code can branch on:</p>
+
+<pre><code>{
+  name: "report_status",
+  description:
+    "Report where you are against the goal. Call this after every write. " +
+    "Use \"complete\" only when notes/paris.md holds exactly three lines " +
+    "and you have read them back and seen all three.",
+  input_schema: {
+    type: "object",
+    properties: {
+      status:   { type: "string", enum: ["complete", "incomplete"] },
+      progress: { type: "integer", minimum: 0, maximum: 100 },
+      note:     { type: "string", description: "one line: what is left to do" },
+    },
+    required: ["status", "progress"],
+  },
+}</code></pre>
+
+    <p>Two fields, and they earn their keep differently. The
+       <code>enum</code> is the one that changes your loop: two values, so
+       <code>status === "complete"</code> is a branch rather than a guess at
+       English. A model that would have drifted off with <code>end_turn</code>
+       now has to pick a word, and picking <code>"incomplete"</code> is a
+       commitment to keep working. Enums are also the cheapest schema
+       constraint there is, because &ldquo;one of these two strings&rdquo; is a
+       thing the sampler can be held to.</p>
+
+    <p>The <code>progress</code> integer changes nothing about the exit and
+       everything about your logs. It's <strong>the model's estimate</strong>,
+       not a measurement, so <strong>print it and never branch on it</strong>:
+       don't stop at 100, don't gate anything on 80. Notice that there's no
+       <code>if</code> on <code>progress</code> anywhere in the code below —
+       there's one <code>console.log</code>. What it buys you is a run you can
+       read at a glance afterwards. Three turns at 60, 60, 60 is a stuck agent,
+       and it's visible in the log long before the turn cap notices; a run that
+       walks 20&nbsp;→&nbsp;90 and then reports <code>"complete"</code> at 90 is
+       telling you your prompt and your check describe different jobs.</p>
 
     <figure class="diag">
       <div class="gate">
-        <span class="cap">the exit is an AND &middot; the model, and then the
-          filesystem</span>
+        <span class="cap">the exit is an AND &middot; the model's word, and then
+          the filesystem</span>
         <ol class="passes">
           <li class="miss">
-            <b>the first goodbye</b>
-            <span class="c yes" style="--n:0">end_turn ✓</span>
-            <span class="c no" style="--n:1">goalMet() ✗</span>
+            <b>the first claim</b>
+            <span class="c yes" style="--n:0">status: complete</span>
+            <span class="c bar" style="--n:1">progress 100 ▓▓▓▓▓▓▓▓▓▓</span>
+            <span class="c no" style="--n:2">goalMet() ✗</span>
             <span class="act">two lines, not three — one sentence back naming
               what's missing, and round the loop goes</span>
           </li>
@@ -367,23 +421,38 @@
             have</li>
           <li class="hit">
             <b>the second</b>
-            <span class="c yes" style="--n:0">end_turn ✓</span>
-            <span class="c yes" style="--n:1">goalMet() ✓</span>
+            <span class="c yes" style="--n:0">status: complete</span>
+            <span class="c bar" style="--n:1">progress 100 ▓▓▓▓▓▓▓▓▓▓</span>
+            <span class="c yes" style="--n:2">goalMet() ✓</span>
             <span class="act">both agree, so the run ends here — and you can say
               which exit you took</span>
           </li>
         </ol>
       </div>
-      <figcaption>The same reply, twice, and the only difference is what your own
-        four lines found on disk. The top row is the failure lesson 2 can't see:
-        <code>end_turn</code> arrived, the loop believed it, and the file has two
-        lines in it. <b>Neither chip is enough on its own.</b> The model's is a
-        claim about the model; yours is a claim about the world. Note what the
-        nudge is, too — one sentence appended to the array you already have, not
-        a new conversation. And note that there are only two passes: if the hatched
-        chip comes back a second time, <b>stop</b>, because the third pass is
-        just the second one with your money.</figcaption>
+      <figcaption>The same tool call, twice, with the same three chips, and the
+        only difference is what your own four lines found on disk. The top row is
+        the failure lesson 2 can't see: the model reported <code>complete</code>
+        at a confident 100, the loop believed it, and the file has two lines in
+        it. <b>Neither end chip is enough on its own.</b> The model's is a claim
+        about the model; yours is a claim about the world. And note that the
+        middle chip is <em>identical</em> in both rows — that's the point of
+        drawing it: <b>the meter is a log line, not a condition</b>, and a
+        confident 100 is worth exactly nothing until the row to its right agrees.
+        Note what the nudge is, too — one sentence appended to the array you
+        already have, not a new conversation. And note that there are only two
+        passes: if the hatched chip comes back a second time, <b>stop</b>,
+        because the third pass is just the second one with your money.</figcaption>
     </figure>
+
+    <p>Keep the <code>end_turn</code> branch anyway. A model that stops talking
+       without ever calling <code>report_status</code> is the &ldquo;gave
+       up&rdquo; case in its purest form, and now you can name it in the log
+       instead of guessing at it.</p>
+
+    <p>Nudge <strong>once</strong>. If the model reports <code>complete</code>
+       and the check fails twice, the model is not the problem. Either your check
+       is stricter than your prompt, or the tools can't express the job. Stop and
+       read them both.</p>
 
     <div class="tip">
       <b>tip: run the check before the first turn</b>
@@ -409,13 +478,20 @@ const client = new Anthropic();
 const MAX_TURNS = 12;             // your exit, not the model's
 const TOOL_TIMEOUT_MS = 10_000;   // no tool gets to hang the run
 
-// 1. the tools. Two plain functions, same as last week.
+// 1. the tools. Two that touch the disk, and one that only reports.
+let claim = { status: "incomplete", progress: 0, note: "not started" };
+
 const TOOLS = {
   write_file: async ({ path, text }) =&gt; {
     await writeFile(path, text);
     return `wrote ${text.split("\n").length} line(s) to ${path}`;
   },
   read_file: ({ path }) =&gt; readFile(path, "utf8"),
+  // the model's claim, in a shape the loop can branch on
+  report_status: (input) =&gt; {
+    claim = input;
+    return `noted: ${input.status} at ${input.progress}%`;
+  },
 };
 
 const toolSchemas = [
@@ -437,12 +513,29 @@ const toolSchemas = [
       required: ["path"],
     },
   },
+  {
+    name: "report_status",
+    description:
+      "Report where you are against the goal. Call this after every write. " +
+      "Use \"complete\" only when notes/paris.md holds exactly three lines " +
+      "and you have read them back and seen all three.",
+    input_schema: {
+      type: "object",
+      properties: {
+        status: { type: "string", enum: ["complete", "incomplete"] },
+        progress: { type: "integer", minimum: 0, maximum: 100 },
+        note: { type: "string", description: "one line: what is left to do" },
+      },
+      required: ["status", "progress"],
+    },
+  },
 ];
 
 // 2. the goal. Said once in prose for the model, once in code for the loop —
 //    and the two say the same thing on purpose.
 const GOAL = "Write notes/paris.md with exactly three lines about the weather, " +
-             "then read it back and confirm all three lines are there.";
+             "then read it back and confirm all three lines are there. " +
+             "Call report_status after every write.";
 
 async function goalMet() {
   try {
@@ -478,36 +571,61 @@ while (turn &lt; MAX_TURNS) {
 
   messages.push({ role: "assistant", content: reply.content });
 
+  // not an exit: a server-side tool paused part way. Send it all back unchanged.
+  if (reply.stop_reason === "pause_turn") continue;
+
   // round we go: run every call, answer every call, one message back.
   if (reply.stop_reason === "tool_use") {
     const calls = reply.content.filter(b =&gt; b.type === "tool_use");
-    messages.push({ role: "user", content: await Promise.all(calls.map(runOne)) });
+    const results = await Promise.all(calls.map(runOne));
+    messages.push({ role: "user", content: results });   // answer every call, always
+
+    // the meter is a log line, never a condition. Print it, watch it move.
+    console.log(`turn ${turn}: ${meter(claim.progress)} ${claim.note ?? ""}`);
+
+    // EXIT 3: it claimed complete. Ask the disk before you believe it.
+    if (claim.status === "complete") {
+      if (await goalMet()) { done = true; break; }
+      results.push(nudge());   // `results` IS that message, so the nudge rides in it
+    }
     continue;
   }
 
-  // EXIT 4b: refusal, pause_turn, or a value added after this was written.
+  // EXIT 4b: refusal, stop_sequence, or a value added after this was written.
   // Crash loudly rather than treating it as an answer.
   if (reply.stop_reason !== "end_turn") {
     throw new Error(`unhandled stop_reason: ${reply.stop_reason} ` +
                     `${JSON.stringify(reply.stop_details ?? null)}`);
   }
 
-  // EXIT 1 + 3: the model says it is finished. Ask the filesystem.
+  // EXIT 1: it stopped talking. If it never claimed complete, that's the "gave
+  // up" case — which now has a name in your log rather than a shrug.
+  if (claim.status !== "complete") console.warn(`end_turn at ${claim.progress}%`);
   if (await goalMet()) { done = true; break; }
-
-  if (++nudges &gt; 1) {
-    throw new Error("stopped early twice — the goal, the check or the tools disagree");
-  }
-  messages.push({
-    role: "user",
-    content: "notes/paris.md does not have three lines yet. Finish the job.",
-  });
+  messages.push({ role: "user", content: [nudge()] });
 }
 
 // EXIT 2: the counter. Say which exit you took, every time.
 console.log(done
   ? `goal met in ${turn} turn(s)`
-  : `stopped at the ${MAX_TURNS}-turn cap without meeting the goal`);
+  : `stopped at the ${MAX_TURNS}-turn cap, last claim ${claim.status} ` +
+    `at ${claim.progress}% — ${claim.note ?? "no note"}`);
+
+// one sentence naming what's missing, and the only place the nudge is counted.
+function nudge() {
+  if (++nudges &gt; 1) {
+    throw new Error("said done twice — the goal, the check or the tools disagree");
+  }
+  const text = `notes/paris.md does not have three lines yet — you last ` +
+               `reported ${claim.status} at ${claim.progress}%. Finish the job.`;
+  claim = { ...claim, status: "incomplete" };   // spent: make it report again
+  return { type: "text", text };
+}
+
+// the meter, for humans reading the log. Twenty cells, so each one is 5%.
+function meter(p) {
+  return `[${"▓".repeat(Math.round(p / 5)).padEnd(20, "·")}] ${String(p).padStart(3)}%`;
+}
 
 // one tool call: a deadline, and a failure that travels as information
 async function runOne(block) {
@@ -528,11 +646,11 @@ function withTimeout(work, ms) {
   ]);
 }</code></pre>
 
-    <p>Read the four <code>continue</code>/<code>break</code> points and nothing
-       else. That's the lesson. Every one of them names the exit it is, and the
-       last line of the run says out loud which one you left by. That's the
-       difference between an agent you can debug and an agent you can only
-       watch.</p>
+    <p>Read the <code>continue</code>/<code>break</code> points and nothing else.
+       That's the lesson. Every one of them names the exit it is, and the last
+       line of the run says out loud which one you left by, with the model's last
+       claim next to it. That's the difference between an agent you can debug and
+       an agent you can only watch.</p>
 
     <h2>The code, Python</h2>
 
@@ -556,7 +674,15 @@ def write_file(path, text):
 def read_file(path):
     return Path(path).read_text()
 
-TOOLS = {"write_file": write_file, "read_file": read_file}
+claim = {"status": "incomplete", "progress": 0, "note": "not started"}
+
+def report_status(status, progress, note=""):
+    global claim
+    claim = {"status": status, "progress": progress, "note": note}
+    return f"noted: {status} at {progress}%"
+
+TOOLS = {"write_file": write_file, "read_file": read_file,
+         "report_status": report_status}
 
 tool_schemas = [
     {
@@ -577,17 +703,38 @@ tool_schemas = [
             "required": ["path"],
         },
     },
+    {
+        "name": "report_status",
+        "description": (
+            "Report where you are against the goal. Call this after every write. "
+            'Use "complete" only when notes/paris.md holds exactly three lines '
+            "and you have read them back and seen all three."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "status": {"type": "string", "enum": ["complete", "incomplete"]},
+                "progress": {"type": "integer", "minimum": 0, "maximum": 100},
+                "note": {"type": "string", "description": "one line: what is left"},
+            },
+            "required": ["status", "progress"],
+        },
+    },
 ]
 
 # 2. the goal, in prose and in code
 GOAL = ("Write notes/paris.md with exactly three lines about the weather, "
-        "then read it back and confirm all three lines are there.")
+        "then read it back and confirm all three lines are there. "
+        "Call report_status after every write.")
 
 def goal_met():
     try:
         return len(NOTES.read_text().rstrip().splitlines()) == 3
     except FileNotFoundError:
         return False
+
+def meter(p):                      # twenty cells, so each one is 5%
+    return f"[{'▓' * round(p / 5):·&lt;20}] {p:3}%"
 
 # 3. the loop
 pool = ThreadPoolExecutor(max_workers=8)
@@ -608,6 +755,17 @@ turn, nudges, budget, done = 0, 0, 16000, False
 
 assert not goal_met(), "already done — nothing to run"
 
+# one sentence naming what's missing, and the only place the nudge is counted.
+def nudge():
+    global nudges
+    nudges += 1
+    if nudges &gt; 1:
+        raise RuntimeError("said done twice — the goal, the check or the tools disagree")
+    text = ("notes/paris.md does not have three lines yet — you last reported "
+            f"{claim['status']} at {claim['progress']}%. Finish the job.")
+    claim["status"] = "incomplete"      # spent: make it report again
+    return {"type": "text", "text": text}
+
 while turn &lt; MAX_TURNS:
     turn += 1
     reply = client.messages.create(
@@ -625,27 +783,42 @@ while turn &lt; MAX_TURNS:
 
     messages.append({"role": "assistant", "content": reply.content})
 
+    # not an exit: a server-side tool paused part way. Send it all back unchanged.
+    if reply.stop_reason == "pause_turn":
+        continue
+
     if reply.stop_reason == "tool_use":
         calls = [b for b in reply.content if b.type == "tool_use"]
-        messages.append({"role": "user", "content": [run_one(b) for b in calls]})
+        results = [run_one(b) for b in calls]
+        messages.append({"role": "user", "content": results})   # answer every call
+
+        # the meter is a log line, never a condition. Print it, watch it move.
+        print(f"turn {turn}: {meter(claim['progress'])} {claim['note']}")
+
+        # it claimed complete. Ask the disk before you believe it.
+        if claim["status"] == "complete":
+            if goal_met():
+                done = True
+                break
+            results.append(nudge())   # `results` IS that message, so the nudge rides in it
         continue
 
     if reply.stop_reason != "end_turn":
         raise RuntimeError(f"unhandled stop_reason: {reply.stop_reason} "
                            f"{reply.stop_details}")
 
+    # it stopped talking. If it never claimed complete, that's the "gave up"
+    # case — which now has a name in your log rather than a shrug.
+    if claim["status"] != "complete":
+        print(f"end_turn at {claim['progress']}%")
     if goal_met():
         done = True
         break
-
-    nudges += 1
-    if nudges &gt; 1:
-        raise RuntimeError("stopped early twice — the goal, the check or the tools disagree")
-    messages.append({"role": "user",
-                     "content": "notes/paris.md does not have three lines yet. Finish the job."})
+    messages.append({"role": "user", "content": [nudge()]})
 
 print(f"goal met in {turn} turn(s)" if done
-      else f"stopped at the {MAX_TURNS}-turn cap without meeting the goal")</code></pre>
+      else f"stopped at the {MAX_TURNS}-turn cap, last claim {claim['status']} "
+           f"at {claim['progress']}% — {claim['note']}")</code></pre>
 
     <p>The Python timeout runs the tool on a pool thread and gives up on the
        <em>result</em>, not on the work. <code>result(10)</code> stops waiting,
@@ -741,7 +914,7 @@ print(f"goal met in {turn} turn(s)" if done
 
     <h2>What the transcript looks like</h2>
 
-    <p>Three tool calls, four trips round the loop, and one goal check the model
+    <p>Four tool calls, four trips round the loop, and one goal check the model
        never sees. Watch where the run actually ends:</p>
 
     <figure class="diag">
@@ -759,15 +932,18 @@ print(f"goal met in {turn} turn(s)" if done
             <code>read_file</code> · two lines come back · writes the third</li>
         <li><b>user</b>, <span class="k">tool_result</span> the three lines,
             back verbatim</li>
-        <li><b>assistant</b>, <code>stop_reason: end_turn</code> — and
+        <li><b>assistant</b>, <span class="k">tool_use</span>
+            <code>report_status</code> ·
+            <code>{"status": "complete", "progress": 100}</code> — and
             <code>goalMet()</code> agrees, so turn 4 is the last one</li>
       </ol>
       <figcaption>Turn 3 is the interesting one: the write came back
         <b>two</b> lines, not three, and the agent noticed from its own tool
         result rather than from you. That's the whole difference between lesson
-        2 and lesson 3: a loop that reads what it did. The last row is two
-        conditions agreeing, and if only the first had held, your nudge would go
-        in there instead and the tape would keep running.</figcaption>
+        2 and lesson 3: a loop that reads what it did. And note that the run ends
+        on a <em>tool call</em>, not on a goodbye — the last row is the model's
+        word and your check agreeing, and if only the model's had held, your nudge
+        would go in there instead and the tape would keep running.</figcaption>
     </figure>
 
     <h2>Why the loop is the point, not the plumbing</h2>
@@ -860,10 +1036,14 @@ print(f"goal met in {turn} turn(s)" if done
         <em>a machine wrote it about your actual file</em>.</figcaption>
     </figure>
 
-    <p>Wrap the <code>while</code> loop you already wrote in a function and the
-       stack is nine lines:</p>
+    <p>Wrap the <code>while</code> loop you already wrote in a function — take
+       the goal and the tool list as arguments, and instead of
+       <code>console.log</code> at the end, return the last assistant text block
+       — and the stack is nine lines:</p>
 
 <pre><code>// runLoop(goal, tools) is the loop from above, returning its final text.
+// The verify call has no goalMet() to satisfy, so it exits the ordinary way,
+// on end_turn — which is exactly what that branch is still there for.
 const MAX_ROUNDS = 3;                    // the same argument as MAX_TURNS, one level up
 let notes = "";
 
@@ -991,7 +1171,7 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
        the runner ended cleanly. <code>pause_turn</code> comes back looking like
        success.</p>
 
-    <h2>Six rules for a loop that stops</h2>
+    <h2>Seven rules for a loop that stops</h2>
 
     <ul>
       <li><strong>Cap the turns, and log the cap.</strong> A run that ends at the
@@ -1000,6 +1180,12 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
       <li><strong>Check the goal, don't trust the goodbye.</strong>
           <code>end_turn</code> is a claim about the model. Your check is a claim
           about the world. Only one of them is about the job.</li>
+      <li><strong>Let it claim done in a schema, not in prose.</strong> A
+          <code>report_status</code> tool with a two-value
+          <code>enum</code> turns &ldquo;I think it's finished&rdquo; into a
+          branch. Log the <code>progress</code> number, never branch on it —
+          it's an estimate, and a flat one three turns running is your real
+          stuck-agent alarm.</li>
       <li><strong>Nudge once.</strong> One sentence naming what's missing, then
           give up and read your own prompt. A second nudge is a loop with extra
           steps.</li>
@@ -1031,6 +1217,14 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
        order, and an agent that verified its own edit before saying it was
        done.</p>
 
+    <p>Straight about what we've shipped: there's no <code>report_status</code> in
+       the harness, but ask for a five-step build and the <code>todo</code> tool
+       goes by in the transcript, and it's the same trick — a status
+       <code>enum</code> of <code>pending</code>/<code>active</code>/<code>done</code>,
+       one per step, instead of one number for the run. The honest difference is
+       that the harness only <em>shows</em> you that list. It doesn't branch on
+       it. Your own loop should.</p>
+
     <p>Then run the stack by hand, in two requests, to feel the second look
        working. Ask it to improve <code>notes/paris.md</code>. Then send
        <code>/clear</code>, which empties the conversation and leaves the files
@@ -1053,9 +1247,9 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
       <li>Turn off <code>read_file</code> in <em>TOOLS</em> and ask it to verify
           the edit. It can't check, so watch whether it says so or claims
           success anyway. Then decide which of those two you'd ship.</li>
-      <li>In your own script, delete the <code>goalMet()</code> call and make
-          the model stop early on purpose: ask for three lines in the prompt and
-          have your check look for four. It tells you it's finished. Twice. Then
+      <li>In your own script, make the model claim <code>complete</code> when it
+          isn't: ask for three lines in the prompt and have <code>goalMet()</code>
+          look for four. It reports <code>complete</code> at 100%. Twice. Then
           your nudge limit fires, which is the error message you want.</li>
     </ul>
 
