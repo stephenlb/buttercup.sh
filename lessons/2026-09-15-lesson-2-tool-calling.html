@@ -31,15 +31,15 @@
     <header>
       <time datetime="2026-09-15">15 September 2026</time>
       <h1>Lesson 2: tool calling - how a chat model gets hands</h1>
-      <p>Twenty lines of code turn a chat model into an agent. You'll have
-         those twenty lines running today, in JavaScript and in Python, and
-         you'll know what every one of them does. A model can't check the
-         weather, read a file, or send an email. It can only write text.
-         <strong>Tool calling is the agreement that turns some of that text
-         into an instruction you agree to carry out.</strong> That agreement is
-         the whole of agents. Everything later in this course refines it. No
-         prior agent code assumed, and the exercise runs in the browser tab
-         next to this one.</p>
+      <p>Twenty lines of code turn a chat model into an agent. By the end of
+         this lesson, you'll have them running in JavaScript and Python and
+         know what each line does. A model can't check the
+         weather or send an email. It can only write text.
+         <strong>Tool calling is the convention that turns some of that text
+         into an instruction your program carries out.</strong> Everything
+         later in this course builds on that arrangement. You don't need prior
+         agent code, and the exercise runs in the browser tab next to this
+         one.</p>
       <!-- the form itself rather than a link down to it: one field, one
            button, no jump. Same list, same sink frame as the foot. -->
       <form class="signup lede" id="signup-lede"
@@ -68,22 +68,21 @@
       </div>
       <figcaption>The same lesson, walked through end to end: the loop written by
         hand, one trip round the ring, and what a mismatched
-        <code>tool_use_id</code> looks like when it fails. Prefer to read?
-        Everything in the video is below, and the code blocks are copyable.
+        <code>tool_use_id</code> looks like when it fails. Everything in the
+        video is written out below, and the code blocks are copyable.
         <a href="https://youtu.be/5HgVRv37E_U">Watch on YouTube</a>.</figcaption>
     </figure>
 
     <h2>The one idea</h2>
 
-    <p>Beginners arrive expecting something clever. It's flatter than that:
-       <em>the model never runs anything</em>. You hand it a list of functions
+    <p>The model never runs anything. You hand it a list of functions
        it's allowed to ask for. When it wants one, it stops writing prose and
        emits a small structured block: a name and some JSON arguments. Your
        program reads that block, calls your own ordinary function, and pastes
        the return value back into the conversation. Then you ask the model
        again.</p>
 
-    <p>That's it. That's the loop. Four stations, going round:</p>
+    <p>The loop has four stations:</p>
 
     <figure class="diag">
       <div class="ring">
@@ -103,17 +102,13 @@
         <div class="node n3"><b>3 · your code</b>runs the real function,
           fetch, disk, database</div>
       </div>
-      <figcaption>The agent loop. Station 3 is the only place anything
-        actually happens, and it's <b>your</b> code, not the model's. Keep
+      <figcaption>The agent loop. Your code does the work at station 3. Keep
         going round until the model answers with plain text instead of a tool
-        call. That condition, and nothing more, is what &ldquo;the agent
-        finished&rdquo; means.</figcaption>
+        call. At that point, the agent has finished.</figcaption>
     </figure>
 
-    <p>Notice what's <em>not</em> in that picture. No memory. No planning
-       module. No framework. The conversation array is the state, and the loop
-       is the program. A model with no tools is a writer. A model with tools and
-       this loop is an agent.</p>
+    <p>The conversation array holds the state, and the loop is the program.
+       This version needs no memory service, planning module, or framework.</p>
 
     <h2>What the model actually sends back</h2>
 
@@ -147,19 +142,17 @@
 <pre class="out"><code>{"city": "Paris"}</code></pre>
         </div>
       </div>
-      <figcaption>The right-hand side is <b>generated text</b>, the same
-        machinery that writes sentences, aimed at a schema. The two lit lines are
-        all it's actually held to: the name it must use, and the fact that it
-        can't leave it out. Everything else on the left, the description above
-        all, is a <b>prompt</b> rather than documentation. You'll spend more time
-        editing that one sentence than editing the loop.</figcaption>
+      <figcaption>The right-hand side is <b>generated text</b> aimed at a
+        schema. The two lit lines constrain the property name and require the
+        model to include it. The description on the left is a <b>prompt</b>,
+        and you may spend more time editing that sentence than editing the
+        loop.</figcaption>
     </figure>
 
-    <p>Two consequences. First, arguments arrive as JSON, so <strong>parse
-       them</strong>, never match on the raw string. Second, the description is
-       a prompt, so a tool the model keeps misusing is usually a tool you
-       described badly. Writing descriptions the model reads the way you meant
-       is the follow-on to this lesson.</p>
+    <p>Arguments arrive as JSON, so <strong>parse them</strong> instead of
+       matching the raw string. The description is a prompt. If the model keeps
+       misusing a tool, revise that sentence before rewriting the loop. The
+       follow-on to this lesson covers tool descriptions.</p>
 
     <p>You don't need a framework for any of this. A framework will run the
        loop for you later in the lesson, and it's the same four stations
@@ -167,9 +160,10 @@
 
     <h2>The code, JavaScript</h2>
 
-    <p>Complete and runnable. <code>npm i @anthropic-ai/sdk</code>, set
-       <code>ANTHROPIC_API_KEY</code>, and run it with Node. Three parts: the
-       function, the description, the loop.</p>
+    <p>This example runs as written. Install
+       <code>@anthropic-ai/sdk</code>, set
+       <code>ANTHROPIC_API_KEY</code>, and run it with Node. It has three
+       parts: the function, the description, and the loop.</p>
 
 <pre><code>import Anthropic from "@anthropic-ai/sdk";
 
@@ -231,10 +225,9 @@ while (true) {
   messages.push({ role: "user", content: results });
 }</code></pre>
 
-    <p>The odd-looking part: tool results go back with
-       <code>role: "user"</code>. They aren't from a user. It still reads
-       strangely on the hundredth time. It's simply where the protocol puts
-       them: the model's turn, then the turn that answers it.</p>
+    <p>Tool results go back with <code>role: "user"</code>, even though they
+       come from your program. The protocol alternates between the model's turn
+       and the turn that answers it.</p>
 
     <h2>The code, Python</h2>
 
@@ -314,15 +307,14 @@ while True:
             <code class="id">tool_use_id: toolu_01A</code> · 18°C, light rain</li>
         <li><b>assistant</b>, Yes: light rain in Paris at 18°C. Take one.</li>
       </ol>
-      <figcaption>Turn 3 is the one people get wrong. Its
+      <figcaption>Turn 3 causes many protocol errors. Its
         <code>tool_use_id</code> must be the <b>exact id</b> from turn 2, and
         every <code>tool_use</code> needs a matching result before you send the
-        array again. Mismatch the ids or skip one and the request is rejected.
-        Of the errors you hit this week, that's the kind to hope for. It fails
-        loudly.</figcaption>
+        array again. Mismatch the ids or skip one and the request is rejected,
+        so the failure is easy to trace.</figcaption>
     </figure>
 
-    <p>You send that whole array again on every turn. The model has no memory
+    <p>You send the full array again on every turn. The model has no memory
        between requests. The array <em>is</em> the memory. A ten-step agent's
        last request carries all ten steps. That's why lesson 5 is about
        context, and why the bill grows the way it does.</p>
@@ -358,8 +350,8 @@ while True:
       <figcaption>One agent run, five requests. The hatched part of each bar is
         the conversation you already sent; the solid part is the only new thing
         in it. Nothing here is a leak or a mistake. <b>This is what stateless
-        means</b>. It's also why tool output that comes back fat (a whole file,
-        a whole page of JSON) costs you on every remaining turn, not just the
+        means</b>. Large tool output, such as a full file or page of JSON,
+        costs you on every remaining turn, not only the
         one that asked for it.</figcaption>
     </figure>
 
@@ -369,16 +361,16 @@ while True:
        + 4.2k = <strong>10.3k input tokens billed</strong> for a conversation
        that ends at 4.2k. You pay <strong>2.5&times;</strong> the size of the
        thing you built. At Claude Opus 5's $5 per million input tokens that run
-       costs about <strong>$0.05</strong>, five cents, and nobody notices.</p>
+       costs about <strong>$0.05</strong>, which nobody notices.</p>
 
     <p>Now make one tool fat. A <code>read_file</code> that returns an 8k-token
        source file on turn 2 of a ten-turn agent gets resent on the eight
        requests that follow: 8 &times; 8k = <strong>+64k input tokens</strong>,
        $0.32, from one tool result. Run that agent a thousand times a day and
        the single <code>read_file</code> you never trimmed costs
-       <strong>$320 a day</strong>. Ouch.</p>
+       <strong>$320 a day</strong>.</p>
 
-    <p>We hit this in the harness too. Every step it takes resends the whole
+    <p>The harness has the same constraint. Each step resends the full
        array, so the setting that earns its place in the panel is <em>max
        steps</em>, <strong>40</strong> by default. It's the ceiling on how many
        more times one fat tool result gets billed.</p>
@@ -399,14 +391,11 @@ while True:
           <span class="t">+64k input tokens · $0.32 · per run</span>
         </div>
       </div>
-      <figcaption>Eight blocks, one mistake. Each is a later request carrying
-        that same 8k again, because you send the whole array every time and
-        nothing ever takes the file back out of it. The bar underneath steps up
-        once per request, and it steps rather than slides for a reason: the bill
-        grows in <b>whole tool results</b>, so the cheapest edit you'll ever
-        make is the one that decides how much comes back at station 3. Return
-        the twelve lines you needed and seven of these eight blocks go
-        away.</figcaption>
+      <figcaption>Each block is a later request carrying the same 8k again.
+        The array keeps the file for the rest of the run. The bar underneath
+        steps up once per request because the bill grows by <b>one full tool
+        result</b> at a time. Return the twelve lines you need and seven of
+        these eight blocks disappear.</figcaption>
     </figure>
 
     <blockquote>Trim the tool result, not the prompt. The prompt is sent once.
@@ -418,34 +407,31 @@ while True:
        repeated prefix bill at roughly <strong>0.1&times;</strong> the input
        rate, against a <strong>1.25&times;</strong> premium the one time it's
        written. Two requests over the same prefix and you're already ahead.
-       That's lesson 5's whole subject. The number is here so you know why it
-       gets a lesson.</p>
+       Lesson 5 covers prefix caching in detail.</p>
 
-    <h2>Four rules that will save you a weekend</h2>
+    <h2>Four rules for a reliable loop</h2>
 
     <ul>
-      <li><strong>Answer every call, including the failures.</strong> If your
-          function throws, don't drop the result. Send it back as a
+      <li>If your function throws, <strong>answer the call anyway</strong>.
+          Send it back as a
           <code>tool_result</code> with <code>is_error: true</code> and the
-          message in the content. The model reads errors and retries
-          sensibly. A missing result is a protocol violation. A returned error
-          is just information.</li>
-      <li><strong>Return all results in one message.</strong> The model may ask
-          for three tools at once. Run them, then send all three
+          message in the content. The model can read the error and retry. A
+          missing result violates the protocol; a returned error gives the
+          model information it can use.</li>
+      <li>The model may ask for three tools at once. Run them, then
+          <strong>return all results in one message</strong>. Send all three
           <code>tool_result</code> blocks in a <em>single</em> user message.
-          Splitting them across messages quietly teaches the model to stop
+          Splitting them across messages teaches the model to stop
           asking in parallel, and your agent gets slower for no visible
           reason.</li>
-      <li><strong>Append the reply whole.</strong> Push
-          <code>reply.content</code>, not a string you rebuilt from it. On
+      <li><strong>Append the full reply</strong> by pushing
+          <code>reply.content</code> instead of a string you rebuilt. On
           current models the reply carries blocks besides text, and dropping
-          them costs you quality on the next turn with no error to point
-          at.</li>
-      <li><strong>Cap the loop.</strong> <code>while (true)</code> is fine in a
-          lesson. In anything real, count the turns and stop at twenty. A
-          model that has misread a tool description will happily call it forty
-          times, and you'd rather find that out from a counter than from an
-          invoice.</li>
+          them can weaken the next response without producing an error.</li>
+      <li><strong>Cap the loop.</strong> <code>while (true)</code> works in a
+          lesson. In production, count the turns and stop at twenty. A
+          model that has misread a tool description will call it forty times
+          unless your code stops it.</li>
     </ul>
 
     <figure class="diag">
@@ -463,12 +449,11 @@ while True:
             place</li>
         </ul>
       </div>
-      <figcaption>A failing tool is not an error in the loop; a
-        <b>missing</b> result is. Catch around your own function, put whatever it
-        threw into the content, and the model does the sensible thing: fixes the
-        path, tries the other tool, or tells the user it can't. Let the exception
-        escape instead and you break the protocol one turn later, which is where
-        the confusing stack trace comes from.</figcaption>
+      <figcaption>A tool may fail without breaking the loop, but each call
+        still needs a result. Catch exceptions from your function and put the
+        error in the content. The model can then fix the path, try another
+        tool, or report the failure. If the exception escapes, the protocol
+        breaks on the next turn, far from the original cause.</figcaption>
     </figure>
 
     <figure class="diag">
@@ -491,9 +476,8 @@ while True:
       </div>
       <figcaption>Three calls out, <b>one</b> message back. The shape to avoid
         is three user messages carrying one result each: it's legal, it works,
-        and it quietly trains the model out of asking in parallel, so your
-        agent takes three round trips where it used to take one, with nothing
-        in the logs to blame.</figcaption>
+        and it discourages parallel calls. Your agent then takes three round
+        trips where one would have worked.</figcaption>
     </figure>
 
     <figure class="diag">
@@ -516,21 +500,20 @@ while True:
           <span class="r">turn 20, you stop</span>
         </div>
       </div>
-      <figcaption>The counter is four lines of code and it's the difference
-        between a bug and an invoice. A model that has misread one tool
-        description doesn't crash. It calls the tool again, reasonably, forever,
-        and every one of those turns carries the whole array with it. The hatched
+      <figcaption>The counter takes four lines of code. A model that has misread
+        one tool description doesn't crash; it keeps asking for the same tool,
+        and each turn carries the full array. The hatched
         ticks past the wall are the calls you never paid for. Pick a number,
-        <code>break</code> at it, and log the fact that you did: hitting the cap
-        is always a description problem worth reading about later.</figcaption>
+        <code>break</code> at it, and log the fact that you did, because hitting
+        the cap usually means a description needs rewriting.</figcaption>
     </figure>
 
     <h2>The trade-off: your loop vs. the SDK's</h2>
 
-    <p>Now that you have written the loop by hand, stop writing it. Both SDKs
-       run it for you, <code>client.beta.messages.tool_runner()</code> in
-       Python with the <code>@beta_tool</code> decorator,
-       <code>client.beta.messages.toolRunner()</code> in TypeScript with
+    <p>After writing the loop once, you can let either SDK run it.
+       Python provides <code>client.beta.messages.tool_runner()</code> with
+       the <code>@beta_tool</code> decorator,
+       and TypeScript provides <code>client.beta.messages.toolRunner()</code> with
        <code>betaZodTool</code>. Ten lines instead of twenty, and the four rules
        above come for free.</p>
 
@@ -538,12 +521,11 @@ while True:
        you want <em>between</em> turns, an approval gate before a write, a log
        line per call, a retry with a rewritten argument, a turn counter you own,
        goes through its per-turn hooks instead of a line you drop into your
-       own <code>while</code>. That's a fair trade in a real project. It's a bad
-       trade while you're learning. Write the loop yourself exactly once, which
-       is now, so the runner never surprises you.</p>
+       own <code>while</code>. That trade often makes sense in a project. Write
+       the loop yourself once so you can recognize what the runner is doing.</p>
 
-    <p>Straight about what we run: the harness in the next tab doesn't use a
-       tool runner. It has the loop from this lesson written out by hand in
+    <p>The harness in the next tab doesn't use a tool runner. It has the loop
+       from this lesson written out by hand in
        <code>js/agent.js</code>, because it runs in a browser tab against
        <code>fetch</code> with no dependencies at all. Read it after the
        exercise. It's the same four stations, plus a step counter and a settings
@@ -578,7 +560,7 @@ while True:
 
 <pre><code>make notes/paris.md with three lines about the weather, then read it back</code></pre>
 
-    <p>Watch the transcript rather than the answer. You are looking for the
+    <p>Watch the transcript. Look for the
        shape from the diagram: a <code>tool_use</code> for the write, a
        <code>tool_result</code> confirming it, a second
        <code>tool_use</code> for the read. Two trips round the ring, then
@@ -612,8 +594,9 @@ while True:
 
     <ul>
       <li>Turn a tool off in <em>TOOLS</em> and ask for it anyway. The model
-          doesn't error. It improvises, and watching it improvise badly teaches
-          you more about tool descriptions than any amount of reading.</li>
+          doesn't raise a protocol error. It improvises. Its response will
+          show how much the available tools and their descriptions shape its
+          choices.</li>
       <li>Ask for something no tool covers. See whether it says so or invents a
           plausible answer.</li>
       <li>In your own script, misspell <code>tool_use_id</code>. Read the error
@@ -622,28 +605,25 @@ while True:
 
     <h2>Safe to break</h2>
 
-    <p>Nothing in that list can hurt anything. The harness writes to a virtual
+    <p>Those tests stay inside the harness. It writes to a virtual
        filesystem in <code>localStorage</code> in your own tab, so
        <code>write_file</code> never touches your disk. <code>/wipe</code>
        deletes every file and the conversation with it, and
        <code>/undo</code> puts them back until you close the tab. Your key
        stays in the browser. The only real cost is tokens, and a run like the
-       one above is a fraction of a cent. Break it on purpose while it's
-       cheap.</p>
+       one above is a fraction of a cent.</p>
 
     <h2>Next week</h2>
 
-    <p>A follow-on to this lesson gets to the part that decides whether your
-       agent is any good: writing tool descriptions the model reads the way you
-       meant. Then <strong>lesson 3, loops and goals</strong> takes this loop
-       apart properly and asks the question this one dodged. Here we stopped
-       when the model stopped calling tools. What if it never stops?</p>
+    <p>The follow-on covers tool descriptions: how to write them so the model
+       uses each tool as intended. Then <strong>lesson 3, loops and
+       goals</strong> examines agents that keep calling tools after they should
+       stop.</p>
 
-    <p>Twenty lines. Four stations. That's the whole distance between a model
-       that writes about the weather and a program that goes and checks. Every
-       tool you add from here is a thing your software can now do on someone's
-       behalf, and choosing which ones deserve to be in that array is the
-       actual craft.</p>
+    <p>Twenty lines and four stations turn a model that writes about the
+       weather into a program that checks it. Each tool expands what your
+       software can do on someone's behalf. The hard part is choosing which
+       tools belong in the array.</p>
 
     <p>Where this sits in the whole course, and what comes after:
        <a href="2026-09-04-the-syllabus.html">the syllabus</a>.</p>

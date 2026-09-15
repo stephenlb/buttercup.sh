@@ -253,7 +253,7 @@
        saved <strong>$2.18</strong> on one request. Now run that agent a thousand
        times a day with one broken tool description: uncapped, that's
        <strong>$2,400 a day</strong> spent on turns that were never going to
-       finish. Ouch.</p>
+       finish.</p>
 
     <figure class="diag">
       <div class="tri">
@@ -306,7 +306,7 @@
 
     <h2>A goal your code can check</h2>
 
-    <p>Here's the exit everyone forgets: the model stopping is not the job
+    <p>The exit everyone forgets is this one: the model stopping is not the job
        finishing. <code>end_turn</code> means &ldquo;I have nothing more to
        say.&rdquo; That's a fact about the model, not about your files. If you
        want to catch the difference, something has to go and look, and that
@@ -384,7 +384,7 @@
     <p>Two fields, doing two different jobs. The <code>enum</code> is the one
        that changes your loop. It has two allowed values, so
        <code>status === "complete"</code> is a real test instead of you
-       interpreting a sentence. A model that would have quietly drifted off with
+       interpreting a sentence. A model that would have drifted off with
        <code>end_turn</code> now has to pick a word, and picking
        <code>"incomplete"</code> commits it to keep working. An
        <code>enum</code> is also the cheapest constraint you can put in a schema,
@@ -459,7 +459,7 @@
       <p>Call your goal function once before the loop starts. If it returns true,
          the task was already done and you were about to pay a model to find that
          out. If it throws, you just found the bug in your check for free,
-         instead of at turn 12, where it quietly returns <code>undefined</code>
+         instead of at turn 12, where it returns <code>undefined</code>
          and your agent never stops.</p>
     </div>
 
@@ -950,7 +950,7 @@ print(f"goal met in {turn} turn(s)" if done
 
     <h2>Why the loop is the point, not the plumbing</h2>
 
-    <p>The exits get all the attention in this lesson, so it's worth saying
+    <p>The exits get all the attention in this lesson, so say the other half
        plainly: the loop isn't just plumbing for tool calls.
        <strong>The loop is what makes the answer better.</strong> A single request
        answers from the prompt alone. Turn 2 answers from the prompt
@@ -1064,7 +1064,7 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
   console.log(`round ${round}: ${report}`);   // your record of what got better, and when
 }</code></pre>
 
-    <p>Now the honest part. <strong>Each round helps less than the last.</strong>
+    <p>The catch: <strong>each round helps less than the last.</strong>
        Round 1 fixes the obvious problems, round 2 fixes what round 1 introduced,
        and round 3 usually rewrites phrasing you already liked. The cost doesn't
        taper off, though. Using the same math as before, priced at the caps: an
@@ -1088,8 +1088,8 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
        coming. It gets cut off mid-job with no chance to wrap up.
        <strong>Task budgets</strong> fix that. You give the model a token
        allowance for the whole run, it sees the countdown while it works, so it
-       prioritises and finishes cleanly instead of being cut off. This is nice to
-       see. It's in beta, and it needs a header:</p>
+       prioritises and finishes cleanly instead of being cut off. It's in beta,
+       and it needs a header:</p>
 
 <pre><code>const reply = await client.beta.messages.create({
   betas: ["task-budgets-2026-03-13"],
@@ -1145,7 +1145,7 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
         only one of them leaves you something to ship.</figcaption>
     </figure>
 
-    <p>Straight about what we've shipped: the harness doesn't use task budgets. It
+    <p>The harness doesn't use task budgets. It
        counts steps, <em>max steps</em>, 40 by default in the settings panel, and
        stops there with a log line that tells you it was the setting and not the
        model: <code>stopped after 40 steps (the max-steps setting)</code>. That's
@@ -1218,8 +1218,8 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
        second read, then prose. Three tool calls that had to happen in that order,
        and an agent that checked its own edit before saying it was done.</p>
 
-    <p>Straight about what we've shipped: there's no <code>report_status</code> in
-       the harness. But ask for a five-step build and you'll see the
+    <p>There's no <code>report_status</code> in the harness either. But ask for a
+       five-step build and you'll see the
        <code>todo</code> tool go by in the transcript, doing the same trick, a
        status <code>enum</code> of
        <code>pending</code>/<code>active</code>/<code>done</code>, one per step,
@@ -1237,7 +1237,7 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
        the contrast, ask the same question <em>without</em> the
        <code>/clear</code> and watch it defend the draft it just wrote.</p>
 
-    <p>Then break it on purpose, which is the half that really teaches:</p>
+    <p>Then break it on purpose:</p>
 
     <ul>
       <li>Set <strong>max steps to 2</strong> and ask again. The run stops mid-job
@@ -1278,7 +1278,7 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
        waits.</p>
 
     <p>An agent that stops on purpose is one you can leave running on someone
-       else's behalf. That's the whole reason anybody trusts one with real work.</p>
+       else's behalf, which is the only reason anyone hands one real work.</p>
 
     <p>Where this sits in the whole course, and what comes after:
        <a href="2026-09-04-the-syllabus.html">the syllabus</a>. Last week's loop,
