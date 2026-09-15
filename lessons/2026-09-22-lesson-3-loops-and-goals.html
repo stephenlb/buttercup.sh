@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>lesson 3: loops and goals - free AI Agent training from buttercup.sh</title>
-<meta name="description" content="Lesson 3 of the free buttercup.sh agent course: every value stop_reason can hold, the turn cap that turns a $2.40 runaway into 22 cents, goals a program can check, a report_status tool with a complete/incomplete enum and a 0-100 progress meter, what to do when a tool hangs, why every pass round the loop gets better, stacking an improve loop with a verify loop, and a multi-step agent in JavaScript and Python.">
+<meta name="description" content="Lesson 3 of the free buttercup.sh agent course: stop reasons, turn caps, checkable goals, tool deadlines, status reports, and improve-and-verify loops in JavaScript and Python.">
 <link rel="canonical" href="https://buttercup.sh/lessons/2026-09-22-lesson-3-loops-and-goals.html">
 <link rel="stylesheet" href="lessons.css">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23191204'/%3E%3Ctext x='2' y='12' font-family='monospace' font-size='11' fill='%23ffd873'%3E%26gt;%3C/text%3E%3C/svg%3E">
@@ -31,16 +31,16 @@
     <header>
       <time datetime="2026-09-22">22 September 2026</time>
       <h1>Lesson 3: loops and goals - the agent that stops on purpose</h1>
-      <p>Today your agent takes several steps in order, then <em>stops</em> for a
-         reason you chose. Lesson 2's loop had one way out: the model stopped
-         asking for tools. That exit belongs to the model, not to you. You'll add
-         three of your own, <strong>a turn counter, a goal your code can check,
-         and a timeout on every tool</strong>. You'll also add a
-         <code>report_status</code> tool, so when the model thinks it's done it
-         says so in an <code>enum</code> your code can test, not in a sentence
-         you have to read. And you'll do the math on why the counter alone saves
-         $2.18 per run. The loop is about forty lines in JavaScript and Python.
-         The rest is tool schemas. Same API key you already have.</p>
+      <p>Today your agent takes several steps in order and stops when your
+         program tells it to. Lesson 2's loop ended when the model stopped
+         asking for tools. This lesson adds three exits:
+         <strong>a turn counter, a goal check, and a timeout on every
+         tool</strong>. You'll also add a
+         <code>report_status</code> tool. When the model thinks it is done, the
+         tool returns an <code>enum</code> your code can test. In the example,
+         the counter cuts a runaway from $2.40 to $0.22. The loop takes about
+         forty lines in JavaScript or Python; most of the remaining code defines
+         the tools.</p>
       <!-- the form itself rather than a link down to it: one field, one
            button, no jump. Same list, same sink frame as the foot. -->
       <form class="signup lede" id="signup-lede"
@@ -59,41 +59,33 @@
       </form>
     </header>
 
-    <h2>The one idea</h2>
+    <h2>Control how the loop ends</h2>
 
-    <p>One tool call is a transaction. A loop with an exit is an agent. Lesson 2
-       built the loop. This lesson is about the exit, because that's where agents
-       go wrong in front of real users. An agent that can't tell it's finished
-       runs up a bill. An agent that thinks it's finished three steps early says
-       the job is done and leaves the file half written. Same bug, opposite
-       directions.</p>
+    <p>Lesson 2 built the loop. This lesson controls how it ends. Without a
+       reliable stopping condition, an agent may keep spending money or quit
+       with a half-written file.</p>
 
-    <p>There are four ways out of the loop, and <strong>only one of them belongs
-       to the model</strong>:</p>
+    <p>The loop has four exits:</p>
 
     <ul>
-      <li><strong>The model says so.</strong> <code>stop_reason</code> comes back
-          as <code>end_turn</code>. Better: it calls your
-          <code>report_status</code> tool and says <code>"complete"</code> on
-          purpose.</li>
-      <li><strong>Your counter says so.</strong> Turn 12 of 12. You stop, and you
-          log that you stopped at the limit rather than at an answer.</li>
-      <li><strong>Your goal check says so.</strong> The model reported
-          <code>"complete"</code>, and your own four lines of code looked: the
-          file exists and has three lines. Nothing left to do.</li>
-      <li><strong>Something broke and you decided.</strong> A tool hung, a reply
-          got cut off, a request was refused.</li>
+      <li>The model returns <code>end_turn</code>, or calls
+          <code>report_status</code> with <code>"complete"</code>.</li>
+      <li>Your counter reaches turn 12 of 12. You stop and log that the run hit
+          its limit.</li>
+      <li>The model reports <code>"complete"</code>, and your code confirms
+          that the file exists and has three lines.</li>
+      <li>Your program handles a failure such as a hung tool, truncated reply,
+          or refusal.</li>
     </ul>
 
-    <p>Lesson 2 only had the first one. This lesson adds the other three. To
-       write them, you need to know every value <code>stop_reason</code> can
-       hold.</p>
+    <p>Lesson 2 used the first exit. Adding the others requires handling each
+       value of <code>stop_reason</code>.</p>
 
-    <h2><code>stop_reason</code>, and every value it can hold</h2>
+    <h2>Handle each <code>stop_reason</code></h2>
 
-    <p>Every reply carries one. <code>if (stop_reason !== "tool_use")</code> was
-       fine for one lesson, but it lumps five different situations together as
-       &ldquo;the model answered.&rdquo; Two of them aren't that at all.</p>
+    <p>Every reply carries a <code>stop_reason</code>.
+       <code>if (stop_reason !== "tool_use")</code> treats five different
+       situations as an answer, including truncation and refusal.</p>
 
     <table>
       <thead>
@@ -123,7 +115,7 @@
           <td><code>stop_sequence</code></td>
           <td>It wrote a string you listed in <code>stop_sequences</code></td>
           <td>Nothing, unless you set that parameter. If you did, this is your
-              own exit and you already know what it means</td>
+              configured exit, so handle it according to that configuration</td>
         </tr>
         <tr>
           <td><code>pause_turn</code></td>
@@ -143,14 +135,11 @@
       </tbody>
     </table>
 
-    <p>Two details worth learning now instead of at 1am. First,
-       <code>stop_details</code> is filled in <strong>only</strong> when
+    <p><code>stop_details</code> is filled in <strong>only</strong> when
        <code>stop_reason</code> is <code>refusal</code>. Every other time it is
-       <code>null</code>, so check before you read it. Second,
-       <code>pause_turn</code> is the one most people hit by accident: the SDK
-       tool runners don't resume it for you, so a paused turn ends the run and
-       comes back looking like the final answer. No error, just a reply that
-       stops early.</p>
+       <code>null</code>, so check before reading it. SDK tool runners do not
+       resume <code>pause_turn</code> for you. Without an explicit branch, a
+       paused turn can look like the final answer.</p>
 
     <figure class="diag">
       <div class="board">
@@ -177,33 +166,27 @@
           <span class="r">✕ two end it</span>
         </div>
       </div>
-      <figcaption>Six values, but only three things to do. That's why a picture
-        beats memorising the list. Three of them go round the loop again.
-        <code>max_tokens</code> is the surprising one: it's a <em>retry</em>, not
-        an answer, and the reply you just paid for gets thrown away. Two end the
-        run. And one decides nothing on its own:
-        <b><code>end_turn</code> is a claim about the model</b>, so the next line
-        of your code is the goal check.</figcaption>
+      <figcaption>The six values lead to three actions. Three continue the loop,
+        two end the run, and <code>end_turn</code> requires a goal check.
+        Treat <code>max_tokens</code> as a retry and discard the truncated
+        reply.</figcaption>
     </figure>
 
-    <p>Other providers spell it differently and mean the same three things.
-       OpenAI-compatible servers: including Ollama and vLLM send
+    <p>Other providers use different names for the same outcomes.
+       OpenAI-compatible servers, including Ollama and vLLM, send
        <code>finish_reason</code> with the values <code>stop</code>,
        <code>length</code> and <code>tool_calls</code>. Gemini sends
        <code>finishReason</code>. We convert all of them into one
        <code>stopReason</code> in <code>js/llm.js</code>, using four adapters
        (Anthropic, Google, OpenAI-style chat, and WebLLM running in the tab), so
-       the loop above them doesn't have to care. Whatever you use, find this
-       field. It's the only part of the response that tells you what to do
-       next.</p>
+       the loop does not need provider-specific branches. Whatever provider you
+       use, find this field and handle each value explicitly.</p>
 
     <h2>The turn cap, and what it saves</h2>
 
-    <p><code>while (true)</code> is a bug on a timer. A model has no sense that
-       it's going in circles. Give it a tool description it misreads and it will
-       call that tool again, and again, each time for a reason that looks
-       sensible to it. And every one of those turns re-sends the whole
-       conversation.</p>
+    <p>An uncapped <code>while (true)</code> can keep a mistaken agent running
+       indefinitely. If the model misreads a tool description, it may call the
+       same tool on each turn. Each request resends the full conversation.</p>
 
     <figure class="diag">
       <!-- `capped`: the twelve-turn version of lesson 2's twenty-turn counter,
@@ -231,29 +214,25 @@
           <span class="r">turn 12, your counter stops it</span>
         </div>
       </div>
-      <figcaption>Twelve turns, then a wall. The faded ticks past it are the calls
-        a misread tool description would have kept making, the model will never
-        get bored and stop. The counter is four lines of code.
-        <b>Log it when you hit it.</b> A run that ends at the cap usually isn't a
-        model problem, it's a tool-description problem, and that log line is the
-        only clue you'll get.</figcaption>
+      <figcaption>The counter stops the run after twelve turns. The faded ticks
+        show calls a misread tool description might have produced. Log this
+        exit: repeated calls often point to a tool description that needs
+        revision.</figcaption>
     </figure>
 
-    <p>Do the math, because the math is the argument. Each stuck turn adds a
+    <p>Each stuck turn adds a
        <code>tool_use</code> block and its <code>tool_result</code>, call that
        <strong>600 tokens</strong>, and the first prompt is 300 tokens. So turn 1
        sends 300 tokens. Turn <em>n</em> sends 300, plus 600 for every one of the
        <em>n</em>&nbsp;&minus;&nbsp;1 turns before it. <strong>You pay for the
-       whole pile every turn, not just the newest turn.</strong></p>
+       full history on every turn.</strong></p>
 
-    <p>Let it run to 40 turns and you've paid for
-       <strong>480,000 input tokens</strong> and gotten nothing. At Claude Opus
-       5's $5 per million, that's <strong>$2.40</strong>. Stop at 12 and the same
-       runaway costs 43,200 tokens, or <strong>$0.22</strong>. Four lines of code
-       saved <strong>$2.18</strong> on one request. Now run that agent a thousand
-       times a day with one broken tool description: uncapped, that's
-       <strong>$2,400 a day</strong> spent on turns that were never going to
-       finish.</p>
+    <p>At 40 turns, the run has sent <strong>480,000 input tokens</strong>. At
+       Claude Opus 5's $5 per million, that costs <strong>$2.40</strong>. A
+       12-turn cap stops the same run after 43,200 tokens, or
+       <strong>$0.22</strong>, saving <strong>$2.18</strong>. If this failure
+       happens a thousand times in a day, the uncapped runs cost
+       <strong>$2,400</strong>.</p>
 
     <figure class="diag">
       <div class="tri">
@@ -286,34 +265,28 @@
           <span class="r">uncapped: the other 91%, for nothing</span>
         </div>
       </div>
-      <figcaption>Each bar is the cost of the <em>whole run so far</em>, not of
-        that one turn, that's why they grow so fast.
-        <b>Turn 12 costs 9% of what turn 40 costs.</b> A runaway spends
-        nine-tenths of its money after the point a sensible cap would have
-        stopped it, because every turn re-sends every turn before it. That's also
-        how it feels when it happens for real: the first dozen turns seem free,
-        and then they aren't.</figcaption>
+      <figcaption>Each bar shows the cumulative cost of the run. Turn 12 costs
+        9% of turn 40 because each request includes all previous turns. A
+        twelve-turn cap prevents the remaining 91% of this example's
+        cost.</figcaption>
     </figure>
 
-    <blockquote>Pick a number, <code>break</code> at it, and log that you did.
-      A capped runaway is a bug report. An uncapped one is an invoice.</blockquote>
+    <blockquote>Set a limit, <code>break</code> when you reach it, and record
+      why the run stopped.</blockquote>
 
-    <p>Which number? Count the steps the task really needs, then roughly double
-       it. Read, edit, verify is three tool calls and four turns, so twelve is
-       generous. The harness ships with <strong>max steps 40</strong>, because it
-       has no idea what you're about to ask for. An agent built for one job does
-       know, and should use a smaller number.</p>
+    <p>Choose the cap by estimating the required steps, then leave room for
+       retries. Read, edit, verify takes three tool calls and about four turns,
+       so twelve is generous. The general-purpose harness defaults to
+       <strong>max steps 40</strong>. An agent built for one job can use a
+       tighter limit.</p>
 
     <h2>A goal your code can check</h2>
 
-    <p>The exit everyone forgets is this one: the model stopping is not the job
-       finishing. <code>end_turn</code> means &ldquo;I have nothing more to
-       say.&rdquo; That's a fact about the model, not about your files. If you
-       want to catch the difference, something has to go and look, and that
-       something is four lines of your own code.</p>
+    <p><code>end_turn</code> means the model has nothing more to say. It does
+       not confirm that the files satisfy the request. Your program must inspect
+       the result.</p>
 
-    <p>So the goal has to be checkable. Most goals people give an agent are a
-       feeling instead:</p>
+    <p>A useful goal has a condition your program can check:</p>
 
     <figure class="diag">
       <!-- paired top to bottom: each vibe lights with the condition that would
@@ -334,35 +307,26 @@
   .split("\n").length === 3</span><span class="g" style="--i:2">exitCode === 0</span></code></pre>
         </div>
       </div>
-      <figcaption>The left column is what a person says, and it's fine as a
-        <em>prompt</em>. The right column is the same three wishes written so your
-        loop can run them: <b>read across, not down</b>, each row is one goal
-        said twice, and the right-hand version returns true or false with no human
-        involved. Write the right-hand side first. If you can't,
-        you haven't decided what you want yet, and <b>the agent can't decide for
-        you</b>. It will pick something plausible and stop there, which is
-        exactly what people mean when they say &ldquo;it gave up.&rdquo;</figcaption>
+      <figcaption>Each row pairs a prompt with a boolean condition. Write the
+        condition first. Otherwise, the model must decide for itself what
+        counts as finished.</figcaption>
     </figure>
 
-    <p>Two rules make this work. First, write the goal in the prompt
-       <em>using the same words your check uses</em>, so the model aims at the
-       thing you measure: &ldquo;three lines&rdquo; in the prompt,
-       <code>length === 3</code> in the code. Second, when the check fails after
+    <p>Use the same terms in the prompt and the check:
+       &ldquo;three lines&rdquo; in the prompt,
+       <code>length === 3</code> in the code. When the check fails after
        the model says it's done, tell it what's missing in one sentence and let it
-       keep going. Don't start a new conversation, it already has the whole
-       <code>messages</code> array.</p>
+       keep going in the existing <code>messages</code> array.</p>
 
     <h2>Make &ldquo;done&rdquo; a tool call, not a goodbye</h2>
 
-    <p>Your side of the exit is settled. The model's side is still
-       <code>end_turn</code>, the weakest signal in the API: it only means
-       &ldquo;I stopped talking.&rdquo; A finished job, a wandered-off agent, and
-       a model that ran out of things to say two lines early all look identical.
-       <strong>So give the model a tool to say it with instead.</strong></p>
+    <p><code>end_turn</code> only means the model stopped talking. It cannot
+       distinguish a finished job from an agent that stopped early. Give the
+       model a tool that reports completion in a form your code can test.</p>
 
-    <p>One more schema, next to <code>read_file</code> and
-       <code>write_file</code>. It doesn't change anything in the world. It exists
-       so the model's opinion arrives in a shape your code can test:</p>
+    <p>Add this schema next to <code>read_file</code> and
+       <code>write_file</code>. The tool records the model's assessment without
+       changing external state:</p>
 
 <pre><code>{
   name: "report_status",
@@ -381,26 +345,16 @@
   },
 }</code></pre>
 
-    <p>Two fields, doing two different jobs. The <code>enum</code> is the one
-       that changes your loop. It has two allowed values, so
-       <code>status === "complete"</code> is a real test instead of you
-       interpreting a sentence. A model that would have drifted off with
-       <code>end_turn</code> now has to pick a word, and picking
-       <code>"incomplete"</code> commits it to keep working. An
-       <code>enum</code> is also the cheapest constraint you can put in a schema,
-       because &ldquo;one of these two strings&rdquo; is easy for the model to
-       obey.</p>
+    <p>The <code>enum</code> gives the loop a stable value to inspect. The model
+       must choose <code>"complete"</code> or <code>"incomplete"</code>, so your
+       code can test <code>status === "complete"</code> without interpreting
+       prose.</p>
 
-    <p>The <code>progress</code> integer changes nothing about the exit and
-       everything about your logs. It's <strong>the model's guess</strong>, not a
-       measurement, so <strong>print it and never test it</strong>: don't stop at
-       100, don't gate anything on 80. Look at the code below, there is no
-       <code>if</code> on <code>progress</code> anywhere, just one
-       <code>console.log</code>. What it gives you is a run you can skim
-       afterwards. Three turns in a row at 60 means a stuck agent, and you'll see
-       it long before the turn cap fires. A run that climbs
-       20&nbsp;→&nbsp;90 and then reports <code>"complete"</code> at 90 is telling
-       you your prompt and your check describe different jobs.</p>
+    <p>Log the <code>progress</code> integer, but do not use it as an exit
+       condition. It is the model's estimate. Three turns at 60 suggest the
+       agent is stuck. If progress rises from 20 to 90 and the model then reports
+       <code>"complete"</code> at 90, the prompt and the check may describe
+       different jobs.</p>
 
     <figure class="diag">
       <div class="gate">
@@ -429,46 +383,33 @@
           </li>
         </ol>
       </div>
-      <figcaption>The same tool call twice, with the same three chips. The only
-        difference is what your four lines of code found on disk. The top row is
-        the bug lesson 2 can't see: the model reported <code>complete</code> at a
-        confident 100, the loop believed it, and the file has two lines in it.
-        <b>Neither end chip is enough by itself</b>, the model's says something
-        about the model, yours says something about the world. Notice the middle
-        chip is <em>identical</em> in both rows. That's the point:
-        <b>the meter is a log line, not a test</b>, and a confident 100 means
-        nothing until the check beside it agrees. Notice the nudge too: one
-        sentence added to the array you already have, not a fresh conversation.
-        And notice there are only two passes. If the check fails a second time,
-        <b>stop</b>, a third pass is the second one again, with your
-        money.</figcaption>
+      <figcaption>The model reports <code>complete</code> at 100 in both rows.
+        The filesystem check rejects the first claim and accepts the second.
+        Treat the progress meter as a log value. If the first check fails, add
+        one sentence to the existing conversation. Stop if the model makes the
+        same false claim twice.</figcaption>
     </figure>
 
-    <p>Keep the <code>end_turn</code> branch anyway. A model that stops talking
-       without ever calling <code>report_status</code> is the clearest form of
-       &ldquo;it gave up,&rdquo; and now you can write that in the log instead of
-       guessing.</p>
+    <p>Keep the <code>end_turn</code> branch. If the model stops without calling
+       <code>report_status</code>, record that outcome in the log.</p>
 
-    <p>Nudge <strong>once</strong>. If the model says <code>complete</code> and
-       your check fails twice, the model isn't the problem. Either your check is
-       stricter than your prompt, or your tools can't do the job you asked for.
-       Stop and re-read both.</p>
+    <p>Nudge once. If the model reports <code>complete</code> and your check
+       fails again, compare the prompt with the check and confirm that the tools
+       can perform the task.</p>
 
     <div class="tip">
-      <b>tip: run the check before the first turn</b>
+      <b>Run the check before the first turn</b>
       <p>Call your goal function once before the loop starts. If it returns true,
-         the task was already done and you were about to pay a model to find that
-         out. If it throws, you just found the bug in your check for free,
-         instead of at turn 12, where it returns <code>undefined</code>
-         and your agent never stops.</p>
+         the task is already done. If it throws, fix the check before entering
+         the loop.</p>
     </div>
 
     <h2>The code, JavaScript</h2>
 
-    <p>Complete and runnable. <code>npm i @anthropic-ai/sdk</code>, set
-       <code>ANTHROPIC_API_KEY</code>, then run it with Node. Same three parts as
-       lesson 2, the tools, their descriptions, the loop, with a goal and a
-       counter wrapped around them.</p>
+    <p>This example runs as written. Install
+       <code>@anthropic-ai/sdk</code>, set <code>ANTHROPIC_API_KEY</code>, then
+       run it with Node. It adds a goal and counter to the three parts from
+       lesson 2.</p>
 
 <pre><code>import Anthropic from "@anthropic-ai/sdk";
 import { readFile, writeFile } from "node:fs/promises";
@@ -531,8 +472,7 @@ const toolSchemas = [
   },
 ];
 
-// 2. the goal. Written twice on purpose: in words for the model, in code for
-//    the loop. Both say the same thing.
+// 2. the goal, in words for the model and in code for the loop
 const GOAL = "Write notes/paris.md with exactly three lines about the weather, " +
              "then read it back and confirm all three lines are there. " +
              "Call report_status after every write.";
@@ -578,7 +518,7 @@ while (turn &lt; MAX_TURNS) {
   if (reply.stop_reason === "tool_use") {
     const calls = reply.content.filter(b =&gt; b.type === "tool_use");
     const results = await Promise.all(calls.map(runOne));
-    messages.push({ role: "user", content: results });   // always answer every call
+    messages.push({ role: "user", content: results });   // answer every call
 
     // the meter is a log line, never a test. Print it and watch it move.
     console.log(`turn ${turn}: ${meter(claim.progress)} ${claim.note ?? ""}`);
@@ -591,21 +531,20 @@ while (turn &lt; MAX_TURNS) {
     continue;
   }
 
-  // EXIT 4b: refusal, stop_sequence, or some value added after this was written.
-  // Crash loudly instead of treating it as an answer.
+  // EXIT 4b: refusal, stop_sequence, or an unsupported value.
+  // Raise an error instead of treating it as an answer.
   if (reply.stop_reason !== "end_turn") {
     throw new Error(`unhandled stop_reason: ${reply.stop_reason} ` +
                     `${JSON.stringify(reply.stop_details ?? null)}`);
   }
 
-  // EXIT 1: it stopped talking. If it never said complete, that's the "gave up"
-  // case, and now it has a name in your log.
+  // EXIT 1: it stopped talking. Log an end_turn without a complete report.
   if (claim.status !== "complete") console.warn(`end_turn at ${claim.progress}%`);
   if (await goalMet()) { done = true; break; }
   messages.push({ role: "user", content: [nudge()] });
 }
 
-// EXIT 2: the counter. Always say which exit you took.
+// EXIT 2: the counter. Record which exit ended the run.
 console.log(done
   ? `goal met in ${turn} turn(s)`
   : `stopped at the ${MAX_TURNS}-turn cap, last claim ${claim.status} ` +
@@ -646,15 +585,14 @@ function withTimeout(work, ms) {
   ]);
 }</code></pre>
 
-    <p>If you read only one thing in that code, read the
-       <code>continue</code> and <code>break</code> points. Each one is labelled
-       with the exit it belongs to, and the last line of the run prints which exit
-       you left by, along with the model's last status. That's the difference
-       between an agent you can debug and an agent you can only watch.</p>
+    <p>The <code>continue</code> and <code>break</code> statements mark each
+       path through the loop. The final line records the exit and the model's
+       last status for debugging.</p>
 
     <h2>The code, Python</h2>
 
-    <p>The same program. <code>pip install anthropic</code>.</p>
+    <p>The Python version follows the same paths. Install the SDK with
+       <code>pip install anthropic</code>.</p>
 
 <pre><code>import anthropic
 from pathlib import Path
@@ -807,8 +745,7 @@ while turn &lt; MAX_TURNS:
         raise RuntimeError(f"unhandled stop_reason: {reply.stop_reason} "
                            f"{reply.stop_details}")
 
-    # it stopped talking. If it never said complete, that's the "gave up"
-    # case, and now it has a name in your log.
+    # It stopped talking. Log an end_turn without a complete report.
     if claim["status"] != "complete":
         print(f"end_turn at {claim['progress']}%")
     if goal_met():
@@ -820,25 +757,21 @@ print(f"goal met in {turn} turn(s)" if done
       else f"stopped at the {MAX_TURNS}-turn cap, last claim {claim['status']} "
            f"at {claim['progress']}%, {claim['note']}")</code></pre>
 
-    <p>One caveat on the Python version: it runs the tool on a pool thread and
-       gives up on the <em>result</em>, not on the work.
+    <p>The Python version runs the tool on a pool thread and
+       gives up on the <em>result</em> rather than cancelling the work.
        <code>result(10)</code> stops waiting, but the function keeps running in
-       the background. That's honest, if untidy. So if a tool talks to the outside
-       world, give it a real deadline of its own,
+       the background. If a tool talks to an external service, give that
+       operation its own deadline:
        <code>timeout=</code> on the HTTP call, <code>statement_timeout</code> on
-       the database query, because giving up on a wait is not the same as
-       cancelling a write.</p>
+       the database query. Ending the wait does not cancel a write.</p>
 
     <h2>When a tool hangs</h2>
 
-    <p>Nothing in the API is watching a clock for you. Running the tools is your
-       code, so if a tool never returns, your loop waits forever. This is the
-       failure that looks like nothing at all: no error, no output, no bill, no
-       end.</p>
+    <p>Your code runs the tools, so it must enforce their deadlines. If a tool
+       never returns, the loop waits forever without an error or final result.</p>
 
-    <p>So give every tool a deadline, and treat a missed deadline as
-       <strong>information</strong>, not as an exception. Send it back the normal
-       way, in the normal place:</p>
+    <p>Give every tool a deadline and return a missed deadline as a normal
+       <code>tool_result</code> with <code>is_error: true</code>:</p>
 
     <figure class="diag">
       <div class="fork wait">
@@ -856,20 +789,15 @@ print(f"goal met in {turn} turn(s)" if done
             again</li>
         </ul>
       </div>
-      <figcaption>The dead end isn't a crash, and that's what makes it expensive:
-        for the first hour, a hung agent looks exactly like a slow one. Tell the
-        model about the timeout and it will do something sensible, try another
-        source, ask for less, or tell the user the service is down.
-        <b>A tool that failed is a fact the model can use.</b> A tool that never
-        answered is a loop with no exit.</figcaption>
+      <figcaption>A hung agent can look like a slow one. Return the timeout so
+        the model can try another source, ask for less data, or report that the
+        service is unavailable. Without a result, the loop cannot continue.</figcaption>
     </figure>
 
-    <p>Retries are where good intentions cause damage. The rule: retry the
-       <strong>connection</strong>, never the <strong>decision</strong>. A 429 or
-       a dropped connection is worth trying again, twice, with a short wait in
-       between, and the model never needs to hear about it. But a tool that ran
-       fine and returned something you didn't like is not a retry. It's a result,
-       and the model is the one who should decide what to do about it.</p>
+    <p>Retry transport failures such as a 429 or a dropped connection, at most
+       twice, with a short wait between attempts. If a tool runs and returns an
+       unwanted result, send that result to the model so it can choose the next
+       action.</p>
 
     <figure class="diag">
       <div class="lanes">
@@ -896,27 +824,21 @@ print(f"goal met in {turn} turn(s)" if done
           <span class="who">✕ retrying this means guessing for the model</span>
         </div>
       </div>
-      <figcaption>Both lanes start with a tool that didn't give you what you
-        wanted, that's the trap. One is a broken connection, the other is
-        <em>information</em>. Count the hops. The top lane makes three tries inside
-        a single turn and the conversation never grows, so it's cheap and the model
-        never sees it. The bottom lane has one hop, and it goes <b>up</b>, because
-        the tool worked perfectly: it told you the file isn't there. Retry that and
-        you get the same answer more slowly, while hiding it from the one party
-        that could have written the file.</figcaption>
+      <figcaption>The top lane retries a broken connection inside one turn, so
+        the conversation does not grow. The bottom lane returns useful
+        information: the file does not exist. Repeating that call would hide
+        the result from the model and produce the same answer.</figcaption>
     </figure>
 
-    <p>And before you retry anything that changes something, ask whether running
-       it twice is safe. <code>read_file</code> is fine to repeat.
-       <code>send_email</code> is not. If a tool writes, either make it
-       <em>idempotent</em>, running it twice leaves the same result as running it
-       once, or don't retry it at all, and let the model decide with the error in
-       front of it.</p>
+    <p>Before retrying a tool that changes state, check whether a second call is
+       safe. <code>read_file</code> is safe to repeat; <code>send_email</code>
+       may send a duplicate. Make write tools <em>idempotent</em> or return the
+       error to the model without retrying.</p>
 
-    <h2>What the transcript looks like</h2>
+    <h2>A four-turn transcript</h2>
 
-    <p>Four tool calls, four trips round the loop, and one goal check the model
-       never sees. Watch where the run actually ends:</p>
+    <p>This transcript has four tool calls, four loop iterations, and one goal
+       check performed by your program:</p>
 
     <figure class="diag">
       <!-- `miss`: unlike lesson 2's tape, this one's third row disagrees with
@@ -938,26 +860,18 @@ print(f"goal met in {turn} turn(s)" if done
             <code>{"status": "complete", "progress": 100}</code>, and
             <code>goalMet()</code> agrees, so turn 4 is the last one</li>
       </ol>
-      <figcaption>Turn 3 is the interesting one. The write came back as
-        <b>two</b> lines, not three, and the agent noticed that from its own
-        <code>tool_result</code>, not from you. That's the difference between
-        lesson 2 and lesson 3: a loop that reads what it just did. Notice also
-        that the run ends on a <em>tool call</em>, not on a goodbye. The last row
-        is the model's word and your check agreeing. If only the model's had
-        agreed, your nudge would go there instead and the transcript would keep
-        going.</figcaption>
+      <figcaption>The first write produces two lines. The agent sees that result,
+        reads the file, and adds the missing line. The run ends when the model's
+        status and the filesystem check agree. If the check failed, the loop
+        would append a nudge and continue.</figcaption>
     </figure>
 
-    <h2>Why the loop is the point, not the plumbing</h2>
+    <h2>Each pass adds evidence</h2>
 
-    <p>The exits get all the attention in this lesson, so say the other half
-       plainly: the loop isn't just plumbing for tool calls.
-       <strong>The loop is what makes the answer better.</strong> A single request
-       answers from the prompt alone. Turn 2 answers from the prompt
-       <em>plus</em> what turn 1 found on disk. Turn 3 answers from both of those
-       plus the mistake it just read back in its own <code>tool_result</code>.
-       Every pass has more evidence than the one before it, so every pass can be
-       better than the one before it.</p>
+    <p>Turn 1 has the prompt. Turn 2 also has what turn 1 found on disk. By turn
+       3, the conversation includes the file contents and the earlier mistake in
+       a <code>tool_result</code>. The model can use that new evidence on its
+       next pass.</p>
 
     <figure class="diag">
       <div class="stack">
@@ -981,29 +895,19 @@ print(f"goal met in {turn} turn(s)" if done
             <span class="e old" style="--n:0">the prompt</span>
             <span class="e old" style="--n:1">+ &ldquo;wrote 2 line(s)&rdquo;</span>
             <span class="e" style="--n:2">+ the two lines, verbatim</span>
-            <span class="act">writes the third line, nobody corrected it</span>
+            <span class="act">uses the file contents to write the third line</span>
           </li>
         </ol>
       </div>
-      <figcaption>Chips only ever get added, never taken away, and that's the whole
-        mechanism: <b>each turn works from more evidence than the one before
-        it.</b> Turn 3 fixes turn 1's work because turn 3 can see turn 1's work.
-        Now ask what a bigger, more expensive model would do for the top row:
-        nothing. It still has one chip. That's the ceiling a single request runs
-        into, and no model gets you past it, but a second turn does, for the
-        price of one more request.</figcaption>
+      <figcaption>Turn 3 can fix turn 1's work because the intervening tool
+        results are now in the conversation. The model needs a later turn to
+        inspect evidence produced by its own actions.</figcaption>
     </figure>
 
-    <p>That's why turn 3 of the transcript above wrote a third line. Nobody
-       corrected the agent. It read two lines where it expected three, and fixed
-       its own work. A single request can't do that at any model size, because
-       there's no second look.</p>
-
-    <p>Which suggests the obvious next move: if one pass improves the work, run
-       several on purpose. Just don't do it in one loop. A loop that writes and
-       judges at the same time is grading its own homework, and it grades
-       generously, because the conversation is full of its own reasoning about why
-       the work is good. <strong>Use two loops instead.</strong></p>
+    <p>You can also separate writing from review:
+       use one loop with write access and a second loop with a fresh conversation
+       and read-only tools. The reviewer then sees the artifact without the
+       writer's earlier reasoning.</p>
 
     <figure class="diag">
       <div class="lanes stacked">
@@ -1029,25 +933,19 @@ print(f"goal met in {turn} turn(s)" if done
             draft</span>
         </div>
       </div>
-      <figcaption>The same model twice. The only difference is what each one is
-        allowed to see and touch. <b>The verify loop starts empty</b>, and that's
-        the detail that matters: give it the improve loop's transcript and you also
-        give it the improve loop's confidence, so it agrees with the reasoning
-        instead of reading the file. Give it read-only tools and one question and
-        it comes back with a list of problems. That list becomes the next improve
-        loop's prompt, a much better instruction than &ldquo;make it
-        better,&rdquo; because it was written about your actual
-        file.</figcaption>
+      <figcaption>The verify loop starts with a fresh conversation and read-only
+        tools. It reviews the artifact without seeing the improve loop's
+        reasoning. Its findings become the next improve loop's prompt, giving
+        the writer specific problems to address.</figcaption>
     </figure>
 
-    <p>Wrap the <code>while</code> loop you already wrote in a function: take the
-       goal and the tool list as arguments, and instead of
-       <code>console.log</code> at the end, return the last assistant text block.
-       Then the two loops together are nine lines:</p>
+    <p>Wrap the <code>while</code> loop in a function that accepts the goal and
+       tool list. Return the last assistant text block instead of logging it.
+       The improve-and-verify loop then takes nine lines:</p>
 
 <pre><code>// runLoop(goal, tools) is the loop from above, returning its final text.
 // The verify call has no goalMet() to satisfy, so it exits the normal way,
-// on end_turn, which is exactly why that branch is still there.
+// on end_turn, so the loop still needs that branch.
 const MAX_ROUNDS = 3;                    // same idea as MAX_TURNS, one level up
 let notes = "";
 
@@ -1061,35 +959,27 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
 
   if (report.includes("PASS")) { console.log(`passed on round ${round}`); break; }
   notes = `A reviewer found these problems. Fix them:\n${report}`;
-  console.log(`round ${round}: ${report}`);   // your record of what got better, and when
+  console.log(`round ${round}: ${report}`);   // record the review for this round
 }</code></pre>
 
-    <p>The catch: <strong>each round helps less than the last.</strong>
-       Round 1 fixes the obvious problems, round 2 fixes what round 1 introduced,
-       and round 3 usually rewrites phrasing you already liked. The cost doesn't
-       taper off, though. Using the same math as before, priced at the caps: an
+    <p>Later rounds often produce smaller gains at the same cost. Using the
+       earlier arithmetic at the caps, an
        improve loop that runs its full 12 turns is 43,200 input tokens, or
        <strong>$0.22</strong>, and a 4-turn verify loop on a fresh conversation is
        4,800 tokens, or <strong>$0.02</strong>. One round of both is
-       <strong>$0.24</strong>; three rounds is <strong>$0.72</strong>,
-       <strong>3&times; the bill for that second and third look.</strong> Worth it
-       for a document people will read, wasteful for a log line. So cap the
-       rounds, log which round passed, and after a week of logs you'll know
-       whether round 3 ever earns its keep.</p>
+       <strong>$0.24</strong>; three rounds cost <strong>$0.72</strong>. Cap the
+       rounds and log which one passed. Those logs will show whether later
+       rounds improve the result enough to justify their cost.</p>
 
-    <p>Straight about what we've shipped: the harness runs one loop, not two.
-       There's no improve/verify button in the settings panel. You get two loops by
-       writing them in your own script, which is why this is nine lines here and
-       not a feature.</p>
+    <p>The harness runs one loop. Compose separate improve and verify loops in
+       your own script.</p>
 
     <h2>Let the model pace itself: task budgets</h2>
 
-    <p>Your counter stops the loop from outside, and the model never sees it
-       coming. It gets cut off mid-job with no chance to wrap up.
-       <strong>Task budgets</strong> fix that. You give the model a token
-       allowance for the whole run, it sees the countdown while it works, so it
-       prioritises and finishes cleanly instead of being cut off. It's in beta,
-       and it needs a header:</p>
+    <p>A turn counter is invisible to the model and may stop a run mid-task.
+       A <strong>task budget</strong> gives the model a token allowance it can
+       see while it works, helping it decide when to wrap up. The feature is in
+       beta and requires a header:</p>
 
 <pre><code>const reply = await client.beta.messages.create({
   betas: ["task-budgets-2026-03-13"],
@@ -1103,12 +993,10 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
   messages,
 });</code></pre>
 
-    <p>Be clear about what you just bought. A task budget is a
-       <strong>suggestion the model can see</strong>. <code>max_tokens</code> is a
-       <strong>hard limit it can't see</strong>. And your turn counter is a hard
-       stop on the number of round trips. Three different jobs, and the budget
-       replaces neither of the others. Use all three, and definitely keep the
-       counter, a budget the model can choose to overspend is not a cap.</p>
+    <p>A task budget is visible to the model but is not enforced.
+       <code>max_tokens</code> is an enforced per-reply limit that the model
+       cannot see. Your turn counter limits the full run. Keep the counter
+       because the model may exceed a task budget.</p>
 
     <figure class="diag">
       <div class="caps">
@@ -1136,20 +1024,15 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
           </li>
         </ol>
       </div>
-      <figcaption>Three limits people talk about as if they were the same thing,
-        and no two rows here match. <b>Only the bottom row can stop a run</b>,
-        which is why a task budget replaces nothing. And only the top row is
-        visible to the thing doing the work, which is why it's still worth having.
-        A limit the model can't see coming produces a job abandoned mid-sentence; a
-        limit it can see produces a job wrapped up early. Same stopping point, and
-        only one of them leaves you something to ship.</figcaption>
+      <figcaption>These limits control different scopes. A task budget is visible
+        to the model but not enforced. <code>max_tokens</code> limits one reply.
+        <code>MAX_TURNS</code> limits the full run.</figcaption>
     </figure>
 
-    <p>The harness doesn't use task budgets. It
-       counts steps, <em>max steps</em>, 40 by default in the settings panel, and
-       stops there with a log line that tells you it was the setting and not the
-       model: <code>stopped after 40 steps (the max-steps setting)</code>. That's
-       the cheap version, it's four lines, and it's the one to write first.</p>
+    <p>The harness does not use task budgets. Its <em>max steps</em> setting
+       defaults to 40. When the run reaches it, the harness logs
+       <code>stopped after 40 steps (the max-steps setting)</code>. Add this
+       enforced limit before adding a task budget.</p>
 
     <h2>The trade-off: your counter vs. the SDK's</h2>
 
@@ -1159,96 +1042,77 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
        count inside <code>for message in runner:</code> and break, the same four
        lines you just wrote.</p>
 
-    <p>What the runner doesn't have is your goal. Nothing in the SDK knows that
-       three lines is the job, so the check stays yours either way. Loop over the
+    <p>The runner does not know your goal. The SDK cannot infer that three lines
+       completes the job, so the check stays in your code. Loop over the
        runner, and when a message comes back with
        <code>stop_reason: "end_turn"</code>, run your check and add one more user
        message if it fails. Per-turn hooks are the place for an approval prompt, a
        log line, or a budget check.</p>
 
-    <p>So: use the runner for the loop, and keep the counter and the goal check
-       yourself, because those are the two things a general-purpose helper can't
-       guess. One more thing, check <code>stop_reason</code> on the final message
+    <p>You can use the runner for the loop, but keep the counter and goal check
+       in your code because a general-purpose helper cannot infer them. Check
+       <code>stop_reason</code> on the final message
        even when the runner finished cleanly, because <code>pause_turn</code> comes
        back looking like success.</p>
 
-    <h2>Seven rules for a loop that stops</h2>
+    <h2>Loop checklist</h2>
 
     <ul>
-      <li><strong>Cap the turns, and log it when you hit the cap.</strong> A run
-          that ends at the counter is not an answer. Print the number and the
-          reason, or you'll go debugging the model when the real problem was a
-          tool description.</li>
-      <li><strong>Check the goal, don't trust the goodbye.</strong>
-          <code>end_turn</code> says something about the model. Your check says
-          something about the world. Only one of them is about the job.</li>
-      <li><strong>Let it say &ldquo;done&rdquo; in a schema, not in prose.</strong>
-          A <code>report_status</code> tool with a two-value <code>enum</code>
-          turns &ldquo;I think it's finished&rdquo; into something your code can
-          test. Log the <code>progress</code> number but never test it, it's a
-          guess, and three flat readings in a row is your best stuck-agent
-          alarm.</li>
-      <li><strong>Nudge once.</strong> One sentence saying what's missing. If that
-          doesn't work, stop and re-read your own prompt. A second nudge is just a
-          loop with extra steps.</li>
-      <li><strong>Give every tool a deadline.</strong> A hung tool is worse than a
-          failing one, because nothing tells you. Send the timeout back as a
-          <code>tool_result</code> with <code>is_error: true</code>.</li>
-      <li><strong>Use two loops, don't make one longer.</strong> Each pass knows
-          more than the last, so a second loop with read-only tools and no history
-          is the cheapest quality you can buy. Cap the rounds too, and log which
-          round passed.</li>
-      <li><strong>Retry the connection, never the decision.</strong> Back off and
-          retry on a 429 or a dropped socket. Everything else is a result the model
-          should see, and anything that changes the world needs to be idempotent
-          before you repeat it.</li>
+      <li>Cap the turns and log when the run reaches the limit. Include the
+          number and reason so you can distinguish a cap from an answer.</li>
+      <li>Run a goal check after <code>end_turn</code>. The model stopping does
+          not prove that the requested state exists.</li>
+      <li>Use a <code>report_status</code> tool with a two-value
+          <code>enum</code>. Test the status and log the progress estimate.</li>
+      <li>Nudge once with a sentence that names the missing condition. If the
+          next claim also fails, inspect the prompt, check, and tools.</li>
+      <li>Give every tool a deadline. Return timeouts as
+          <code>tool_result</code> blocks with <code>is_error: true</code>.</li>
+      <li>Separate improvement from verification. Give the verifier a fresh
+          conversation and read-only tools, and cap the number of rounds.</li>
+      <li>Retry transport failures with backoff. Return other results to the
+          model, and make state-changing tools idempotent before retrying them.</li>
     </ul>
 
     <h2>The exercise</h2>
 
-    <p>Do this in <a href="/">the harness</a>. It's the same loop, already running,
-       with twenty-one tools on a virtual filesystem, and the counter from this
-       lesson wired to the <em>max steps</em> box. Open <em>KEYS</em>, paste an API
-       key or point it at Ollama, then ask for something that really does need
-       several steps in order:</p>
+    <p>Open <a href="/">the harness</a>. It runs the same loop with twenty-one
+       tools on a virtual filesystem, and its <em>max steps</em> setting controls
+       the counter. Open <em>KEYS</em>, paste an API key or select Ollama, then
+       give it a task with ordered steps:</p>
 
 <pre><code>read notes/paris.md, add a fourth line with today's date, then read it back and tell me the line count</code></pre>
 
-    <p>Watch the transcript for the same shape as the one above: a read, an edit, a
-       second read, then prose. Three tool calls that had to happen in that order,
-       and an agent that checked its own edit before saying it was done.</p>
+    <p>The transcript should show a read, an edit, a second read, then prose.
+       Those three tool calls must happen in order so the agent can check its
+       edit before reporting completion.</p>
 
-    <p>There's no <code>report_status</code> in the harness either. But ask for a
-       five-step build and you'll see the
-       <code>todo</code> tool go by in the transcript, doing the same trick, a
+    <p>The harness has no <code>report_status</code> tool. Ask for a five-step
+       build and the transcript will show the <code>todo</code> tool using a
        status <code>enum</code> of
        <code>pending</code>/<code>active</code>/<code>done</code>, one per step,
-       instead of one number for the whole run. The difference is that the harness
-       only <em>shows</em> you that list; it doesn't make decisions from it. Your
-       own loop should.</p>
+       instead of one number for the whole run. The harness displays that list
+       but does not use it as an exit condition. Your own loop should.</p>
 
-    <p>Then run the two loops by hand, as two requests, to feel the second look
-       working. First ask it to improve <code>notes/paris.md</code>. Then send
+    <p>Run the two loops by hand as separate requests. First ask it to improve
+       <code>notes/paris.md</code>. Then send
        <code>/clear</code>, which empties the conversation and leaves the files
-       alone, that's your fresh start. Now ask &ldquo;read notes/paris.md and list
+       alone. Ask &ldquo;read notes/paris.md and list
        every line that isn't weather, or reply PASS,&rdquo; and read what the
-       reviewer found. That list is exactly what round 2 of an improve loop would
-       receive, and it's more specific than anything you'd have typed yourself. For
-       the contrast, ask the same question <em>without</em> the
-       <code>/clear</code> and watch it defend the draft it just wrote.</p>
+       reviewer found. That list is the input for round 2 of an improve loop.
+       Repeat the review without <code>/clear</code> to compare how the existing
+       conversation affects the response.</p>
 
     <p>Then break it on purpose:</p>
 
     <ul>
-      <li>Set <strong>max steps to 2</strong> and ask again. The run stops mid-job
-          and says so. That's the cap working, and it's what your own
-          <code>MAX_TURNS</code> log line should look like.</li>
+      <li>Set <strong>max steps to 2</strong> and ask again. The run should stop
+          mid-job and log that it reached the cap.</li>
       <li>Give it a goal with no finish line, &ldquo;keep improving
-          notes/paris.md&rdquo;, and watch how long it keeps going. That's the
-          argument for checkable goals, in one run.</li>
+          notes/paris.md&rdquo;, and watch how long it continues.</li>
       <li>Turn off <code>read_file</code> in <em>TOOLS</em> and ask it to verify an
-          edit. It can't check, so watch whether it admits that or claims success
-          anyway. Then decide which of those two behaviours you'd ship.</li>
+          edit. It cannot check, so note whether it reports that limitation or
+          claims success.</li>
       <li>In your own script, set the model up to claim <code>complete</code> when
           it isn't: ask for three lines in the prompt, but have
           <code>goalMet()</code> look for four. It will report
@@ -1256,29 +1120,23 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
           That error message is the one you want.</li>
     </ul>
 
-    <p>All four are safe to run. The harness writes to a virtual filesystem in
+    <p>The harness writes to a virtual filesystem in
        <code>localStorage</code> in your own tab, so nothing here touches your real
        disk. <code>/wipe</code> clears the workspace, and <code>/undo</code> rewinds
-       both the files and the conversation until you close the tab. The runaway you
-       cause on purpose costs cents, the cheapest possible way to meet one.</p>
+       both the files and the conversation until you close the tab.</p>
 
-    <h2>Next week</h2>
+    <h2>Lesson 4</h2>
 
-    <p>Your agent now runs several steps and stops on a condition you chose. So far
-       everything it touched was code you wrote. <strong>Lesson 4, agent
-       communication</strong>, changes that: you'll publish a handler on
+    <p>Your agent now runs several steps and stops on a condition you chose.
+       <strong>Lesson 4, agent communication</strong> adds work performed by
+       another service: you'll publish a handler on
        <strong>Blocks.ai</strong> so other agents can hire yours, and write a client
        that hands work to an agent whose insides you've never seen. Delays become
        real, the failure might be someone else's, and a task can be accepted and
        then abandoned.</p>
 
-    <p>That's why this lesson came first. Every one of those is a stopping problem,
-       and you now have a counter, a deadline and a goal check to bring with you. An
-       agent that reaches the network without them doesn't fail loudly. It just
-       waits.</p>
-
-    <p>An agent that stops on purpose is one you can leave running on someone
-       else's behalf, which is the only reason anyone hands one real work.</p>
+    <p>A networked agent still needs a counter, tool deadlines, and a goal check
+       so it cannot wait indefinitely.</p>
 
     <p>Where this sits in the whole course, and what comes after:
        <a href="2026-09-04-the-syllabus.html">the syllabus</a>. Last week's loop,

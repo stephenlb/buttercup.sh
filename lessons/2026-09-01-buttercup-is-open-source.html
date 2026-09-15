@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>buttercup.sh is open source — an agent harness that lives in your browser</title>
-<meta name="description" content="buttercup.sh is an open-source coding agent harness that runs entirely in a web browser — desktop or phone — with no backend, no build step, and support for local models. Free forever.">
+<title>buttercup.sh is open source: an agent harness in your browser</title>
+<meta name="description" content="buttercup.sh is an open-source coding agent harness that runs in a desktop or phone browser, with no backend or build step and support for local models. Free forever.">
 <link rel="canonical" href="https://buttercup.sh/lessons/2026-09-01-buttercup-is-open-source.html">
 <link rel="stylesheet" href="lessons.css">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23191204'/%3E%3Ctext x='2' y='12' font-family='monospace' font-size='11' fill='%23ffd873'%3E%26gt;%3C/text%3E%3C/svg%3E">
@@ -31,9 +31,9 @@
     <header>
       <time datetime="2026-09-01">1 September 2026</time>
       <h1>buttercup.sh is open source: an agent harness that lives in your browser</h1>
-      <p>A coding agent with a real toolbelt, running from a single static
-         page — on your laptop or your phone, pointed at a cloud model or at one
-         running on your own machine. No server, no build step, no account.
+      <p>A coding agent with file tools, previews, and sub-agents, all in one
+         static page that runs on your laptop or phone. Connect it to a cloud
+         model or one on your own machine. There is no server, build step, or account.
          <strong>Free forever.</strong></p>
       <a class="cta" href="/">open the harness</a>
       <!-- the form itself rather than a link down to it: one field, one
@@ -50,52 +50,46 @@
         <input type="hidden" name="locale" value="en">
         <button type="submit">SUBSCRIBE</button>
         <p class="note">one lesson a week, starting mid-September 2026</p>
-        <p class="thanks" role="status">subscribed — thank you!</p>
+        <p class="thanks" role="status">subscribed, thank you!</p>
       </form>
     </header>
 
     <h2>What it is</h2>
 
-    <p>A coding harness — the thing Claude Code, Codex, Cursor and Antigravity
-       all are underneath — is not much: a loop that sends a conversation to a
-       model, hands it a list of tools, runs the tools it asks for, and puts the
-       results back in the conversation. Everything else is scaffolding around
-       that loop.</p>
+    <p>Coding agents such as Claude Code, Codex, Cursor, and Antigravity all
+       run a small loop: send the model a conversation and a list of tools,
+       run the tools it requests, then return the results. Everything else
+       supports that loop.</p>
 
-    <p><strong>buttercup.sh is that loop, in a browser tab.</strong> It is
-       static HTML, CSS and JavaScript — classic <code>&lt;script&gt;</code>
-       tags, no modules, no bundler, no dependencies, nothing to compile. The
-       whole setup is:</p>
+    <p><strong>buttercup.sh runs the loop in a browser tab.</strong> The program
+       is static HTML, CSS, and JavaScript loaded with classic
+       <code>&lt;script&gt;</code> tags. It has no modules or dependencies and
+       needs no bundler. Run it with:</p>
 
 <pre><code>git clone https://github.com/stephenlb/buttercup.sh &amp;&amp; open buttercup.sh/index.html</code></pre>
 
-    <p>That is not a quickstart with a "production deployment" section hiding
-       behind it. There is no production deployment. The page you open <em>is</em>
-       the program. Read <code>js/agent.js</code> for the loop,
-       <code>js/tools.js</code> for the tools, <code>js/llm.js</code> for the
-       wire protocols, and you have read the harness.</p>
+    <p>The page you open <em>is</em> the program. There is no production build
+       hidden elsewhere. The loop is in <code>js/agent.js</code>, the tools are
+       in <code>js/tools.js</code>, and the wire protocols are in
+       <code>js/llm.js</code>. Those files contain the whole harness.</p>
 
     <h2>Eighteen tools, one tab</h2>
 
-    <p>The model gets a working toolbelt on every turn — reading, searching,
-       writing, moving and deleting files; scaffolding projects; running
-       JavaScript; spawning sub-agents; fetching pages, npm metadata and
-       framework docs; previewing what it built; exporting the result as a
-       ZIP:</p>
+    <p>On each turn, the model can read, search, write, move, and delete files.
+       It can scaffold projects, run JavaScript, spawn sub-agents, fetch pages
+       and documentation, preview its work, and export a ZIP:</p>
 
 <pre><code>read  list  glob  grep  todo  export_zip
 write  edit  delete  move  scaffold
 run_js  run_agent  preview
 http_get  npm_info  npm_file  framework_docs</code></pre>
 
-    <p>Around them sits the scaffolding you would actually miss: a virtual
-       filesystem in <code>localStorage</code>, a 25-deep undo stack that
-       snapshots the conversation and the files <em>together</em> so
-       <code>/undo</code> rewinds both, drag-and-drop import of files and whole
-       folders, pasted screenshots scaled for the wire, a request queue,
-       auto-compaction of long sessions, and a sandboxed preview with a
-       hand-written ES-module linker so the agent's imports resolve with no
-       server anywhere.</p>
+    <p>A virtual filesystem stores your files in <code>localStorage</code>.
+       A 25-step undo stack saves the conversation and files in the same
+       snapshot, so <code>/undo</code> rewinds both. You can drag in files or
+       folders and paste screenshots. Before sending screenshots, Buttercup
+       scales them down. It also queues requests, compacts long sessions, and
+       resolves preview imports with a hand-written ES-module linker.</p>
 
     <p>Code the agent writes runs in a <code>sandbox="allow-scripts"</code>
        iframe on an opaque origin, so it cannot reach the page, the DOM, or your
@@ -103,53 +97,45 @@ http_get  npm_info  npm_file  framework_docs</code></pre>
 
     <h2>It works on your phone</h2>
 
-    <p>A harness with no backend and no
-       build step has nothing that needs a desktop: the tab talks to a model
-       endpoint over HTTPS, and a phone browser does that as well as a laptop
-       does. So on a narrow screen the machine stacks into one column — the
-       transcript and prompt on top, the file rack, diffs and settings below —
-       and the whole thing keeps working.</p>
+    <p>The tab calls model endpoints over HTTPS, so it works in laptop and
+       phone browsers. On a narrow screen, the interface becomes one column:
+       transcript and prompt first, then the file rack, diffs, and settings.</p>
 
     <p>Open <a href="https://buttercup.sh">buttercup.sh</a> on your phone, paste
-       a key, and ask for something on the train. Files land in that browser's
-       storage; export a ZIP when you get somewhere with a keyboard.</p>
+       a key, and use it on the train. The files stay in that browser's storage
+       until you export a ZIP.</p>
 
     <h2>Free forever</h2>
 
-    <p>There is no free tier above this, and no account, because there is no
-       server to hold one.</p>
+    <p>The program is free. It has no account system.</p>
 
-    <p>Nothing sits between the tab and the model you chose. No proxy, no
-       gateway of ours, no telemetry, no analytics, no update check. Your keys,
-       your conversation and your files live in your browser's
-       <code>localStorage</code> and are never transmitted anywhere except to
-       the vendor you explicitly selected. That is a property of a page with no
-       backend rather than a promise about our intentions, and you can verify it
-       with the network tab in about a minute.</p>
+    <p>Your tab connects to the model you choose. Buttercup has no
+       proxy, telemetry, analytics, or update check. Your keys, conversation,
+       and files stay in your browser's <code>localStorage</code>. Model
+       requests go to the vendor you select. You can verify that in your
+       browser's network tab.</p>
 
     <p>The code is <a href="https://github.com/stephenlb/buttercup.sh">on
-       GitHub</a>. Fork it and the harness is yours. Nothing can be taken away
-       from you later, because there is nothing anyone is hosting on your
-       behalf.</p>
+       GitHub</a>. A fork will keep working if buttercup.sh goes offline.</p>
 
     <h2>Local models: nothing leaves your machine</h2>
 
-    <p>Point the harness at <strong>Ollama</strong> or <strong>vLLM</strong> and
-       it makes no network request to any third party at all — not for the code
-       it writes, not for anything else. The two local providers drop the API
-       key row and the <code>Authorization</code> header entirely. Both just
-       need CORS permission to accept a call from the tab:</p>
+    <p>Connect the harness to <strong>Ollama</strong> or
+       <strong>vLLM</strong> to keep every request on your machine. Buttercup
+       hides the API-key field for both providers and sends no
+       <code>Authorization</code> header. Each server needs CORS permission to
+       accept calls from the tab:</p>
 
 <pre><code>OLLAMA_ORIGINS='https://buttercup.sh' ollama serve
 vllm serve &lt;model&gt; --allowed-origins '["https://buttercup.sh"]'</code></pre>
 
-    <p>Use your own origin instead if you are serving the harness yourself.
+    <p>If you serve the harness yourself, replace the origin with your own.
        Chrome and Firefox exempt <code>http://localhost</code> from
        mixed-content blocking on an HTTPS page; Safari does not, so on Safari
        serve the harness over local HTTP
        (<code>python3 -m http.server</code>).</p>
 
-    <p>When you do want a frontier model, eight vendors are wired up:</p>
+    <p>The harness also supports eight cloud and local providers:</p>
 
     <table>
       <thead>
@@ -167,11 +153,11 @@ vllm serve &lt;model&gt; --allowed-origins '["https://buttercup.sh"]'</code></pr
       </tbody>
     </table>
 
-    <p>Three wire formats cover all eight — Anthropic Messages, Google
+    <p>Buttercup speaks three wire formats: Anthropic Messages, Google
        <code>generateContent</code>, and OpenAI-style
-       <code>/chat/completions</code>, which six of them share. That is why a
-       <em>base url</em> field appears when you pick a chat-completions vendor:
-       any gateway speaking that shape works without a code change.</p>
+       <code>/chat/completions</code>, which six providers share. A
+       <em>base url</em> field appears for chat-completions vendors.
+       Any gateway that accepts that format works without a code change.</p>
 
     <blockquote>
       Keys live in your browser's <code>localStorage</code>. Anything that can
@@ -180,13 +166,13 @@ vllm serve &lt;model&gt; --allowed-origins '["https://buttercup.sh"]'</code></pr
 
     <h2>Why bother</h2>
 
-    <p>Because the harness is the part of this technology that has been made to
-       look complicated, and it isn't. If you can read a page of JavaScript you
-       can read the whole of an agent loop in an afternoon, change how it thinks,
-       give it a tool nobody shipped, and run it against a model on your own
-       hardware for nothing.</p>
+    <p>Most agent harnesses bury a small loop inside a large application.
+       Buttercup leaves the loop where you can read it. If you know JavaScript,
+       you can inspect the code in an afternoon, change its prompts, add a tool,
+       or connect it to a model on your own hardware.</p>
 
-    <p>Vintage charm, aggressively anti-dystopian. Emdashes welcome.</p>
+    <p>You choose the model, keep control of your keys, and can change every
+       part of the program beneath the old-terminal interface.</p>
 
     <p><a class="cta" href="/">open the harness</a></p>
   </article>
@@ -208,7 +194,7 @@ vllm serve &lt;model&gt; --allowed-origins '["https://buttercup.sh"]'</code></pr
       <button type="submit">SUBSCRIBE</button>
       <p class="note">one AI Agent training lesson, weekly</p>
       <p class="note">starting mid-September 2026</p>
-      <p class="thanks" role="status">subscribed — thank you!</p>
+      <p class="thanks" role="status">subscribed, thank you!</p>
     </form>
     <iframe name="signup-sink" title="subscription result" hidden></iframe>
   </section>
