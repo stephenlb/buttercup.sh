@@ -79,10 +79,13 @@
        It can scaffold projects, run JavaScript, spawn sub-agents, fetch pages
        and documentation, preview its work, and export a ZIP:</p>
 
-<pre><code>read  list  glob  grep  todo  export_zip
-write  edit  delete  move  scaffold
-run_js  run_agent  preview
+<pre><code>read  list  glob  grep  todo  set_mode  export_zip  playground_url
+write  edit  delete  move  scaffold  compile
+run_js  run_agent  preview  screenshot  navigate
 http_get  npm_info  npm_file  framework_docs</code></pre>
+
+    <p>The TOOLS panel can withhold any tool, and small-context WebLLM models
+       receive a reduced core set.</p>
 
     <p>A virtual filesystem stores your files in <code>localStorage</code>.
        A 25-step undo stack saves the conversation and files in the same

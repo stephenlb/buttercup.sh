@@ -397,6 +397,18 @@ writeFileSync(join(OUT_DIR, "sw.js"), sw);
 
 const LESSONS_SRC = join(ROOT, "lessons");
 const LESSONS_OUT = join(OUT_DIR, "lessons");
+const PUBLISH_THROUGH = process.env.BUTTERCUP_BUILD_DATE || new Date().toISOString().slice(0, 10);
+if (!/^\d{4}-\d{2}-\d{2}$/.test(PUBLISH_THROUGH))
+  die("BUTTERCUP_BUILD_DATE must be YYYY-MM-DD");
+const datedLesson = /^(\d{4}-\d{2}-\d{2})-.+\.html$/;
+const publishable = (file) => {
+  const match = file.match(datedLesson);
+  return !match || match[1] <= PUBLISH_THROUGH;
+};
+const hideFutureArchiveEntries = (html) => html.replace(
+  /[ \t]*<li>\s*<time datetime="(\d{4}-\d{2}-\d{2})"[\s\S]*?<\/li>\s*/g,
+  (entry, date) => date <= PUBLISH_THROUGH ? entry : ""
+);
 mkdirSync(LESSONS_OUT, { recursive: true });
 
 const lessonEntries = readdirSync(LESSONS_SRC, { withFileTypes: true });
@@ -411,8 +423,9 @@ const lessonScripts = new Set();
 for (const file of lessonFiles) {
   const out = join(LESSONS_OUT, file);
   if (file.endsWith(".html")) {
+    if (!publishable(file)) continue;
     const { html, refs } = bundle(`lessons/${file}`);
-    writeFileSync(out, html);
+    writeFileSync(out, file === "index.html" ? hideFutureArchiveEntries(html) : html);
     lessonPages.push(file);
     for (const ref of refs) lessonScripts.add(ref);
   } else if (file.endsWith(".js")) {
@@ -428,7 +441,8 @@ for (const file of lessonFiles) {
 // a build that copied it; serving a stale second copy is worse than not serving
 // one, so anything docs/lessons/ has that lessons/ does not is removed.
 for (const file of readdirSync(LESSONS_OUT)) {
-  if (!lessonFiles.includes(file) || file.endsWith(".js")) rmSync(join(LESSONS_OUT, file), { recursive: true });
+  if (!lessonFiles.includes(file) || file.endsWith(".js") || !publishable(file))
+    rmSync(join(LESSONS_OUT, file), { recursive: true });
 }
 
 /* ── sitemap ─────────────────────────────────────────────────────────────────
@@ -452,6 +466,7 @@ const xml = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, 
 const archive = stripHtmlComments(read("lessons/index.html"));
 const posts = [...archive.matchAll(POST_HREF)]
   .map((m) => ({ file: m[1], date: `${m[2]}-${m[3]}-${m[4]}` }))
+  .filter((p) => p.date <= PUBLISH_THROUGH)
   // The same post is linked from the list and sometimes from the prose above it.
   .filter((p, i, all) => all.findIndex((q) => q.file === p.file) === i)
   .sort((a, b) => b.date.localeCompare(a.date));

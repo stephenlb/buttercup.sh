@@ -201,12 +201,12 @@ so edits apply on the next turn.
 
 ## What's in the box
 
-23 tools handed to the model on every turn: `read`, `list`, `glob`, `grep`,
+Up to 23 tools can be handed to the model: `read`, `list`, `glob`, `grep`,
 `todo`, `set_mode`, `export_zip`, `playground_url`, `write`, `edit`, `delete`,
 `move`, `scaffold`, `compile`, `run_js`, `run_agent`, `preview`, `screenshot`,
-`navigate`, `http_get`, `npm_info`, `npm_file`, `framework_docs`. One fewer if
-you untick **use LiveCodes compiler** in the KEYS panel: `compile` is the only
-tool a setting can withdraw.
+`navigate`, `http_get`, `npm_info`, `npm_file`, `framework_docs`. The TOOLS
+panel can withhold any of them, disabling LiveCodes removes `compile`, and
+small-context WebLLM models receive only the core subset.
 
 `set_mode` gives the model access to `/mode`. A request for an agent loop, model
 tools, MCP integration or anything on blocks.ai switches general mode to

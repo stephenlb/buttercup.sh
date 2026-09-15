@@ -689,6 +689,20 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
         // What this request cost is the best measure of the context the next one
         // will carry — the tab cannot tokenize, and every vendor counts its own.
         state.context = reply.usage.input + reply.usage.output;
+        const calls = reply.parts.filter((p) => p.type === "tool_use");
+        const stop = stopAction(reply.stopReason);
+        if (stop === "truncated") {
+          throw new Error(`the model reply was truncated (${reply.stopReason}); raise the output limit or ask for a shorter response`);
+        }
+        if (!calls.length && stop === "error") {
+          throw new Error(`the model stopped for an unsupported reason: ${reply.stopReason}`);
+        }
+        if (!calls.length && stop === "tools") {
+          throw new Error(`the model reported ${reply.stopReason} but returned no tool calls`);
+        }
+        if (calls.length && stop !== "tools" && stop !== "unknown") {
+          throw new Error(`the model returned tool calls with inconsistent stop reason: ${reply.stopReason}`);
+        }
         const tally = {};
         for (const p of reply.parts) {
           const t = (tally[p.type] = tally[p.type] || { n: 0, chars: 0 });
@@ -707,7 +721,7 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
         });
         persist();
 
-        const calls = reply.parts.filter((p) => p.type === "tool_use");
+        if (stop === "pause") continue;
         if (!calls.length) return;   // `finally` reports the turn as done
 
         const results = [];
@@ -780,6 +794,17 @@ Facts only. Keep every path, package name and API name verbatim. No preamble, no
   function isBlankReply(r) {
     return !r.parts.some((p) => p.type === "tool_use") &&
            !r.parts.some((p) => p.type === "text" && (p.text || "").trim());
+  }
+
+  /** Normalize the terminal meanings used by the four provider adapters. */
+  function stopAction(reason) {
+    if (reason == null || reason === "") return "unknown";
+    const value = String(reason).toLowerCase();
+    if (["max_tokens", "length", "max_tokens_reached"].includes(value)) return "truncated";
+    if (value === "pause_turn") return "pause";
+    if (["end_turn", "stop", "stop_sequence"].includes(value)) return "done";
+    if (["tool_use", "tool_calls"].includes(value)) return "tools";
+    return "error";
   }
 
   /** How many chars of tool output a lean session may carry verbatim

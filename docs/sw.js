@@ -1,5 +1,5 @@
 
-const VERSION = "3f2f9a22d562";
+const VERSION = "1a9e77d55dc3";
 const CACHE = `buttercup-${VERSION}`;
 const SHELL = [
 "./",

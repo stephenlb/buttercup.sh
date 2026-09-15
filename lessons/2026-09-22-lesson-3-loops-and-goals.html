@@ -88,7 +88,9 @@
 
     <h2>Handle each <code>stop_reason</code></h2>
 
-    <p>Every reply carries a <code>stop_reason</code>. A catch-all such as
+    <p>Anthropic replies carry a <code>stop_reason</code>; other providers expose
+       an equivalent field, and an interrupted stream may leave an adapter
+       without one. A catch-all such as
        <code>if (stop_reason !== "tool_use")</code> can mistake a truncated
        reply, refusal, or paused turn for a finished answer.</p>
 
@@ -414,17 +416,22 @@ import { readFile, writeFile } from "node:fs/promises";
 const client = new Anthropic();
 
 const MAX_TURNS = 12;             // your exit, not the model's
-const TOOL_TIMEOUT_MS = 10_000;   // no tool is allowed to hang the run
+const TOOL_TIMEOUT_MS = 10_000;   // stop waiting and abort cooperative tools
 
 // 1. the tools. Two touch the disk, one only reports.
 let claim = { status: "incomplete", progress: 0, note: "not started" };
+let lastRead = null;
 
 const TOOLS = {
-  write_file: async ({ path, text }) =&gt; {
-    await writeFile(path, text);
+  write_file: async ({ path, text }, signal) =&gt; {
+    await writeFile(path, text, { signal });
     return `wrote ${text.split("\n").length} line(s) to ${path}`;
   },
-  read_file: ({ path }) =&gt; readFile(path, "utf8"),
+  read_file: async ({ path }, signal) =&gt; {
+    const text = await readFile(path, { encoding: "utf8", signal });
+    if (path === "notes/paris.md") lastRead = text;
+    return text;
+  },
   // what the model thinks, in a shape the loop can test
   report_status: (input) =&gt; {
     claim = input;
@@ -474,10 +481,14 @@ const GOAL = "Write notes/paris.md with exactly three lines about the weather, "
              "then read it back and confirm all three lines are there. " +
              "Call report_status after every write.";
 
-async function goalMet() {
+async function goalMet({ requireRead = true } = {}) {
   try {
     const text = await readFile("notes/paris.md", "utf8");
-    return text.trimEnd().split("\n").length === 3;
+    const lines = text.trimEnd().split("\n");
+    const weather = /\b(weather|temperature|degrees?|rain|snow|sun(?:ny)?|cloud(?:y)?|wind(?:y)?|humid|storm|clear|fog)\b/i;
+    return lines.length === 3 &amp;&amp;
+           lines.every(line =&gt; weather.test(line)) &amp;&amp;
+           (!requireRead || lastRead === text);
   } catch {
     return false;              // no file at all just means "not yet"
   }
@@ -487,7 +498,7 @@ async function goalMet() {
 const messages = [{ role: "user", content: GOAL }];
 let turn = 0, nudges = 0, budget = 16000, done = false;
 
-if (await goalMet()) throw new Error("already done, nothing to run");
+if (await goalMet({ requireRead: false })) throw new Error("already done, nothing to run");
 
 while (turn &lt; MAX_TURNS) {
   turn++;
@@ -567,19 +578,26 @@ function meter(p) {
 async function runOne(block) {
   const base = { type: "tool_result", tool_use_id: block.id };
   try {
-    const out = await withTimeout(TOOLS[block.name](block.input), TOOL_TIMEOUT_MS);
+    const out = await withTimeout(
+      signal =&gt; TOOLS[block.name](block.input, signal),
+      TOOL_TIMEOUT_MS);
     return { ...base, content: String(out) };
   } catch (err) {
     return { ...base, is_error: true, content: String(err.message) };
   }
 }
 
-function withTimeout(work, ms) {
-  return Promise.race([
-    Promise.resolve(work),
-    new Promise((_, reject) =&gt;
-      setTimeout(() =&gt; reject(new Error(`timed out after ${ms} ms`)), ms)),
-  ]);
+async function withTimeout(start, ms) {
+  const controller = new AbortController();
+  const timer = setTimeout(() =&gt; controller.abort(), ms);
+  try {
+    return await start(controller.signal);
+  } catch (err) {
+    if (controller.signal.aborted) throw new Error(`timed out after ${ms} ms`);
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
 }</code></pre>
 
     <p>The <code>continue</code> and <code>break</code> statements make each
@@ -593,7 +611,8 @@ function withTimeout(work, ms) {
 
 <pre><code>import anthropic
 from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as Timeout
+from multiprocessing import get_context
+from queue import Empty
 
 client = anthropic.Anthropic()
 
@@ -605,6 +624,8 @@ NOTES = Path("notes/paris.md")
 def write_file(path, text):
     Path(path).write_text(text)
     return f"wrote {len(text.splitlines())} line(s) to {path}"
+
+last_read = None
 
 def read_file(path):
     return Path(path).read_text()
@@ -662,33 +683,64 @@ GOAL = ("Write notes/paris.md with exactly three lines about the weather, "
         "then read it back and confirm all three lines are there. "
         "Call report_status after every write.")
 
-def goal_met():
+def goal_met(require_read=True):
     try:
-        return len(NOTES.read_text().rstrip().splitlines()) == 3
+        text = NOTES.read_text()
+        lines = text.rstrip().splitlines()
+        weather = ("weather", "temperature", "degree", "rain", "snow", "sun",
+                   "cloud", "wind", "humid", "storm", "clear", "fog")
+        return (len(lines) == 3
+                and all(any(word in line.lower() for word in weather)
+                        for line in lines)
+                and (not require_read or last_read == text))
     except FileNotFoundError:
         return False
 
 def meter(p):                      # twenty cells, so each cell is 5%
     return f"[{'▓' * round(p / 5):·&lt;20}] {p:3}%"
 
-# 3. the loop
-pool = ThreadPoolExecutor(max_workers=8)
+# 3. the loop. File tools run in a process so a timeout can terminate the work.
+processes = get_context("fork")  # POSIX example; Windows needs a __main__ guard
+
+def run_in_child(name, inputs, queue):
+    try:
+        queue.put(("ok", TOOLS[name](**inputs)))
+    except Exception as err:
+        queue.put(("error", str(err)))
 
 def run_one(block):
+    global last_read
     result = {"type": "tool_result", "tool_use_id": block.id}
-    try:
-        out = pool.submit(TOOLS[block.name], **block.input).result(TOOL_TIMEOUT_S)
-        return {**result, "content": str(out)}
-    except Timeout:
+    if block.name == "report_status":
+        try:
+            return {**result, "content": str(report_status(**block.input))}
+        except Exception as err:
+            return {**result, "is_error": True, "content": str(err)}
+
+    queue = processes.Queue()
+    process = processes.Process(target=run_in_child,
+                                args=(block.name, block.input, queue))
+    process.start()
+    process.join(TOOL_TIMEOUT_S)
+    if process.is_alive():
+        process.terminate()
+        process.join()
         return {**result, "is_error": True,
                 "content": f"timed out after {TOOL_TIMEOUT_S}s"}
-    except Exception as err:
-        return {**result, "is_error": True, "content": str(err)}
+    try:
+        status, value = queue.get(timeout=1)
+    except Empty:
+        return {**result, "is_error": True,
+                "content": f"tool process exited with code {process.exitcode}"}
+    if status == "ok" and block.name == "read_file" and block.input["path"] == str(NOTES):
+        last_read = value
+    return ({**result, "content": str(value)} if status == "ok"
+            else {**result, "is_error": True, "content": str(value)})
 
 messages = [{"role": "user", "content": GOAL}]
 turn, nudges, budget, done = 0, 0, 16000, False
 
-assert not goal_met(), "already done, nothing to run"
+assert not goal_met(require_read=False), "already done, nothing to run"
 
 # one sentence saying what's missing, and the only place nudges are counted.
 def nudge():
@@ -951,7 +1003,7 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
     `Read notes/paris.md. List every line that is not weather, or reply PASS.`,
     [readTool]);
 
-  if (report.includes("PASS")) { console.log(`passed on round ${round}`); break; }
+  if (report.trim() === "PASS") { console.log(`passed on round ${round}`); break; }
   notes = `A reviewer found these problems. Fix them:\n${report}`;
   console.log(`round ${round}: ${report}`);   // record the review for this round
 }</code></pre>
