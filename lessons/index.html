@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>lessons — buttercup.sh</title>
-<meta name="description" content="The weekly AI Agent training archive for buttercup.sh, plus release notes for the open-source agent harness that runs in a browser tab.">
+<title>lessons | buttercup.sh</title>
+<meta name="description" content="Practical lessons on building AI agents, plus release notes for the open-source buttercup.sh browser harness.">
 <link rel="canonical" href="https://buttercup.sh/lessons/">
 <link rel="stylesheet" href="lessons.css">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23191204'/%3E%3Ctext x='2' y='12' font-family='monospace' font-size='11' fill='%23ffd873'%3E%26gt;%3C/text%3E%3C/svg%3E">
@@ -27,7 +27,7 @@
   </header>
 
   <h1>Lessons</h1>
-  <p class="kicker">the weekly agent lessons, and what changed</p>
+  <p class="kicker">practical agent lessons and release notes</p>
 
   <!-- top and bottom, on every page in this directory — the archive included.
        Same list and same sink frame as the copy in the foot. -->
@@ -42,8 +42,8 @@
            tabindex="-1" aria-hidden="true" autocomplete="off">
     <input type="hidden" name="locale" value="en">
     <button type="submit">SUBSCRIBE</button>
-    <p class="note">one lesson a week &middot; unsubscribe whenever</p>
-    <p class="thanks" role="status">subscribed — thank you!</p>
+    <p class="note">one lesson a week &middot; unsubscribe anytime</p>
+    <p class="thanks" role="status">subscribed, thank you!</p>
   </form>
 
   <hr>
@@ -52,56 +52,45 @@
   <ul class="log">
     <li>
       <time datetime="2026-09-22">22 September 2026</time>
-      <a href="2026-09-22-lesson-3-loops-and-goals.html">Lesson 3 — loops and goals: the agent that stops on purpose</a>
-      <p>Every value <code>stop_reason</code> can hold and what to do about each
-         one, the turn cap that turns a $2.40 runaway into 22 cents, goals
-         written so a program can check them, what a hung tool costs you, and a
-         multi-step agent in JavaScript and Python that verifies its own work
-         before it says it is done.</p>
+      <a href="2026-09-22-lesson-3-loops-and-goals.html">Lesson 3: loops and goals, or how an agent stops on purpose</a>
+      <p>Handle each <code>stop_reason</code>, set a turn limit, and write goals
+         your program can check. The JavaScript and Python examples recover
+         from hung tools and verify the result before stopping.</p>
     </li>
     <li>
       <time datetime="2026-09-15">15 September 2026</time>
-      <a href="2026-09-15-lesson-2-tool-calling.html">Lesson 2 — tool calling: how a chat model gets hands</a>
-      <p>For beginners: the four-station loop that turns a chat model into an
-         agent, written out by hand in JavaScript and in Python. Why the model
-         never runs anything, why tool descriptions are prompts, and the four
-         rules that save you a weekend — then an exercise you run in the
-         tab.</p>
+      <a href="2026-09-15-lesson-2-tool-calling.html">Lesson 2: tool calling, or how a chat model gets hands</a>
+      <p>Build a tool-calling loop by hand in JavaScript or Python. Learn what
+         the model sends, what your code must run, and how tool descriptions
+         shape its choices. The exercise runs in your browser.</p>
     </li>
     <li>
       <time datetime="2026-09-08">8 September 2026</time>
-      <a href="2026-09-08-lesson-1-webllm.html">Lesson 1 — WebLLM: a language model in the tab, no key, no server, no bill</a>
-      <p>A real language model running on your own GPU, inside the browser, with
-         the network off. What a model actually receives and sends back, a
-         complete single-file WebLLM example, the web worker version, both ways
-         to give it tools, and what &ldquo;free&rdquo; costs you in download and
-         VRAM instead of money — and why a weak model is the right one to learn
-         on.</p>
+      <a href="2026-09-08-lesson-1-webllm.html">Lesson 1: WebLLM, a language model in the browser with no key or server</a>
+      <p>Run a language model on your GPU with the network off. Inspect its
+         input and output, build a single-file WebLLM demo, and move it into a
+         web worker with tools. You'll also see the download and VRAM costs.</p>
     </li>
     <li>
       <time datetime="2026-09-04">4 September 2026</time>
-      <a href="2026-09-04-the-syllabus.html">The syllabus — six lessons, the loop first</a>
-      <p>The course has a shape: tool calling, loops and goals, agents hiring
-         other agents over Blocks.ai, then a model in the tab with WebLLM,
-         vision and evals. The loop that makes an agent an agent comes first,
-         with what you build and what you need for each — and an argument for
-         why that order and not another.</p>
+      <a href="2026-09-04-the-syllabus.html">The syllabus: six lessons, starting with the loop</a>
+      <p>See the project and requirements for each of the six lessons. The
+         course covers tool calling, loops and goals, delegation, WebLLM,
+         vision, and evals, with the agent loop first.</p>
     </li>
     <li>
       <time datetime="2026-09-02">2 September 2026</time>
       <a href="2026-09-02-weekly-agent-training.html">A new agent lesson every week</a>
-      <p>buttercup.sh is now a course as well as a harness. One lesson by email
-         every week — a single idea, the code that makes it work, and an
-         exercise you run in the tab. Free, no account, and every exercise runs
-         on a local model if you would rather not spend a cent.</p>
+      <p>Each email pairs one agent concept with working code and a browser
+         exercise. The course is free, requires no account, and works with
+         local models.</p>
     </li>
     <li>
       <time datetime="2026-09-01">1 September 2026</time>
       <a href="2026-09-01-buttercup-is-open-source.html">buttercup.sh is open source: an agent harness that lives in your browser</a>
-      <p>Eighteen tools, a virtual filesystem and an undo stack in one static
-         page — on desktop or phone, with no backend and no build step. Free
-         forever, and it talks to local models so nothing has to leave your
-         machine.</p>
+      <p>buttercup.sh puts eighteen tools, a virtual filesystem, and undo into
+         one static page. It runs on desktop or phone without a backend or
+         build step, and local models keep your data on your machine.</p>
     </li>
   </ul>
 
@@ -120,9 +109,8 @@
              tabindex="-1" aria-hidden="true" autocomplete="off">
       <input type="hidden" name="locale" value="en">
       <button type="submit">SUBSCRIBE</button>
-      <p class="note">one AI Agent training lesson, weekly</p>
-      <p class="note">starting mid-September 2026</p>
-      <p class="thanks" role="status">subscribed — thank you!</p>
+      <p class="note">one agent lesson each week</p>
+      <p class="thanks" role="status">subscribed, thank you!</p>
     </form>
     <iframe name="signup-sink" title="subscription result" hidden></iframe>
   </section>

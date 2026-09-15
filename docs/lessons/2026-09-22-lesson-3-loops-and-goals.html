@@ -31,16 +31,14 @@
     <header>
       <time datetime="2026-09-22">22 September 2026</time>
       <h1>Lesson 3: loops and goals - the agent that stops on purpose</h1>
-      <p>Today your agent takes several steps in order and stops when your
-         program tells it to. Lesson 2's loop ended when the model stopped
-         asking for tools. This lesson adds three exits:
+      <p>Your agent will take several steps and stop when your program tells it
+         to. Lesson 2's loop ended when the model stopped asking for tools. Now
+         you'll add three exits:
          <strong>a turn counter, a goal check, and a timeout on every
-         tool</strong>. You'll also add a
-         <code>report_status</code> tool. When the model thinks it is done, the
-         tool returns an <code>enum</code> your code can test. In the example,
-         the counter cuts a runaway from $2.40 to $0.22. The loop takes about
-         forty lines in JavaScript or Python; most of the remaining code defines
-         the tools.</p>
+         tool</strong>, plus a <code>report_status</code> tool that returns a
+         checkable <code>enum</code>. In the example, the counter cuts a runaway
+         from $2.40 to $0.22. The loop itself takes about forty lines in
+         JavaScript or Python; most of the remaining code defines the tools.</p>
       
       <form class="signup lede" id="signup-lede"
             action="https://5487903a.sibforms.com/serve/MUIFAAPvkZdoviEts98XHd7P8K3TyLVS3MtyAoJy_sJMZ9DgAKwbaJqN4Lgn4NMQH3JL50ANiWCKfMJlE3Wj5aEiDLJ3sbnhtSTvh3z7Lgg2BOpAJjNZhMpN_BCn21Kz_o-buc-NY7aFM5JXPRkd-GW0iihg0KEvSJQiAgmUYcB_8D6DmR8Xb4bEFUzTJmlYFti6yJBG7K33hsR_MQ=="
@@ -58,11 +56,19 @@
       </form>
     </header>
 
+    
+    <figure class="diag tube">
+      <div class="screen">
+        <p class="soon">video coming September 22nd</p>
+      </div>
+      <figcaption>The walkthrough for this lesson arrives on 22 September 2026.
+        Everything it covers is in the text below, with copyable code.</figcaption>
+    </figure>
+
     <h2>Control how the loop ends</h2>
 
-    <p>Lesson 2 built the loop. This lesson controls how it ends. Without a
-       reliable stopping condition, an agent may keep spending money or quit
-       with a half-written file.</p>
+    <p>Without a reliable stopping condition, an agent may keep spending money
+       or quit with a half-written file.</p>
 
     <p>The loop has four exits:</p>
 
@@ -82,9 +88,9 @@
 
     <h2>Handle each <code>stop_reason</code></h2>
 
-    <p>Every reply carries a <code>stop_reason</code>.
-       <code>if (stop_reason !== "tool_use")</code> treats five different
-       situations as an answer, including truncation and refusal.</p>
+    <p>Every reply carries a <code>stop_reason</code>. A catch-all such as
+       <code>if (stop_reason !== "tool_use")</code> mistakes truncation,
+       refusal, and three other outcomes for an answer.</p>
 
     <table>
       <thead>
@@ -171,17 +177,17 @@
         reply.</figcaption>
     </figure>
 
-    <p>Other providers use different names for the same outcomes.
+    <p>Other providers name these outcomes differently.
        OpenAI-compatible servers, including Ollama and vLLM, send
        <code>finish_reason</code> with the values <code>stop</code>,
        <code>length</code> and <code>tool_calls</code>. Gemini sends
        <code>finishReason</code>. We convert all of them into one
        <code>stopReason</code> in <code>js/llm.js</code>, using four adapters
        (Anthropic, Google, OpenAI-style chat, and WebLLM running in the tab), so
-       the loop does not need provider-specific branches. Whatever provider you
-       use, find this field and handle each value explicitly.</p>
+       the loop avoids provider-specific branches. Find the equivalent field
+       for your provider and handle each value explicitly.</p>
 
-    <h2>The turn cap, and what it saves</h2>
+    <h2>Cap the turns</h2>
 
     <p>An uncapped <code>while (true)</code> can keep a mistaken agent running
        indefinitely. If the model misreads a tool description, it may call the
@@ -218,12 +224,11 @@
         revision.</figcaption>
     </figure>
 
-    <p>Each stuck turn adds a
-       <code>tool_use</code> block and its <code>tool_result</code>, call that
-       <strong>600 tokens</strong>, and the first prompt is 300 tokens. So turn 1
-       sends 300 tokens. Turn <em>n</em> sends 300, plus 600 for every one of the
-       <em>n</em>&nbsp;&minus;&nbsp;1 turns before it. <strong>You pay for the
-       full history on every turn.</strong></p>
+    <p>Suppose each stuck turn adds a <code>tool_use</code> block and its
+       <code>tool_result</code>, totaling <strong>600 tokens</strong>, while the
+       first prompt uses 300. Turn 1 sends 300 tokens. Turn <em>n</em> sends
+       300 plus 600 for each of the <em>n</em>&nbsp;&minus;&nbsp;1 earlier turns.
+       <strong>You pay for the full history on every turn.</strong></p>
 
     <p>At 40 turns, the run has sent <strong>480,000 input tokens</strong>. At
        Claude Opus 5's $5 per million, that costs <strong>$2.40</strong>. A
@@ -272,9 +277,9 @@
     <blockquote>Set a limit, <code>break</code> when you reach it, and record
       why the run stopped.</blockquote>
 
-    <p>Choose the cap by estimating the required steps, then leave room for
-       retries. Read, edit, verify takes three tool calls and about four turns,
-       so twelve is generous. The general-purpose harness defaults to
+    <p>Estimate the required steps and leave room for retries. Reading, editing,
+       and verifying takes three tool calls and about four turns, so twelve is
+       generous. The general-purpose harness defaults to
        <strong>max steps 40</strong>. An agent built for one job can use a
        tighter limit.</p>
 
@@ -284,7 +289,7 @@
        not confirm that the files satisfy the request. Your program must inspect
        the result.</p>
 
-    <p>A useful goal has a condition your program can check:</p>
+    <p>Write goals as conditions your program can check:</p>
 
     <figure class="diag">
       
@@ -317,9 +322,9 @@
 
     <h2>Make &ldquo;done&rdquo; a tool call, not a goodbye</h2>
 
-    <p><code>end_turn</code> only means the model stopped talking. It cannot
-       distinguish a finished job from an agent that stopped early. Give the
-       model a tool that reports completion in a form your code can test.</p>
+    <p><code>end_turn</code> cannot distinguish a finished job from an agent
+       that stopped early. Give the model a tool that reports completion in a
+       form your code can test.</p>
 
     <p>Add this schema next to <code>read_file</code> and
        <code>write_file</code>. The tool records the model's assessment without
@@ -342,10 +347,9 @@
   },
 }</code></pre>
 
-    <p>The <code>enum</code> gives the loop a stable value to inspect. The model
-       must choose <code>"complete"</code> or <code>"incomplete"</code>, so your
-       code can test <code>status === "complete"</code> without interpreting
-       prose.</p>
+    <p>The model must choose <code>"complete"</code> or
+       <code>"incomplete"</code>. Your loop can test
+       <code>status === "complete"</code> without interpreting prose.</p>
 
     <p>Log the <code>progress</code> integer, but do not use it as an exit
        condition. It is the model's estimate. Three turns at 60 suggest the
@@ -402,10 +406,9 @@
 
     <h2>The code, JavaScript</h2>
 
-    <p>This example runs as written. Install
-       <code>@anthropic-ai/sdk</code>, set <code>ANTHROPIC_API_KEY</code>, then
-       run it with Node. It adds a goal and counter to the three parts from
-       lesson 2.</p>
+    <p>Install <code>@anthropic-ai/sdk</code>, set
+       <code>ANTHROPIC_API_KEY</code>, and run this example with Node. It adds a
+       goal and counter to the three parts from lesson 2.</p>
 
 <pre><code>import Anthropic from "@anthropic-ai/sdk";
 import { readFile, writeFile } from "node:fs/promises";
@@ -581,14 +584,14 @@ function withTimeout(work, ms) {
   ]);
 }</code></pre>
 
-    <p>The <code>continue</code> and <code>break</code> statements mark each
+    <p>The <code>continue</code> and <code>break</code> statements expose each
        path through the loop. The final line records the exit and the model's
-       last status for debugging.</p>
+       last status.</p>
 
     <h2>The code, Python</h2>
 
-    <p>The Python version follows the same paths. Install the SDK with
-       <code>pip install anthropic</code>.</p>
+    <p>Install the Python SDK with <code>pip install anthropic</code>. This
+       version follows the same paths.</p>
 
 <pre><code>import anthropic
 from pathlib import Path
@@ -763,8 +766,9 @@ print(f"goal met in {turn} turn(s)" if done
 
     <h2>When a tool hangs</h2>
 
-    <p>Your code runs the tools, so it must enforce their deadlines. If a tool
-       never returns, the loop waits forever without an error or final result.</p>
+    <p>Because your code runs the tools, it must enforce their deadlines. A tool
+       that never returns leaves the loop waiting without an error or final
+       result.</p>
 
     <p>Give every tool a deadline and return a missed deadline as a normal
        <code>tool_result</code> with <code>is_error: true</code>:</p>
@@ -833,8 +837,8 @@ print(f"goal met in {turn} turn(s)" if done
 
     <h2>A four-turn transcript</h2>
 
-    <p>This transcript has four tool calls, four loop iterations, and one goal
-       check performed by your program:</p>
+    <p>The program checks its goal after four tool calls and four loop
+       iterations:</p>
 
     <figure class="diag">
       
@@ -861,12 +865,11 @@ print(f"goal met in {turn} turn(s)" if done
         would append a nudge and continue.</figcaption>
     </figure>
 
-    <h2>Each pass adds evidence</h2>
+    <h2>Later turns have more evidence</h2>
 
-    <p>Turn 1 has the prompt. Turn 2 also has what turn 1 found on disk. By turn
-       3, the conversation includes the file contents and the earlier mistake in
-       a <code>tool_result</code>. The model can use that new evidence on its
-       next pass.</p>
+    <p>Turn 1 has the prompt. Turn 2 adds what turn 1 found on disk. By turn 3,
+       the conversation contains the file and the earlier mistake in a
+       <code>tool_result</code>.</p>
 
     <figure class="diag">
       <div class="stack">
@@ -899,10 +902,9 @@ print(f"goal met in {turn} turn(s)" if done
         inspect evidence produced by its own actions.</figcaption>
     </figure>
 
-    <p>You can also separate writing from review:
-       use one loop with write access and a second loop with a fresh conversation
-       and read-only tools. The reviewer then sees the artifact without the
-       writer's earlier reasoning.</p>
+    <p>You can separate writing from review. Give one loop write access, then
+       start a fresh conversation with read-only tools. The reviewer sees the
+       artifact without the writer's earlier reasoning.</p>
 
     <figure class="diag">
       <div class="lanes stacked">
@@ -934,9 +936,9 @@ print(f"goal met in {turn} turn(s)" if done
         the writer specific problems to address.</figcaption>
     </figure>
 
-    <p>Wrap the <code>while</code> loop in a function that accepts the goal and
-       tool list. Return the last assistant text block instead of logging it.
-       The improve-and-verify loop then takes nine lines:</p>
+    <p>Wrap the <code>while</code> loop in a function that accepts a goal and
+       tool list, and return the last assistant text block. The outer loop takes
+       nine lines:</p>
 
 <pre><code>// runLoop(goal, tools) is the loop from above, returning its final text.
 // The verify call has no goalMet() to satisfy, so it exits the normal way,
@@ -966,8 +968,8 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
        rounds and log which one passed. Those logs will show whether later
        rounds improve the result enough to justify their cost.</p>
 
-    <p>The harness runs one loop. Compose separate improve and verify loops in
-       your own script.</p>
+    <p>The harness runs one loop. Your script can compose separate improve and
+       verify loops.</p>
 
     <h2>Let the model pace itself: task budgets</h2>
 
@@ -1029,7 +1031,7 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
        <code>stopped after 40 steps (the max-steps setting)</code>. Add this
        enforced limit before adding a task budget.</p>
 
-    <h2>The trade-off: your counter vs. the SDK's</h2>
+    <h2>Your counter and the SDK's counter</h2>
 
     <p>The tool runners from lesson 2 have a counter built in. In TypeScript,
        <code>client.beta.messages.toolRunner({ ..., max_iterations: 12 })</code>
@@ -1044,11 +1046,11 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
        message if it fails. Per-turn hooks are the place for an approval prompt, a
        log line, or a budget check.</p>
 
-    <p>You can use the runner for the loop, but keep the counter and goal check
-       in your code because a general-purpose helper cannot infer them. Check
-       <code>stop_reason</code> on the final message
-       even when the runner finished cleanly, because <code>pause_turn</code> comes
-       back looking like success.</p>
+    <p>You can use the runner for the loop, but keep the goal check in your code
+       and configure or enforce the counter yourself. Check
+       <code>stop_reason</code> on the final message even when the runner
+       finishes cleanly; <code>pause_turn</code> can otherwise look like
+       success.</p>
 
     <h2>Loop checklist</h2>
 
@@ -1078,9 +1080,9 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
 
 <pre><code>read notes/paris.md, add a fourth line with today's date, then read it back and tell me the line count</code></pre>
 
-    <p>The transcript should show a read, an edit, a second read, then prose.
-       Those three tool calls must happen in order so the agent can check its
-       edit before reporting completion.</p>
+    <p>The transcript should show a read, an edit, a second read, and then
+       prose. That order lets the agent check its edit before reporting
+       completion.</p>
 
     <p>The harness has no <code>report_status</code> tool. Ask for a five-step
        build and the transcript will show the <code>todo</code> tool using a
@@ -1123,8 +1125,8 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
     <h2>Lesson 4</h2>
 
     <p>Your agent now runs several steps and stops on a condition you chose.
-       <strong>Lesson 4, agent communication</strong> adds work performed by
-       another service: you'll publish a handler on
+       In <strong>Lesson 4, agent communication</strong>, you'll publish a
+       handler on
        <strong>Blocks.ai</strong> so other agents can hire yours, and write a client
        that hands work to an agent whose insides you've never seen. Delays become
        real, the failure might be someone else's, and a task can be accepted and

@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>buttercup.sh — web agent harness</title>
-<meta name="description" content="A free weekly AI Agent training course, plus the 100% static, no-backend terminal harness you practice in — build agents that run in your browser.">
+<title>buttercup.sh — build AI agents in your browser</title>
+<meta name="description" content="Learn to build AI agents by writing and running them in your browser.">
 <!-- The apex host is canonical; www and http both 301 here. -->
 <link rel="canonical" href="https://buttercup.sh/">
 <link rel="stylesheet" href="css/buttercup.css">
@@ -72,27 +72,26 @@
                    tabindex="-1" aria-hidden="true" autocomplete="off">
             <input type="hidden" name="locale" value="en">
             <button type="submit" class="mini">SUBSCRIBE</button>
-            <p class="note">one AI Agent training lesson, weekly</p>
-            <p class="note">starting mid-September 2026</p>
+            <p class="note">one practical AI agent lesson each week</p>
+            <p class="note">subscribe for the next lesson</p>
             <p class="thanks" role="status">subscribed — thank you!</p>
           </form>
           <iframe name="signup-sink" title="subscription result" hidden></iframe>
-          <p>Em dashes welcome — a free, week-by-week course on building AI
-             Agents. Each lesson is one idea, the code that makes it work, and an
-             exercise you run right here. They build from a bare completion call
-             up to a working agent: the tool-call loop, tool definitions, context
-             and compaction, screenshots, browser control, planning, and the
-             failure modes nobody warns you about. Miss a week and the
-             <a href="lessons/">archive</a> keeps it.</p>
-          <p>No backend, no signup to play: open
-             <label for="tab-keys" class="linky">KEYS</label> and paste an API
-             key. It stays in this browser's <code>localStorage</code>; model
-             traffic goes straight from this tab to the vendor you pick.</p>
-          <p>Try it now: <em>&ldquo;scaffold a blocks.ai research agent, then run
-             it&rdquo;</em>. What it builds lands in the
+          <p>Em dashes welcome. This free course teaches you to build AI agents
+             with code that runs on this page. Each lesson adds a capability,
+             starting with a completion call and working up to agents that use
+             tools and control a browser. Past lessons stay in the
+             <a href="lessons/">archive</a>.</p>
+          <p>You do not need to sign up. Open
+             <label for="tab-keys" class="linky">KEYS</label>, choose a provider,
+             and paste an API key. Your browser saves the key in
+             <code>localStorage</code> and sends requests directly to the
+             provider.</p>
+          <p>Try <em>&ldquo;scaffold a blocks.ai research agent, then run
+             it&rdquo;</em>. The agent's files will appear in the
              <label for="tab-files" class="linky">workspace</label>.
-             <code>/help</code> lists the commands; <code>/undo</code> rewinds
-             the files and the context.</p>
+             Use <code>/help</code> for commands and <code>/undo</code> to roll
+             back the latest file and conversation changes.</p>
         </article>
       </div>
 
@@ -198,8 +197,8 @@
           <button type="button" id="wipe" class="mini danger">WIPE</button>
           <input type="file" id="import-input" multiple hidden>
         </div>
-        <p class="note">Drag files or a folder anywhere onto the page to put them
-          here — text only, and <code>/undo</code> takes an import back out.</p>
+        <p class="note">Drop text files or a folder anywhere on the page.
+          <code>/undo</code> removes the last import.</p>
         <ul class="tree" id="tree"><li class="dim">empty workspace</li></ul>
         <div class="viewer" id="viewer" hidden>
           <div class="viewer-head"><code id="viewer-path"></code>
@@ -214,9 +213,9 @@
           <span class="dim" id="tool-count"></span>
           <button type="button" id="tools-all" class="mini">ALL</button>
           <button type="button" id="tools-none" class="mini">NONE</button></div>
-        <p class="note">Handed to the model verbatim on every turn. Each one is a
-           plain JS function in <code>js/tools.js</code> — no server touches them.
-           Switch one off and the model never sees it.</p>
+        <p class="note">Every turn includes the enabled tool definitions.
+           The tools are JavaScript functions in <code>js/tools.js</code> and
+           run in your browser.</p>
         <ul class="tools" id="tools"></ul>
       </div>
 
@@ -225,14 +224,12 @@
           <span class="dim">sandboxed iframe</span>
           <button type="button" id="preview-shot" class="mini" disabled
                   title="screenshot this frame and attach it to the prompt (shift-click for a pixel-exact tab capture)">SEND TO MODEL</button></div>
-        <p class="note" id="preview-empty">Nothing mounted. The
-           <code>preview</code> tool points this frame at a file in the
-           workspace; <code>run_agent</code> executes one and reports back. Once
-           something is mounted, the model can <code>screenshot</code> it and
-           <code>navigate</code> it — click, type, scroll — and
-           <code>SEND TO MODEL</code> attaches a picture of it to your next
-           prompt. The page cannot read inside the sandbox, so the frame
-           photographs and operates itself and posts the result back out.</p>
+        <p class="note" id="preview-empty">Nothing mounted.
+           <code>preview</code> opens a workspace file here.
+           <code>run_agent</code> executes it. The model can take screenshots
+           or use <code>navigate</code> to interact with the page.
+           <code>SEND TO MODEL</code> attaches the current view to your next
+           prompt. All preview actions run inside the sandboxed frame.</p>
         <iframe id="preview" title="Agent preview" allow="fullscreen" allowfullscreen
           sandbox="allow-scripts allow-forms allow-modals allow-popups" hidden></iframe>
       </div>
@@ -274,14 +271,15 @@
                 <option value="max">max</option>
               </select></label>
           </fieldset>
-          <p class="note" id="webllm-hint" hidden>No server and no key — the model runs in this
-             tab on WebGPU. Tuned per model: each declares its own engine window (the 2B and 4B builds get 32k, the
-             rest 8k), a lean core toolset, replies capped at 4,096
-             tokens, and context that compacts early to stay inside the window. Weights
-             download once into the browser's cache, then work offline. Roughly: Qwen3.5-2B
-             ≈ 1.4 GB · Qwen3.5-4B ≈ 2.3 GB · Qwen3.5-9B ≈ 5 GB (default — the only size
-             that runs the tool loop cleanly) · the Hermes 7–8B builds ≈ 4–5 GB.
-             A bar across the top of the page tracks the first download.</p>
+          <p class="note" id="webllm-hint" hidden>WebLLM runs the model in this
+             tab on WebGPU, without a server or API key. The 2B and 4B builds
+             have a 32k context window; the others have 8k. Replies stop at
+             4,096 tokens, and the harness compacts the conversation before the
+             window fills. Model weights download once and remain in the
+             browser cache for offline use. Approximate sizes: Qwen3.5-2B
+             ≈ 1.4 GB · Qwen3.5-4B ≈ 2.3 GB · Qwen3.5-9B ≈ 5 GB (default; it
+             handles the tool loop most reliably) · Hermes 7–8B ≈ 4–5 GB.
+             The bar at the top tracks the first download.</p>
           <p class="note" id="webllm-model" hidden></p>
           <fieldset>
             <legend>harness</legend>
@@ -306,43 +304,34 @@
             <label class="check"><input type="checkbox" name="livecodes" id="livecodes" checked>
               <span>use LiveCodes compiler</span></label>
           </fieldset>
-          <p class="note">This is <code>compile</code>: JSX, Vue, Svelte, Sass,
-             TypeScript, Python and 80-odd more turned into one self-contained
-             page the harness can preview and photograph. It compiles in the
-             browser, but it fetches the SDK from a CDN and the playground from
-             livecodes.io. The SDK is pinned to a version <em>and</em> to a
-             SHA-256 of that version's file — it is fetched, checked and only then
-             run, so nothing else can execute on this origin in its name. Untick
-             this for a session that must make no third-party request at all, and
-             the tool is not offered to the model at all.
-             <code>/livecodes</code> says the same from the prompt, and switches
-             it either way.</p>
-          <p class="note">The other LiveCodes tool, <code>playground_url</code>,
-             needs none of that and is always on: it exports the work as a
-             livecodes.io link built right here, offline, with the project
-             compressed into the URL's <code>#fragment</code> — which a browser
-             never sends to a server. The link comes to you as an OPEN / COPY row
-             in the transcript rather than into the conversation, where tens of
-             thousands of compressed characters would be re-sent on every turn
-             after it.</p>
+          <p class="note"><code>compile</code> turns JSX, Vue, Svelte, Sass,
+             TypeScript, Python, and more than 80 other formats into a page you
+             can preview and photograph. It runs in the browser and loads the
+             SDK from a CDN and the playground from livecodes.io.
+             Before running the SDK, the harness verifies its pinned version
+             and SHA-256 hash. Disable this option to block those third-party
+             requests and hide the tool. <code>/livecodes</code> toggles it too.</p>
+          <p class="note"><code>playground_url</code> needs no SDK and stays
+             available. It builds the livecodes.io link offline and compresses
+             the project into the URL's <code>#fragment</code>. Browsers do not
+             send that fragment to the server. The transcript puts the link in
+             an OPEN / COPY row and keeps its contents out of later context.</p>
           <div class="panel-head">
             <button type="submit" class="mini">SAVE</button>
             <button type="button" id="forget" class="mini danger">FORGET KEY</button>
             <button type="button" id="reset-session" class="mini">NEW SESSION</button>
           </div>
-          <p class="note">SAVE checks the key against the vendor's model list — no
-             tokens spent — and the lamp in the title bar turns READY only when the
-             vendor accepts it. <code>base url</code> appears for OpenAI-compatible
-             backends, so any gateway that speaks
-             <code>/chat/completions</code> works without a code change.</p>
-          <p class="note">When the last request's token count crosses
-             <code>compact at</code>, the conversation is summarized into one
-             handover note and the session continues from it — workspace files
-             are never touched, and <code>/undo</code> restores the full context.
-             Set it below your model's window with room for one more turn.</p>
-          <p class="note">A key in <code>localStorage</code> is readable by anything
-             that can run script in this origin. Use a scoped, revocable key, and
-             prefer a key you don't mind rotating.</p>
+          <p class="note">SAVE checks the key against the provider's model list
+             without spending tokens. The lamp turns READY when the provider
+             accepts the key. OpenAI-compatible backends also show a
+             <code>base url</code> field for gateways that support
+             <code>/chat/completions</code>.</p>
+          <p class="note">At <code>compact at</code>, the harness replaces the
+             conversation with a handover summary. It leaves workspace files
+             alone, and <code>/undo</code> restores the full context. Set the
+             threshold low enough to leave room for another turn.</p>
+          <p class="note">Scripts on this origin can read keys in
+             <code>localStorage</code>. Use a scoped, revocable key.</p>
         </form>
       </div>
 

@@ -1,56 +1,48 @@
 # ButterCup Web Agent Harness
 
-**[buttercup.sh](https://buttercup.sh)** — em dashes welcome.
+**[buttercup.sh](https://buttercup.sh)**. Em dashes welcome.
 
 <img width="2034" height="1316" alt="preview" src="https://github.com/user-attachments/assets/25dc7e3f-f6b1-474a-9872-7e6b665d4304" />
 
 ## Why this exists
 
-To show that anyone can build AI Agents — the thing Claude Code, Codex,
-Cursor and Antigravity are — in a web browser and beyond.
+ButterCup is a coding agent built in the browser. Its small, dependency-free
+codebase makes the machinery behind Claude Code, Codex, Cursor and Antigravity
+easy to inspect.
 
-Join the next few weeks and learn to build AI agents.
-Open source. Courses posted on Youtube and [buttercup.sh](https://buttercup.sh).
-Learn how to build AI Agents.
+The project is open source. The course, published on YouTube and
+[buttercup.sh](https://buttercup.sh), explains the agent loop, its tools and how
+to add the same capabilities to your own software.
 
-You may be interested in the high-level discussion building agents and software.
-It's important to know what is possible,
-so you can learn what to ask code agents to add it to your apps.
-By knowing what is available, you'll be able to build more robust apps and agents.
-
-A coding harness is not much: a loop that sends a conversation to a model, hands
-it a list of tools, runs the tools it asks for, and puts the results back in the
-conversation. Everything else — the file tree, the diff view, the approval gate,
-the undo stack, compaction — is scaffolding around that loop. None of it needs a
-server, a build step, or a framework. This repository is the proof: static HTML,
-CSS and JavaScript, classic `<script>` tags, no modules, no bundler, no
-dependencies, nothing to compile.
+A coding harness is a loop. It sends a conversation and a list of tools to a
+model, runs the requested tools, then adds the results to the conversation. The
+file tree, diff view, approval gate, undo stack and compaction support that loop.
+ButterCup implements that machinery in static HTML, CSS and JavaScript using
+classic `<script>` tags. There is no server, framework, bundler or dependency
+installation.
 
 ```
 git clone git@github.com:stephenlb/buttercup.sh.git && open buttercup.sh/index.html
 ```
 
-That is the whole setup. Read `js/agent.js` for the loop, `js/tools.js` for the
-tools, `js/llm.js` for the wire protocols. Fork it and the harness is yours.
+Read `js/agent.js` for the loop, `js/tools.js` for the tools and `js/llm.js` for
+the wire protocols.
 
 ## Open source, standalone, and quiet
 
-The code is open source and runs from a file on your disk. There is no backend to
-deploy and nothing to proxy through, because there is nothing in the middle: the
-tab talks to whichever model endpoint you point it at, directly.
+The code runs from a file on your disk. The tab talks directly to the model
+endpoint you select, with no backend to deploy or proxy.
 
-**Point it at a local model and nothing leaves your machine.** With Ollama or
-vLLM the harness makes no network request to any third party of its own accord —
-not for telemetry, not for analytics, not for updates, not for the code it writes.
-Your keys, your conversation and your files live in this browser's `localStorage`
-and are never transmitted anywhere except to the vendor you explicitly selected.
+With Ollama or vLLM, the harness sends no data to third parties unless you enable
+a networked tool. It has no telemetry, analytics or update checks. Your keys,
+conversation and files stay in this browser's `localStorage`; model requests go
+only to the provider you select.
 
-Some *tools* fetch when the agent uses them: `http_get`, `npm_info`, `npm_file`
-and `compile` reach a network by definition, and `framework_docs` and `scaffold`
-write code that imports from a CDN. Nothing there is background traffic — every
-one is a tool call, named in the transcript, and switchable off in the TOOLS
-panel. Unticking **use LiveCodes compiler** and switching those off makes the
-promise absolute.
+Some *tools* use the network when the agent calls them. `http_get`, `npm_info`,
+`npm_file` and `compile` fetch data; `framework_docs` and `scaffold` can write
+code that imports from a CDN. Each call appears by name in the transcript and
+can be disabled in the TOOLS panel. To keep the session offline, untick **use
+LiveCodes compiler** and disable the networked tools.
 
 Code the agent writes runs in a `sandbox="allow-scripts"` iframe on an opaque
 origin, so it cannot reach this page, this DOM, or your keys.
@@ -64,40 +56,38 @@ origin, so it cannot reach this page, this DOM, or your keys.
 dock, a Start menu or a phone's home screen and open in its own window with no
 browser chrome around it.
 
-- **Chrome, Edge, Brave** — an **INSTALL** link appears in the title-bar row when
-  the browser offers one, or use the install icon in the address bar.
-- **iOS / iPadOS Safari** — Share → *Add to Home Screen*.
-- **Android Chrome** — the ⋮ menu → *Install app*.
-- **Safari on macOS** — File → *Add to Dock*.
+- Chrome, Edge and Brave: use the **INSTALL** link in the title bar or the
+  install icon in the address bar.
+- iOS and iPadOS Safari: choose Share, then *Add to Home Screen*.
+- Android Chrome: open the browser menu and choose *Install app*.
+- Safari on macOS: choose File, then *Add to Dock*.
 
-Installed or not, `sw.js` keeps a copy of the shell, so a cold launch paints with
-no network and lessons you have read stay readable offline. Two rules keep that
-cache from touching anything of yours: **same-origin GETs only**, and **no
-POSTs**. A model request, a WebLLM weight file, an npm lookup — anything
-cross-origin — passes straight through untouched, so no request carrying a key is
-ever written to a cache. What is cached is the page, the manifest, the icons, and
-lesson pages as you open them.
+`sw.js` caches the shell so the app starts without a network connection and
+previously opened lessons remain available offline. The cache
+accepts **same-origin GETs only** and does not cache **POSTs**. Cross-origin
+requests, including model calls, WebLLM weights and npm lookups, pass through
+without being cached. The cache contains the page, manifest, icons and lesson
+pages you open.
 
-The worker's cache name carries a hash of what it precaches, so a deploy retires
-the old cache exactly once and stale JavaScript cannot outlive its build. Append
-`?nosw=1` to unregister it and go back to plain requests — useful when you are
-debugging the harness rather than the app. A local model plus an installed window
-is the whole thing running with no network at all.
+The worker includes a hash of its precached files in the cache name. Each
+deployment retires the old cache once, so stale JavaScript does not outlive its
+build. Append `?nosw=1` to unregister the worker and use plain requests while
+debugging. An installed app paired with a local model can run without a network
+connection.
 
-The pieces: `manifest.webmanifest`, `sw.js`, `js/pwa.js`, and the icons, which
-`build.mjs` *draws* from a pixel grid — a two-colour PNG is a few dozen lines of
-zlib and CRC32, and generating them keeps the repo text-only and the icons in
-step with the palette.
+The PWA code lives in `manifest.webmanifest`, `sw.js` and `js/pwa.js`.
+`build.mjs` draws the icons from a pixel grid with a few dozen lines of zlib and
+CRC32 code. This keeps the repository text-only and the artwork in step with the
+palette.
 
 ---
 
 ## Key configuration
 
-Open `index.html`. It starts on the **KEYS** panel and stays there until a key
-validates. Pick a vendor, paste a key, press **SAVE**, and wait for the lamp in
-the title bar to turn from red **NOT READY** to green **READY** — **SAVE**
-validates the key against the vendor's model list, so a bad key fails here
-instead of halfway through a turn. No tokens are spent.
+Open `index.html`. The app starts on the **KEYS** panel and stays there until a
+key validates. Pick a vendor, paste a key and press **SAVE**. ButterCup checks the
+key against the vendor's model list without spending tokens. The title-bar lamp
+turns from red **NOT READY** to green **READY** when the check succeeds.
 
 | Vendor | Default model | Key | Notes |
 | --- | --- | --- | --- |
@@ -111,12 +101,11 @@ instead of halfway through a turn. No tokens are spent.
 | OpenRouter | `anthropic/claude-opus-4.5` | `sk-or-v1-…` | Any model the account can reach |
 | FreeBuff | *(you type one)* | gateway key | Any OpenAI-compatible gateway |
 
-Three wire formats cover the eight network vendors — Anthropic Messages,
-Google `generateContent`, and OpenAI-style `/chat/completions` (shared by six).
-That is why a **base url** field appears when you pick a chat-completions
-vendor: any gateway speaking that shape works without a code change. The
-ninth, WebLLM, never touches the network — its engine eats the same OpenAI
-shape inside the tab.
+The eight network vendors use three wire formats: Anthropic Messages, Google
+`generateContent` and OpenAI-style `/chat/completions` (shared by six). A
+**base url** field appears for chat-completions vendors, so any compatible
+gateway works without a code change. WebLLM uses the OpenAI-shaped payload
+inside the tab and makes no inference requests over the network.
 
 ### Running fully local
 
@@ -129,44 +118,45 @@ OLLAMA_ORIGINS='https://buttercup.sh' ollama serve
 vllm serve <model> --allowed-origins '["https://buttercup.sh"]'
 ```
 
-WebLLM needs none of that — there is no server. The model runs in this tab on
-WebGPU, and the only fetch is the inference runtime from a CDN, loaded lazily
-when you pick that provider. The weights (a few GB per model) download
-straight from Hugging Face into the browser's cache on first use — a hairline
-bar across the top of the page tracks that download — and after that
-it works offline, and nothing but the model itself ever sees your keys or
-your code. Start with `Qwen3.5-4B-q4f16_1-MLC` (~2.3 GB). Tools travel over a
-text bridge: the schemas ride in the system prompt and the model's
-`<tool_call>` blocks are parsed back into calls — WebLLM's native `tools`
-path is Hermes-only and would discard the harness's system prompt. Requires
-a WebGPU browser (Chrome, Edge, Safari 26+, Firefox with WebGPU) and enough
-free memory. The engine opens an 8k-token window: tools go out as a lean
-core set, old tool results shrink to stubs in the wire view (the newest
-~6k chars of output stay verbatim), read and grep results are capped at
-12k chars, and compaction fires around 5k tokens — tuned for 16 GB machines.
+WebLLM has no server; the model runs in the tab on WebGPU. When you select the
+provider, the browser loads the inference runtime from a CDN and downloads the
+model weights (a few GB) from Hugging Face into its cache. A thin bar tracks the
+first download across the top of the page; later sessions work offline. Start with
+`Qwen3.5-4B-q4f16_1-MLC` (~2.3 GB).
+
+Tools use a text bridge. Their schemas go into the system prompt, and the harness
+parses the model's `<tool_call>` blocks into calls. WebLLM's native `tools` path
+is Hermes-only and would discard the harness's system prompt.
+
+WebLLM needs a WebGPU browser (Chrome, Edge, Safari 26+, or Firefox with WebGPU)
+and enough free memory. The engine uses an 8k-token window, sends a small core
+toolset and reduces old tool results to stubs while keeping the newest ~6k
+characters. Read and grep output is capped at 12k characters, with compaction
+around 5k tokens. These limits target machines with 16 GB of memory.
 
 Use your own origin instead if you are serving the harness yourself. Chrome and
 Firefox exempt `http://localhost` from mixed-content blocking on an https page;
 Safari does not, so on Safari serve the harness over local http
 (`python3 -m http.server`).
 
-Running from `file://` works, but a local origin is better — browsers give
-`file://` pages a null origin and some vendors reject the preflight from one.
+Running from `file://` works, but browsers assign those pages a null origin.
+Some vendors reject preflight requests from null origins, so a local HTTP server
+is more reliable.
 
 ### Settings worth knowing
 
-- **auto-approve tool calls** — on by default. Turn it off for an
-  ALLOW / ALLOW ALL / DENY gate on every write and every execution.
-- **mode** — which system prompt the agent runs under (see `/mode` below). The
-  agent switches this itself, with `set_mode`, when your request is another
-  mode's job.
-- **max steps** — how many tool round trips one request may take.
-- **auto-compact** and **compact at** — summarize the session when the last
-  reply's token count crosses the threshold (120 000 by default).
-- **show reasoning** — stream thinking blocks into the transcript.
-- **use LiveCodes compiler** — on by default; the `compile` tool. Untick it to
-  withdraw the one tool that loads third-party code onto this origin.
-- **AUTO / DAY / NIGHT** — the tube. `?theme=light` pins one for a load.
+- `auto-approve tool calls` is on by default. Turn it off to review each write
+  and execution with ALLOW, ALLOW ALL or DENY.
+- `mode` selects the agent's system prompt (see `/mode` below). The agent can
+  switch modes with `set_mode` when another mode fits the request.
+- `max steps` limits tool round trips for one request.
+- `auto-compact` and `compact at` summarize the session when the latest reply
+  crosses the token threshold, 120,000 by default.
+- `show reasoning` streams thinking blocks into the transcript.
+- `use LiveCodes compiler` enables the `compile` tool. Turn it off to prevent
+  third-party code from loading on this origin.
+- `AUTO / DAY / NIGHT` controls the theme. `?theme=light` selects one for a
+  single load.
 
 > Keys live in this browser's `localStorage`. Anything that can run script on
 > this origin can read them. Use a scoped, revocable key.
@@ -175,15 +165,14 @@ Running from `file://` works, but a local origin is better — browsers give
 
 ## Slash commands
 
-Typed into the prompt and answered by the tab itself, with no round trip to a
-model — except `/init`, which hands the agent a request, and `/compact`, which
-spends one completion.
+The tab handles slash commands without calling a model. `/init` sends the agent
+a request, and `/compact` uses one completion.
 
 | Command | What it does |
 | --- | --- |
 | `/help` | Lists the commands. |
 | `/mode` | Shows the current mode. |
-| `/mode general` | Default — builds anything static in a browser. |
+| `/mode general` | Default; builds anything static in a browser. |
 | `/mode agent-builder` | Builds AI agents, blocks.ai first. |
 | `/mode slides` | Builds a deck: one self-contained page, arrow keys, print-to-PDF. |
 | `/mode game-dev` | Builds a game: pixi.js for 2D, three.js for 3D. |
@@ -199,14 +188,14 @@ spends one completion.
 | `/wipe` | Deletes the files *and* the conversation, after a confirm. |
 | `/workspace` | Lists the workspaces; `new`, `switch`, `rename`, `delete` manage them. |
 
-Each workspace is a project: its own files and its own conversation, switched
-together from the picker on the FILES panel or with `/workspace switch <name>`.
-Settings and API keys are shared across all of them; undo history is not — it
-stops at the workspace it was recorded in.
+Each workspace keeps its own files and conversation. Switch both from the picker
+in the FILES panel or with `/workspace switch <name>`. Settings and API keys are
+shared across workspaces, while undo history stays with the workspace where it
+was recorded.
 
-Project rules go in `AGENTS.md` in the workspace — also read from
-`.buttercup/AGENTS.md` and `CLAUDE.md` — and are re-read fresh on every request,
-so an edit lands on the next turn with no reload.
+Project rules go in the workspace's `AGENTS.md`. ButterCup also reads
+`.buttercup/AGENTS.md` and `CLAUDE.md`. It reloads these files for every request,
+so edits apply on the next turn.
 
 ---
 
@@ -219,90 +208,80 @@ so an edit lands on the next turn with no reload.
 you untick **use LiveCodes compiler** in the KEYS panel: `compile` is the only
 tool a setting can withdraw.
 
-`set_mode` is `/mode` handed to the model. Ask general mode for an agent — an
-agent loop, tools for a model, MCP, anything on blocks.ai — and it switches
-itself to `agent-builder` before it starts; the same goes for a deck, a game or
-a chart. The system prompt is rebuilt on every step, so the switch lands on the
-*next step of the same turn*, with the conversation and the workspace intact.
-The header select and the status bar follow it, so what you see is what the next
-request carries.
+`set_mode` gives the model access to `/mode`. A request for an agent loop, model
+tools, MCP integration or anything on blocks.ai switches general mode to
+`agent-builder` before work starts. Decks, games and charts trigger their
+matching modes. The harness rebuilds the system prompt on every step, so the new
+mode takes effect on the next step of the same turn without losing the
+conversation or workspace. The header and status bar show the active mode.
 
-`screenshot` and `navigate` close the loop on anything visual: the model mounts a
-page, photographs it, clicks and types in it, and looks again. The preview is an
-opaque-origin sandbox, so neither one reaches into it — the frame photographs and
-operates itself and posts the result back out (`js/capture.js`, `js/drive.js`).
+`screenshot` and `navigate` let the model inspect and operate visual work. It can
+mount a page, capture it, click or type, then inspect the result. Because the
+preview has an opaque origin, the parent page cannot reach into it. Scripts
+inside the frame perform the capture and interactions, then post results back
+(`js/capture.js`, `js/drive.js`).
 
 Nothing here transpiles: the sandbox runs plain ES modules, so `.jsx`, `.vue`,
 `.svelte`, `.scss` and `.py` are text it cannot execute. Two tools from
 [LiveCodes](https://livecodes.io/) (MIT, client-side) cover that gap, and they
 are gated differently because they are not the same kind of thing.
 
-`compile` runs a *headless* playground and takes back the generated result page,
-which lands in the workspace as one self-contained HTML file — so `preview`,
-`screenshot` and `navigate` treat a Svelte component exactly like hand-written
-HTML. An embedded LiveCodes preview would not work here: that iframe is
-cross-origin, and the agent's eyes and hands have to be injected into the page
-they operate. This is the one that reaches the network — the SDK from a CDN, the
-playground from livecodes.io — and the SDK is the sharp end of that, because it
-runs on the origin holding your keys. So it is pinned twice: to a version, and to
-a SHA-256 of that version's published file. The harness fetches it, hashes it,
-refuses to execute anything that does not match, and imports the verified bytes
-themselves rather than a second request that could answer differently. Untick
-**use LiveCodes compiler** for a session that must make no third-party request at
-all, and the tool is withheld from the model rather than failing after it calls
-it. The playground beyond it is not covered by that checksum and cannot be: it
-runs in an iframe on its own origin, where the browser — not a hash — is what
-keeps it away from this page.
+`compile` runs a headless playground and saves the generated page to the
+workspace as one self-contained HTML file. `preview`, `screenshot` and `navigate`
+can then handle a Svelte component like hand-written HTML. An embedded LiveCodes
+preview would be cross-origin, which would prevent ButterCup from injecting its
+capture and interaction scripts.
 
-`playground_url` is the export side — a livecodes.io link with the project
-compressed into its `#fragment`, which a browser never sends to a server. It is
-an ordinary tool, on by default, because making the link contacts nothing: the
-SDK's `getPlaygroundUrl` is a compressor and a `new URL`, so `js/livecodes.js`
-writes both out and imports nothing. The link then goes to *you*, as an OPEN /
-COPY row under the tool call, and never into the conversation: a compressed
-project is tens of thousands of characters, and a tool result is re-sent on every
-turn that follows it. The model gets a receipt saying the link is waiting.
-See `js/livecodes.js`.
+This tool fetches the SDK from a CDN and opens the playground on livecodes.io.
+Because the SDK runs on the same origin as your keys, ButterCup pins both its
+version and the SHA-256 hash of the published file. It fetches the SDK, verifies
+the hash and imports the verified bytes. A mismatch stops execution. Turn off
+**use LiveCodes compiler** to remove the tool from the model. The checksum does
+not cover the playground itself; the browser isolates that cross-origin iframe
+from the ButterCup page.
 
-Around them: a virtual filesystem in `localStorage` — one per workspace, with
-the conversation about it — a 25-deep undo stack that
-snapshots conversation and files together, drag-and-drop import of files and
-folders, pasted screenshots scaled for the wire, a request queue, ZIP export,
-and a sandboxed preview with a hand-written ES-module linker so the agent's
-imports resolve without a server.
+`playground_url` exports the project as a livecodes.io link compressed into the
+URL's `#fragment`, which the browser does not send to a server. Creating the link
+does not contact LiveCodes: the SDK's `getPlaygroundUrl` compresses the project
+and constructs a URL, and `js/livecodes.js` imports nothing. The OPEN / COPY row
+appears under the tool call instead of entering the conversation, where its tens
+of thousands of characters would be resent on later turns. The model receives
+only a note that the link is ready. See `js/livecodes.js`.
 
-One optional script folds the whole thing into a single file for GitHub Pages:
+The surrounding UI gives each workspace a `localStorage` filesystem,
+conversation and 25-entry undo stack. It also supports drag-and-drop imports,
+pasted screenshots scaled for model requests, a request queue, ZIP export and a
+sandboxed preview with a hand-written ES-module linker.
+
+An optional script prepares the project for GitHub Pages:
 
 ```
-node build.mjs        # → docs/index.html + docs/lessons/ + docs/.nojekyll
+node build.mjs        # writes docs/index.html + docs/lessons/ + docs/.nojekyll
                       #   + docs/manifest.webmanifest + docs/sw.js + app icons
 ```
 
-Zero dependencies, syntax-checked before it writes. A convenience, not a
-requirement — the source runs as-is.
+The optional build has no dependencies and checks syntax before writing. The
+source runs as-is.
 
 ## Lessons
 
-`lessons/` is the course archive — plain documents served alongside the harness
-but not part of it. The build treats them the way it treats the harness: every
-`<script src>` in a page is inlined, so `docs/lessons/` is what Pages serves and
-no page on the site loads a separate `.js` file. `announce.js` therefore lives in
-one place, `js/announce.js`, read by the harness and by every lesson.
+`lessons/` contains the course as plain documents served alongside the harness.
+The build inlines every `<script src>` in each page before writing
+`docs/lessons/`, so the published lessons load no separate JavaScript files.
+Both the harness and the lessons read the single source at `js/announce.js`.
 
-Edit `lessons/`, never `docs/lessons/` — the latter is generated and overwritten
-on each build. Add a lesson by dropping an HTML file in beside the others and
-linking it from `lessons/index.html`, newest first. The sources open straight
-from disk — `open lessons/index.html` — because the paths in them are the paths a
-browser reads; the build only folds them in.
+Edit `lessons/`, not `docs/lessons/`; each build overwrites the generated copy.
+Add a lesson by placing an HTML file beside the others and linking it from
+`lessons/index.html`, newest first. You can open the sources from disk with
+`open lessons/index.html`. The build inlines their existing paths.
 
-The shared stylesheet stays a linked file: `lessons/lessons.css` is minified into
-`docs/lessons/lessons.css`, since one cached 58 kB sheet beats a copy of it in
-every post. Anything else dropped in `lessons/` — an image, say — is copied
-through untouched.
+The shared stylesheet remains a linked file. The build minifies
+`lessons/lessons.css` into `docs/lessons/lessons.css`, allowing every lesson to
+share one cached 58 kB file. The build copies other files in `lessons/`, such as
+images, without changing them.
 
-`docs/sitemap.xml` is generated from the links in `lessons/index.html`, so
-publishing is one gesture: write the lesson, link it, push. A lesson that is
-written but not launched keeps its `<li>` HTML-commented out — the build strips
-comments before reading the links, so an unlaunched lesson stays out of the
-sitemap until you uncomment it. `docs/robots.txt` points crawlers at the
-sitemap and is hand-written.
+The build generates `docs/sitemap.xml` from links in `lessons/index.html`. To
+publish a lesson, write it, add the link and push. Keep an unpublished lesson's
+`<li>` inside an HTML comment. The build strips comments before collecting
+links, so the lesson stays out of the sitemap until you uncomment it.
+`docs/robots.txt` is hand-written and points crawlers to the sitemap.
