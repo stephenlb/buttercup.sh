@@ -217,22 +217,20 @@
 
     <h2 id="why">Why WebLLM is important</h2>
 
-    <p>Zero friction is not just a nice-to-have. It changes what you can build
-       and who gets to run it.</p>
+    <p>Zero friction changes what you can build and who gets to run it.</p>
 
-    <p><strong>You start in seconds.</strong> No signup. No key to rotate. No rate
-       limit. No dashboard. No meter running while you read the docs. You can get
-       it wrong a hundred times in one afternoon and it costs you nothing. That is
-       how developers learn. When a tutorial opens with a billing page, most
-       people close the tab, and the ones who stay play it safe. Here you can just
-       experiment.</p>
+    <p><strong>You start in seconds.</strong> No signup, no key to rotate, no
+       dashboard, and no meter running while you read the docs. You can get
+       it wrong a hundred times in one afternoon and it costs you nothing. When a
+       tutorial opens with a billing page, most people close the tab, and the ones
+       who stay play it safe. Here you can just experiment.</p>
 
-    <p><strong>Your data stays on your machine.</strong> This is not a privacy
-       policy you have to trust. There is nowhere for the data to go. The weights
+    <p><strong>Your data stays on your machine</strong>, and there is nowhere
+       else for it to go, so there is no privacy policy to trust. The weights
        load into your GPU, and from then on the tab is talking to your graphics
-       card. That is the difference between a demo you can show a hospital, a bank
-       or a law firm and a demo you cannot. Somebody asks where your prompts go,
-       and the answer is: nowhere.</p>
+       card. That is the difference between a demo you can show a hospital or a
+       bank and a demo you cannot. Somebody asks where your prompts go, and the
+       answer is: nowhere.</p>
 
     <p><strong>Your costs stay flat.</strong> Run an agent on a hosted model and
        every new user adds to your bill. Run it in the tab and your inference cost
@@ -246,8 +244,8 @@
        middle of your talk, and the model keeps answering. Nothing else in this
        course does that.</p>
 
-    <p>Now the honest part. This is not a frontier model. A 2B model in a tab is
-       small, a little slow, and confidently wrong. That is fine, and it is
+    <p>The caveat, up front: a 2B model in a tab is small, slow and confidently
+       wrong, nowhere near a frontier model. That is fine, and it is
        exactly why we start here. You get to watch every part of an agent break in
        the open, for free, before lesson 2 gives you a model good enough to hide its
        mistakes.</p>
@@ -259,14 +257,14 @@
        quantized model weights to run on
        <a href="https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API"><strong>WebGPU</strong></a>,
        the browser's access to your graphics card, and puts them behind the same
-       chat-completions API a hosted vendor gives you. It is not a proxy. It is not
-       a little server you forgot you started. The weights are ordinary files. You
+       chat-completions API a hosted vendor gives you. No proxy is involved, and
+       no little server you forgot you started. The weights are ordinary files. You
        fetch them once over HTTP and the browser keeps them in its cache. After
        that first fetch you can turn off your wifi and keep talking.</p>
 
-    <p>Here is the whole requirements list: a browser with WebGPU, so Chrome or
+    <p>The requirements are a browser with WebGPU, so Chrome or
        Edge on the desktop or a recent Safari or Firefox, plus a card with a couple
-       of gigabytes free. That is it.</p>
+       of gigabytes free.</p>
 
     <figure class="diag">
       <ol class="ladder">
@@ -420,12 +418,13 @@ const engine = await CreateWebWorkerMLCEngine(
     <p>One engine, one model. Keep it in a variable and reuse it, and call
        <code>unload()</code> before you load another one. A second engine for the
        same model reloads the GPU for no reason, and only one model fits at a time
-       anyway. Which brings us to the next section.</p>
+       anyway.</p>
 
     <h2 id="costs">What WebLLM costs you instead of money</h2>
 
-    <p>Free is not free. You pay in other ways, and it is better to know about them
-       now than to be surprised later. The first one is your graphics card. The rule
+    <p>You pay for this in currencies other than money, and it is better to know
+       about them now than to be surprised later. The first is your graphics
+       card. The rule
        of thumb is easy: at 4-bit, a model costs about <strong>half a byte per
        parameter</strong>. So 2B is about a gigabyte and 9B is about five. Then the
        conversation needs room of its own on top of that.</p>
@@ -664,8 +663,8 @@ console.log(((performance.now() - t) / 1000).toFixed(1), "s from cache");</code>
           tools fill, and it is where lesson 2 starts.</li>
     </ul>
 
-    <p>Now break it on purpose. This is the half everybody skips, and it is where
-       the lesson really lands:</p>
+    <p>Now break it on purpose. Most people skip this half, and it teaches more
+       than the half above it:</p>
 
 <pre><code>// ── a model id that doesn't exist. Read the error, you'll meet it again
 //    the first time you typo a model against a paid API. ───────────────
