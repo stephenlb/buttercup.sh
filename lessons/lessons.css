@@ -1631,7 +1631,429 @@ table.ref td { vertical-align: top; }
 .caps .ends .act { color: var(--good); }
 .caps .soft { border-left-color: var(--ink-hot); }
 
+/* ‥ figure 19: the network, and who dialled whom ‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥
+   Six agents on a hub and spoke, because that is literally the topology: every
+   one of them dialled out to the network and nothing ever dialled in. The
+   kickers carry the geography on purpose — two of these machines are yours, one
+   is behind NAT, four are somebody else's, and the wire looks identical either
+   way.
+
+   All six spokes are one 1px gradient swung out of the centre, and each packet
+   is a dot travelling `left: 0 → 100%` inside its own rotated spoke, so the
+   rotation comes free and the trigonometry lives in one place. Coordinates are
+   a 100 × 62 grid with the hub at (50, 31): `--a` is the angle out of the hub
+   and `--len` the distance to the node, both worked out by hand once and
+   written down rather than computed at paint time. Because rotation happens in
+   pixels after layout, `--len` is a percentage of the panel's *width* in both
+   axes, which is the whole reason the panel holds a fixed aspect ratio.
+
+   The packet is a dot rather than figure 1's ▸, for the dull reason that a
+   glyph inside a spoke rotated 22° arrives at the hub lying on its side.
+
+   Clock: the caller's request reaches the hub by 1.3s, three hires leave by
+   3.4s, their results are back by 6.0s, the answer is home at 7.9s. The two
+   idle agents never light and their rails never march — a catalogue is mostly
+   agents you are not using, and that should be visible. Station flares reuse
+   figure 1's `station`/`stationlit`, same meaning, so the same motion. */
+
+.mesh { position: relative; aspect-ratio: 100 / 62; }
+.mesh .wires { position: absolute; inset: 0; }
+
+/* one spoke: a dotted rail pinned at the hub and swung out to its node. The
+   node boxes are opaque and sit on top, so the far end tucks under the label
+   instead of having to stop short of it. */
+.mesh .wires i {
+  position: absolute; left: 50%; top: 50%;
+  width: var(--len); height: 1px; margin-top: -.5px;
+  transform-origin: 0 50%; transform: rotate(var(--a));
+  background: repeating-linear-gradient(90deg,
+    var(--rule) 0 4px, rgba(0,0,0,0) 4px 8px);
+  animation: ants 1.1s linear infinite;
+}
+.mesh .s1 { --a: -90deg;     --len: 27%; }
+.mesh .s2 { --a: -22.13deg;  --len: 34.54%; }
+.mesh .s3 { --a: 22.13deg;   --len: 34.54%; }
+.mesh .s4 { --a: 90deg;      --len: 27%; }
+.mesh .s5 { --a: 157.87deg;  --len: 34.54%; }
+.mesh .s6 { --a: -157.87deg; --len: 34.54%; }
+/* the two nobody hired: the rail exists, nothing is moving on it. `.wires` has
+   to stay in the selector — `:is()` takes the specificity of its own argument,
+   so `.mesh :is(.s5, .s6)` loses to `.mesh .wires i` and the ants march on. */
+.mesh .wires :is(.s5, .s6) { opacity: .4; animation: none; }
+
+.mesh .wires i::after {
+  content: ""; position: absolute; top: 50%; opacity: 0;
+  width: 5px; height: 5px; border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--good); box-shadow: 0 0 .35rem var(--good);
+}
+/* `left: 0` is the hub end, `left: 100%` the agent. Both keyframes make the
+   full round trip so one dot per spoke tells the whole request: the caller's
+   spoke goes in first and out last, a hire's spoke goes out in the middle. */
+@keyframes pkt-in {
+  0%, 2%    { left: 100%; opacity: 0 }
+  4%        { left: 100%; opacity: 1 }
+  16%       { left: 0;    opacity: 1 }
+  18%, 80%  { left: 0;    opacity: 0 }
+  83%       { left: 0;    opacity: 1 }
+  96%       { left: 100%; opacity: 1 }
+  98%, 100% { left: 100%; opacity: 0 }
+}
+@keyframes pkt-out {
+  0%, 24%   { left: 0;    opacity: 0 }
+  26%       { left: 0;    opacity: 1 }
+  42%       { left: 100%; opacity: 1 }
+  44%, 56%  { left: 100%; opacity: 0 }
+  58%       { left: 100%; opacity: 1 }
+  75%       { left: 0;    opacity: 1 }
+  77%, 100% { left: 0;    opacity: 0 }
+}
+.mesh .s1::after { animation: pkt-in  8s linear infinite; }
+.mesh :is(.s2, .s3, .s4)::after { animation: pkt-out 8s linear infinite; }
+/* after the shorthand, which resets it. A twelfth of a second apart, because
+   three hires that leave in perfect lockstep look like one hire. */
+.mesh .s3::after { animation-delay: .12s; }
+.mesh .s4::after { animation-delay: .24s; }
+
+/* the hub. A hexagon is two clipped boxes — the outer is the 1px outline, the
+   inner is the fill — because a border on a clipped box is a clipped border,
+   which is four straight fragments and no hexagon at all. */
+.mesh .hub {
+  position: absolute; left: 50%; top: 50%; z-index: 3;
+  width: 8rem; transform: translate(-50%, -50%); text-align: center;
+}
+.mesh .hub i {
+  position: relative; display: block; margin: 0 auto;
+  width: 3.2rem; height: 2.8rem; background: var(--ink-faint);
+  clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
+}
+.mesh .hub i::before {
+  content: ""; position: absolute; inset: 1.5px;
+  background: var(--paper-3);
+  clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
+  animation: hubwarm 8s linear infinite;
+}
+@keyframes hubwarm {
+  0%, 14%, 34%, 72%, 90%, 100% { background: var(--paper-3) }
+  18%, 30%, 76%, 86%           { background: var(--good) }
+}
+.mesh .hub span {
+  display: block; margin-top: .35rem; white-space: nowrap;
+  color: var(--ink-hot); font-size: .6rem;
+  letter-spacing: .18em; text-transform: uppercase;
+}
+/* the flare: the same hexagon, larger, green, sitting behind the real one. The
+   hub's own z-index makes a stacking context, so this stays put. */
+.mesh .hub::after {
+  content: ""; position: absolute; left: 50%; top: 0; z-index: -1;
+  width: 3.2rem; height: 2.8rem; opacity: 0;
+  background: var(--good);
+  clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
+  animation: hubflare 8s ease-out infinite;
+}
+@keyframes hubflare {
+  0%, 14%   { opacity: 0;  transform: translateX(-50%) scale(1) }
+  18%       { opacity: .5; transform: translateX(-50%) scale(1.5) }
+  30%, 72%  { opacity: 0;  transform: translateX(-50%) scale(1) }
+  77%       { opacity: .5; transform: translateX(-50%) scale(1.5) }
+  88%, 100% { opacity: 0;  transform: translateX(-50%) scale(1.5) }
+}
+
+/* the agents. Same box as figure 1's stations, so `b` is the machine and
+   `code` is the agent name, pinned at its own vertex. */
+.mesh .peer {
+  position: absolute; left: var(--x); top: var(--y); z-index: 2;
+  width: 8.4rem; transform: translate(-50%, -50%);
+  animation: stationlit 8s linear infinite;
+}
+.mesh .peer::after { animation: station 8s ease-out infinite; }
+.mesh .p1 { --x: 50%; --y:  6.45%; }
+.mesh .p2 { --x: 82%; --y: 29.03%; }
+.mesh .p3 { --x: 82%; --y: 70.97%; }
+.mesh .p4 { --x: 50%; --y: 93.55%; }
+.mesh .p5 { --x: 18%; --y: 70.97%; }
+.mesh .p6 { --x: 18%; --y: 29.03%; }
+.mesh .p1, .mesh .p1::after { animation-delay: -0.15s; }
+.mesh :is(.p2, .p3, .p4), .mesh :is(.p2, .p3, .p4)::after {
+  animation-delay: 3.3s;
+}
+/* nothing arrives here, so nothing lights */
+.mesh :is(.p5, .p6), .mesh :is(.p5, .p6)::after { animation: none; }
+.mesh :is(.p5, .p6) { opacity: .5; }
+/* the two you run. The rail is the only thing on the panel that says so */
+.mesh .mine { border-left: 3px solid var(--good); }
+
+/* ‥ figure 20: the deal ‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥
+   Blocks' own overview is two lists — seven things the network does and four it
+   refuses to — and the pair only means something read together, so they are one
+   figure with a seam down the middle. The left column arrives first and fast,
+   because that is the part you get for free; the right column arrives after a
+   pause, one item at a time, because each of those is an evening. Ticks and
+   crosses are in the markup, not the colour: a hatched row that reads "does not
+   orchestrate" must not depend on the reader learning the hatch first.
+
+   Clock: seven gets from 0.3s at .42s apart, four owns from 3.3s, and each
+   column's tally once its own column is complete. */
+
+.deal { display: grid; gap: .45rem; }
+.deal .cap {
+  color: var(--ink-faint); font-size: .62rem;
+  letter-spacing: .16em; text-transform: uppercase;
+}
+.deal .cols { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; align-items: start; }
+.deal .col {
+  display: grid; gap: .35rem; align-content: start;
+  border: 1px solid var(--rule); border-top: 3px solid var(--rule);
+  background: var(--paper); padding: .45rem .55rem;
+}
+.deal .col > b {
+  color: var(--ink-hot); font-size: .62rem; font-weight: 600;
+  letter-spacing: .14em; text-transform: uppercase;
+}
+.deal .gets { border-top-color: var(--good); }
+.deal .owns { border-top-color: var(--ink-hot); }
+.deal ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .24rem; }
+.deal li {
+  display: grid; grid-template-columns: .85rem 1fr; gap: .3rem;
+  font-size: .68rem; line-height: 1.4; color: var(--ink-dim); opacity: .18;
+  animation: dealin 8s cubic-bezier(.2,.9,.3,1) infinite;
+  animation-delay: calc(var(--o, .3s) + var(--i) * .42s);
+}
+.deal li b { color: var(--ink); font-weight: 600; }
+.deal li::before { font-size: .7rem; }
+.deal .gets li::before { content: "✓"; color: var(--good); }
+.deal .owns li { --o: 3.3s; }
+.deal .owns li::before { content: "✕"; color: var(--ink-hot); }
+/* slides in from its own rail rather than fading in place — a list of things
+   handed to you should look handed over */
+@keyframes dealin {
+  0%        { opacity: .18; transform: translateX(-.3rem) }
+  3%        { opacity: 1;   transform: none }
+  8%, 88%   { opacity: .74; transform: none }
+  96%, 100% { opacity: .18; transform: translateX(-.3rem) }
+}
+.deal .legs {
+  display: flex; justify-content: space-between; gap: .5rem;
+  font-size: .62rem; letter-spacing: .04em;
+}
+.deal .legs .l {
+  color: var(--good); opacity: 0;
+  animation: verdictin 8s linear infinite 2.9s;
+}
+.deal .legs .r {
+  color: var(--ink-hot); opacity: 0;
+  animation: verdictin 8s linear infinite 5.6s;
+}
+
+/* ‥ figure 21: how long a task can sit ‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥
+   The queue's two timeouts against yours, drawn to scale on one 30-minute
+   panel — because the numbers are 90 seconds, 5 minutes and 30 minutes, and no
+   sentence makes a reader feel that ratio. Your deadline is a sliver. A tick
+   every five minutes so a length reads as a duration rather than as a share of
+   something, and the two network bars wear figure 12's hatch with the ants
+   crawling through it: this is time being spent, not a value measured.
+
+   Clock: a bar every 1.3s from 0.5s, each number a beat behind its own bar,
+   the reading of the panel at 4.8s. */
+
+.hold { display: grid; gap: .45rem; }
+.hold .cap {
+  color: var(--ink-faint); font-size: .62rem;
+  letter-spacing: .16em; text-transform: uppercase;
+}
+.hold .tracks { list-style: none; margin: 0; padding: 0; display: grid; gap: .3rem; }
+.hold .tracks li {
+  display: grid; grid-template-columns: 9.4rem 1fr 5.4rem;
+  gap: .5rem; align-items: center;
+  font-size: .66rem; color: var(--ink-dim);
+}
+.hold .tracks b { color: var(--ink); font-weight: 400; letter-spacing: .04em; }
+.hold .bar {
+  height: .95rem; overflow: hidden; border: 1px solid var(--rule);
+  background:
+    repeating-linear-gradient(90deg,
+      var(--rule) 0 1px, rgba(0,0,0,0) 1px calc(100% / 6)),
+    var(--paper);
+}
+/* `ants` rides along on every bar and shows only where there is a gradient to
+   move — the solid green fill has nothing to crawl, which is the point */
+.hold .bar i {
+  display: block; height: 100%; width: 0; min-width: .14rem;
+  background: var(--good);
+  animation-name: widen, ants;
+  animation-duration: 8s, 1.1s;
+  animation-timing-function: cubic-bezier(.2,.9,.3,1), linear;
+  animation-iteration-count: infinite, infinite;
+  animation-delay: calc(.5s + var(--i) * 1.3s), 0s;
+}
+.hold .net .bar i {
+  background: repeating-linear-gradient(45deg,
+    var(--ink-hot) 0 3px, rgba(0,0,0,0) 3px 6px);
+}
+.hold .t {
+  text-align: right; opacity: 0; color: var(--ink);
+  animation: verdictin 8s linear infinite;
+  animation-delay: calc(1.0s + var(--i) * 1.3s);
+}
+.hold .yours .t { color: var(--good); }
+.hold .net .t { color: var(--ink-hot); }
+.hold .legs {
+  display: flex; justify-content: space-between; gap: .5rem;
+  color: var(--ink-faint); font-size: .62rem; letter-spacing: .04em;
+}
+.hold .legs span { opacity: 0; animation: verdictin 8s linear infinite 4.8s; }
+.hold .legs .l { color: var(--good); }
+.hold .legs .r { color: var(--ink-hot); }
+
+/* ‥ figure 22: one 60-second budget, spent three ways ‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥
+   The nested-budget arithmetic, to scale and on a clock. Every track is the
+   same 60 seconds — a tick every ten — and the blocks are laid end to end and
+   grow in turn, so a row plays out as time passing rather than arriving as a
+   bar chart. Hires are green, the assembly reserve is the quiet fill (it is
+   not work you chose, it is work you owe), spare time is dashed and empty, and
+   the fourth sequential hire runs off the right-hand edge into a hot wall,
+   because that is exactly what a `maxRunningTimeSec` is.
+
+   Clock: rows at 0.3s, 2.6s and 5.0s, blocks .45s apart inside a row, each
+   verdict 1.5s after its own row opens. Borrows `roadlit`, `widen` and
+   `verdictin` — same meanings, so the same motion. */
+
+.clock { display: grid; gap: .45rem; }
+.clock .cap {
+  color: var(--ink-faint); font-size: .62rem;
+  letter-spacing: .16em; text-transform: uppercase;
+}
+.clock .rows { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; }
+.clock .rows > li {
+  display: grid; gap: .28rem; opacity: .22;
+  border: 1px solid var(--rule); border-left: 3px solid var(--rule);
+  background: var(--paper); padding: .42rem .5rem;
+  animation: roadlit 8s linear infinite;
+  animation-delay: var(--d);
+}
+.clock .rows > li > b {
+  color: var(--ink-hot); font-size: .62rem; font-weight: 600;
+  letter-spacing: .1em; text-transform: uppercase;
+}
+.clock .track {
+  display: flex; height: 1.05rem; overflow: hidden;
+  border: 1px solid var(--rule);
+  background:
+    repeating-linear-gradient(90deg,
+      var(--rule) 0 1px, rgba(0,0,0,0) 1px calc(100% / 6)),
+    var(--paper);
+}
+.clock .track i {
+  flex: 0 0 auto; width: 0; overflow: hidden; white-space: nowrap;
+  font-style: normal; font-size: .56rem; line-height: 1.05rem;
+  padding: 0 .22rem; color: var(--paper); background: var(--good);
+  animation: widen 8s cubic-bezier(.2,.9,.3,1) infinite;
+  animation-delay: calc(var(--d) + var(--n) * .45s);
+}
+/* the 30% you owe assembly and SDK overhead before you spend anything */
+.clock .track .a { background: var(--ink-faint); }
+/* headroom: drawn, because a budget with margin left is the whole recommendation */
+.clock .track .free {
+  background: none; color: var(--ink-faint);
+  border-left: 1px dashed var(--rule);
+}
+/* the block that does not fit, hatched and clipped by the track's own edge. The
+   hatch is drawn in `--rule` over a light fill rather than in the row's own
+   ink-hot, for the reason figure 14 gives: a hot hatch is near-white in dark
+   mode, and this is the one block with a label worth reading. */
+.clock .track .x {
+  color: var(--ink-hot);
+  background:
+    repeating-linear-gradient(45deg,
+      var(--rule) 0 3px, rgba(0,0,0,0) 3px 6px),
+    var(--paper-3);
+}
+.clock .act {
+  font-size: .66rem; opacity: 0; color: var(--ink-dim);
+  padding-top: .25rem; border-top: 1px dashed var(--rule);
+  animation: verdictin 8s linear infinite;
+  animation-delay: calc(var(--d) + 1.5s);
+}
+.clock .fits { border-left-color: var(--good); }
+.clock .fits .act { color: var(--good); }
+.clock .tight { border-left-color: var(--ink-dim); }
+/* the wall, drawn where it actually is: the right-hand end of the 60 seconds */
+.clock .over { border-left-color: var(--ink-hot); }
+.clock .over .track { border-right: 2px solid var(--ink-hot); }
+.clock .over .act { color: var(--ink-hot); }
+
+/* ‥ figure 5's fan-out, with the clock running ‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥‥
+   Same three chips and the same sealed bundle, but a remote hire has a duration
+   and a local tool call does not, so each chip grows a bar against its own 20s
+   cap. One real second is 0.15s of the loop: the fast hire lands at 1.6s, the
+   slow one at 2.7s, and the third one runs the cap out and turns hatched — you
+   watch the slowest hire hold the whole run up, which is the argument for
+   `allSettled` and for a per-sub-task deadline in one motion. Three keyframes
+   rather than one parameterised bar, because these three are not the same
+   length of work and pretending otherwise loses the race. */
+
+/* the one line in the bundle that is not a result. `.k` is the archive's green
+   "this worked" marker, and a green `failed` is a figure arguing with itself. */
+.fan .bundle .x { color: var(--ink-hot); }
+
+.fan.timed .calls li { display: grid; gap: .25rem; text-align: left; }
+.fan.timed .calls .bar {
+  height: .45rem; overflow: hidden; border: 1px solid var(--rule);
+  background:
+    repeating-linear-gradient(90deg,
+      var(--rule) 0 1px, rgba(0,0,0,0) 1px 25%),
+    var(--paper);
+}
+.fan.timed .calls .bar i { display: block; height: 100%; width: 0; background: var(--good); }
+@keyframes hire-fast { 0%, 17.5% { width: 0 } 20%, 88% { width: 6%   } 96%, 100% { width: 0 } }
+@keyframes hire-slow { 0%, 17.5% { width: 0 } 33%, 88% { width: 42%  } 96%, 100% { width: 0 } }
+@keyframes hire-lost { 0%, 17.5% { width: 0 } 55%, 88% { width: 100% } 96%, 100% { width: 0 } }
+.fan.timed .calls li:nth-child(1) .bar i { animation: hire-fast 8s linear infinite; }
+.fan.timed .calls li:nth-child(2) .bar i { animation: hire-slow 8s linear infinite; }
+.fan.timed .calls li:nth-child(3) .bar i {
+  animation: hire-lost 8s linear infinite;
+  background: repeating-linear-gradient(45deg,
+    var(--ink-hot) 0 3px, rgba(0,0,0,0) 3px 6px);
+}
+.fan.timed .calls .el {
+  font-size: .58rem; color: var(--ink-faint); letter-spacing: .04em;
+  opacity: 0; animation: verdictin 8s linear infinite;
+}
+.fan.timed .calls li:nth-child(1) .el { animation-delay: 1.7s; color: var(--good); }
+.fan.timed .calls li:nth-child(2) .el { animation-delay: 2.9s; color: var(--good); }
+.fan.timed .calls li:nth-child(3) .el { animation-delay: 4.6s; color: var(--ink-hot); }
+/* nothing is assembled until the slowest hire has settled, so the drop and the
+   seal move back behind it rather than firing while a bar is still growing */
+.fan.timed .funnel::after { animation-delay: 4.8s; }
+.fan.timed .bundle { animation-delay: .9s; }
+.fan.timed .bundle li:nth-child(1) { animation-delay: 5.0s; }
+.fan.timed .bundle li:nth-child(2) { animation-delay: 5.3s; }
+.fan.timed .bundle li:nth-child(3) { animation-delay: 5.6s; }
+
+/* ‥ the three auth modes, in the order the reader should meet them ‥‥‥‥‥‥‥‥‥‥
+   Figure 15's lanes carrying a different argument: the leak first, because it
+   is the one people ship, then the two ways not to. The base sheet runs the
+   `.d` lane last (there it is the thing you must not do, and it lands as the
+   punchline); here it is the opening, so the offsets are restated in order and
+   the third lane — a function rather than a URL — is the same green as the
+   second, because both are correct. */
+.lanes.auth .d { --o: 0s; }
+.lanes.auth .t { --o: 2.6s; }
+.lanes.auth .f { border-left-color: var(--good); --o: 5.0s; }
+.lanes.auth .f .who { color: var(--good); }
+
 @media (max-width: 34rem) {
+  /* the seam goes away: seven and four stack, and the tallies with them */
+  .deal .cols { grid-template-columns: 1fr; }
+  .deal .legs { flex-direction: column; }
+  /* label above the bar, number below it — the bar is what has to stay wide,
+     because the bar is the ratio the figure exists to show */
+  .hold .tracks li { grid-template-columns: 8rem 1fr; }
+  .hold .t { grid-column: 2; text-align: left; }
+  .hold .legs { flex-direction: column; }
+  /* the blocks keep their share of whatever width is left; only the labels
+     inside them stop fitting, and they were never load-bearing */
+  .clock .track i { padding: 0; }
   /* the value, the action and the glyph stack rather than squeezing the middle
      column to one word per line */
   .board .doors li { grid-template-columns: 1fr auto; }
@@ -1671,6 +2093,16 @@ table.ref td { vertical-align: top; }
   /* the turn label takes its own line rather than squeezing the chips */
   .stack .rows > li > b { flex: 0 0 100%; }
   .caps .rows > li { grid-template-columns: 1fr; }
+  /* a hexagon 320px wide is six overlapping labels. The spokes go, the vertices
+     go, and the hub moves to the top of a single column — the claim was
+     "everything dials the hub", and a list still makes it. */
+  .mesh { aspect-ratio: auto; display: grid; gap: .4rem; }
+  .mesh .wires { display: none; }
+  .mesh :is(.hub, .peer) {
+    position: relative; left: auto; top: auto;
+    width: auto; transform: none;
+  }
+  .mesh .hub { order: -1; }
 }
 
 /* ── the screen ───────────────────────────────────────────────────────────────

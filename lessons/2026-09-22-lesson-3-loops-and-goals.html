@@ -31,11 +31,11 @@
     <header>
       <time datetime="2026-09-22">22 September 2026</time>
       <h1>Lesson 3: loops and goals - the agent that stops on purpose</h1>
-      <p>Lesson 2's loop ended when the model stopped asking for tools. This
-         time, your program decides when the agent stops. You'll add
+      <p>Lesson 2's loop ended when the model stopped asking for tools. Now
+         your program will decide when the agent stops. You'll add
          <strong>a turn counter, a goal check, and a timeout on every
          tool</strong>, plus a <code>report_status</code> tool with an
-         <code>enum</code> your code can test. In the example below, the counter
+         <code>enum</code> your code can test. In this example, the counter
          cuts a runaway bill from $2.40 to $0.22. The loop takes about forty
          lines in JavaScript or Python. Most of the remaining code defines the
          tools.</p>
@@ -65,8 +65,8 @@
                 referrerpolicy="strict-origin-when-cross-origin"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"></iframe>
       </div>
-      <figcaption>The video covers loops, stopping conditions, and checkable
-        goals. The lesson below includes the same material and copyable code.
+      <figcaption>The video covers stopping conditions and checkable goals.
+        The lesson below includes the same material and copyable code.
         <a href="https://youtu.be/0DDIeA38q-s">Watch on YouTube</a>.</figcaption>
     </figure>
 
@@ -87,8 +87,8 @@
           ends the run cleanly.</li>
     </ul>
 
-    <p>Lesson 2 used the first exit. Adding the others requires handling each
-       value of <code>stop_reason</code>.</p>
+    <p>Lesson 2 used the first exit. To support the others, handle each value of
+       <code>stop_reason</code> explicitly.</p>
 
     <h2>Handle each <code>stop_reason</code></h2>
 
@@ -105,7 +105,7 @@
       <tbody>
         <tr>
           <td><code>end_turn</code></td>
-          <td>The model has stopped generating</td>
+          <td>The model stopped generating</td>
           <td>Check your goal. If it's met, stop. If not, say what's missing
               and go round again</td>
         </tr>
@@ -146,7 +146,7 @@
       </tbody>
     </table>
 
-    <p><code>stop_details</code> appears <strong>only</strong> when
+    <p><code>stop_details</code> appears only when
        <code>stop_reason</code> is <code>refusal</code>. Every other time it is
        <code>null</code>, so check before reading it. SDK tool runners do not
        resume <code>pause_turn</code> for you. Without an explicit branch, a
@@ -195,8 +195,8 @@
     <h2>Cap the turns</h2>
 
     <p>An uncapped <code>while (true)</code> can keep a mistaken agent running.
-       A model that misreads a tool description may call the same tool every
-       turn, and each request resends the full conversation.</p>
+       If the model misreads a tool description, it may call the same tool on
+       every turn. Each request resends the full conversation.</p>
 
     <figure class="diag">
       <!-- `capped`: the twelve-turn version of lesson 2's twenty-turn counter,
@@ -225,8 +225,8 @@
         </div>
       </div>
       <figcaption>The counter stops the run after twelve turns. The faded ticks
-        show the calls it prevents. Log this exit: repeated calls often point
-        to an unclear tool description.</figcaption>
+        are calls the counter prevents. Log this exit because repeated calls
+        often point to an unclear tool description.</figcaption>
     </figure>
 
     <p>Suppose each stuck turn adds a <code>tool_use</code> block and its
@@ -282,9 +282,9 @@
     <blockquote>Set a limit, <code>break</code> when you reach it, and record
       why the run stopped.</blockquote>
 
-    <p>Estimate the required steps, then leave room for retries. Reading,
-       editing, and verifying take three tool calls and about four turns, so a
-       limit of twelve is generous. The general-purpose harness defaults to
+    <p>Estimate the required steps, then leave room for retries. A read, edit,
+       and verification take about four turns, so a limit of twelve is
+       generous. The general-purpose harness defaults to
        <strong>max steps 40</strong>. An agent built for one job can use a
        tighter limit.</p>
 
@@ -357,8 +357,8 @@
        <code>status === "complete"</code> without interpreting prose.</p>
 
     <p>Log the <code>progress</code> integer, but do not use it as an exit
-       condition. It is only the model's estimate. Three turns at 60 suggest
-       the agent is stuck. A <code>"complete"</code> report at 90 may mean the
+       condition. It is the model's estimate. Three turns at 60 suggest the
+       agent is stuck. A <code>"complete"</code> report at 90 may mean the
        prompt and the check describe different jobs.</p>
 
     <figure class="diag">
@@ -412,7 +412,7 @@
 
     <p>Install <code>@anthropic-ai/sdk</code>, set
        <code>ANTHROPIC_API_KEY</code>, and run this example with Node. It adds a
-       goal and counter to the three parts from lesson 2.</p>
+       goal check and turn counter to lesson 2's loop.</p>
 
 <pre><code>import Anthropic from "@anthropic-ai/sdk";
 import { readFile, writeFile } from "node:fs/promises";
@@ -810,13 +810,13 @@ print(f"goal met in {turn} turn(s)" if done
       else f"stopped at the {MAX_TURNS}-turn cap, last claim {claim['status']} "
            f"at {claim['progress']}%, {claim['note']}")</code></pre>
 
-    <p>The Python version runs the tool on a pool thread and
-       gives up on the <em>result</em> rather than cancelling the work.
-       <code>result(10)</code> stops waiting, but the function keeps running in
-       the background. If a tool talks to an external service, give that
-       operation its own deadline:
-       <code>timeout=</code> on the HTTP call, <code>statement_timeout</code> on
-       the database query. Ending the wait does not cancel a write.</p>
+    <p>The Python version runs each file tool in a child process. If the
+       deadline expires, it terminates that process and returns an error. A
+       process boundary can stop this example's local work, but external
+       services still need their own deadlines:
+       <code>timeout=</code> on the HTTP call or
+       <code>statement_timeout</code> on the database query. Stopping the local
+       process may not cancel work the remote service has already accepted.</p>
 
     <h2>When a tool hangs</h2>
 
@@ -847,9 +847,9 @@ print(f"goal met in {turn} turn(s)" if done
         result, the loop cannot continue.</figcaption>
     </figure>
 
-    <p>Retry transport failures such as a 429 or a dropped connection at most
-       twice, with a short wait between attempts. If a tool returns an unwanted
-       result, send it to the model so the model can choose the next action.</p>
+    <p>Retry transport failures such as a 429 or dropped connection at most
+       twice, with a short wait between attempts. Return other results to the
+       model so it can choose the next action.</p>
 
     <figure class="diag">
       <div class="lanes">
@@ -889,8 +889,7 @@ print(f"goal met in {turn} turn(s)" if done
 
     <h2>A four-turn transcript</h2>
 
-    <p>The program checks its goal after four tool calls and four loop
-       iterations:</p>
+    <p>The program reaches its goal in four loop iterations:</p>
 
     <figure class="diag">
       <!-- `miss`: unlike lesson 2's tape, this one's third row disagrees with
@@ -1012,7 +1011,7 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
   console.log(`round ${round}: ${report}`);   // record the review for this round
 }</code></pre>
 
-    <p>Later rounds often produce smaller gains at the same cost. Using the
+    <p>Later rounds often produce smaller gains for the same cost. Using the
        earlier arithmetic, an improve loop that runs its full 12 turns uses
        43,200 input tokens, or
        <strong>$0.22</strong>, and a 4-turn verify loop on a fresh conversation is
@@ -1028,8 +1027,8 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
 
     <p>The model cannot see your turn counter, so the counter may stop a run
        mid-task. A <strong>task budget</strong> gives the model a visible token
-       allowance for pacing its work. The feature is in beta and requires a
-       header:</p>
+       allowance it can use to pace the work. The feature is in beta and
+       requires a header:</p>
 
 <pre><code>const reply = await client.beta.messages.create({
   betas: ["task-budgets-2026-03-13"],
@@ -1093,8 +1092,8 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
        lines you just wrote.</p>
 
     <p>The runner does not know your goal. It cannot infer that three lines
-       complete the job, so the check stays in your code. Loop over the
-       runner, and when a message comes back with
+       complete the job, so keep the check in your code. Loop over the
+       runner. When a message comes back with
        <code>stop_reason: "end_turn"</code>, run your check and add one more user
        message if it fails. Per-turn hooks are the place for an approval prompt, a
        log line, or a budget check.</p>
@@ -1144,8 +1143,8 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
        instead of one number for the whole run. The harness displays that list
        but does not use it as an exit condition. Your own loop should.</p>
 
-    <p>Run the two loops by hand as separate requests. First ask it to improve
-       <code>notes/paris.md</code>. Then send
+    <p>Run the two loops by hand as separate requests. Ask it to improve
+       <code>notes/paris.md</code>, then send
        <code>/clear</code>, which empties the conversation and leaves the files
        alone. Ask &ldquo;read notes/paris.md and list
        every line that isn't weather, or reply PASS,&rdquo; and read what the
@@ -1177,7 +1176,7 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
 
     <h2>Lesson 4</h2>
 
-    <p>Your agent now stops when a condition you chose becomes true. In
+    <p>Your agent now stops when a condition in your code becomes true. In
        <strong>Lesson 4, agent communication</strong>, you'll publish a handler
        on <strong>Blocks.ai</strong> so other agents can hire yours. You'll also
        write a client that hands work to an agent you did not build. Network

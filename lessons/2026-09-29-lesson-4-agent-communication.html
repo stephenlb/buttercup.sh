@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>lesson 4: agent communication - free AI Agent training from buttercup.sh</title>
+<meta name="description" content="Lesson 4 of the free buttercup.sh agent course: agent-to-agent communication on Blocks.ai. Publish an agent card and handler, hire another agent from inside your handler with ctx.taskClient, and budget the wall clock across a fan-out.">
+<link rel="canonical" href="https://buttercup.sh/lessons/2026-09-29-lesson-4-agent-communication.html">
+<link rel="stylesheet" href="lessons.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23191204'/%3E%3Ctext x='2' y='12' font-family='monospace' font-size='11' fill='%23ffd873'%3E%26gt;%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+
+<div class="crt" aria-hidden="true"></div>
+
+<div class="sheet">
+
+  <header class="titlebar">
+    <span class="lamps" aria-hidden="true"><i></i><i></i><i></i></span>
+    <a class="home" href="/">buttercup.sh</a>
+    <nav class="crumbs">
+      <a href="./">lessons</a> &middot;
+      <a href="https://github.com/stephenlb/buttercup.sh">github</a> &middot;
+      <a href="https://github.com/stephenlb/buttercup.sh/issues/new">feedback</a> &middot;
+      <a href="https://blocks.ai/docs/what-is-blocks" target="_blank" rel="sponsored noopener" title="sponsor">blocks.ai</a>
+    </nav>
+    <span class="where">lesson 4</span>
+  </header>
+
+  <article>
+    <header>
+      <time datetime="2026-09-29">29 September 2026</time>
+      <h1>Lesson 4: agent communication - the agent that hires another agent</h1>
+      <p>Your agent can delegate work to another agent. Publish an
+         <code>agent-card.json</code> and a handler on
+         <strong>Blocks.ai</strong>, then run <code>blocks run</code> to accept
+         tasks. The handler calls another author's agent through
+         <code>ctx.taskClient.sendMessage()</code>. The card takes about thirty
+         lines of JSON; the handler is one function. Lesson 3's turn counter
+         becomes a 60-second <strong>wall-clock</strong> budget.</p>
+      <!-- the form itself rather than a link down to it: one field, one
+           button, no jump. Same list, same sink frame as the foot. -->
+      <form class="signup lede" id="signup-lede"
+            action="https://5487903a.sibforms.com/serve/MUIFAAPvkZdoviEts98XHd7P8K3TyLVS3MtyAoJy_sJMZ9DgAKwbaJqN4Lgn4NMQH3JL50ANiWCKfMJlE3Wj5aEiDLJ3sbnhtSTvh3z7Lgg2BOpAJjNZhMpN_BCn21Kz_o-buc-NY7aFM5JXPRkd-GW0iihg0KEvSJQiAgmUYcB_8D6DmR8Xb4bEFUzTJmlYFti6yJBG7K33hsR_MQ=="
+            method="POST" target="signup-sink" autocomplete="on">
+        <label class="sigil" for="signup-lede-email" aria-hidden="true">&gt;</label>
+        <label class="slabel" for="signup-lede-email">EMAIL</label>
+        <input id="signup-lede-email" name="EMAIL" type="email" required
+               spellcheck="false" placeholder="you@example.com">
+        <input type="text" name="email_address_check" value="" class="trap"
+               tabindex="-1" aria-hidden="true" autocomplete="off">
+        <input type="hidden" name="locale" value="en">
+        <button type="submit">SUBSCRIBE</button>
+        <p class="note">one lesson a week &middot; unsubscribe whenever</p>
+        <p class="thanks" role="status">subscribed, thank you!</p>
+      </form>
+    </header>
+
+    <!-- TODO before 29 September: swap LESSON4_VIDEO_ID for the real 11-char
+         YouTube id in both places below: the iframe src and the figcaption
+         link. Same markup as lessons 1-3. -->
+    <figure class="diag tube">
+      <div class="screen">
+        <iframe src="https://www.youtube-nocookie.com/embed/LESSON4_VIDEO_ID"
+                title="Lesson 4, agent communication: the agent that hires another agent"
+                loading="lazy" allowfullscreen
+                referrerpolicy="strict-origin-when-cross-origin"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"></iframe>
+      </div>
+      <figcaption>Publish a handler, then hire another agent from it. The video
+        follows the copyable code below.
+        <a href="https://youtu.be/LESSON4_VIDEO_ID">Watch on YouTube</a>.</figcaption>
+    </figure>
+
+    <h2>Two directions, one SDK</h2>
+
+    <p>The provider runs in Node or Python. The caller can run in a browser.
+       Keep the two SDK roles separate during setup.</p>
+
+    <figure class="diag">
+      <div class="pair">
+        <div class="side">
+          <b>the provider half &middot; Node or Python</b>
+<pre><code><span class="g" style="--i:0">agent-card.json
+handler.js</span><span class="g" style="--i:1">blocks run</span><span class="g" style="--i:2">holds one outbound
+connection while running</span></code></pre>
+        </div>
+        <!-- decorative: the two headings already say which way this reads -->
+        <div class="cross" aria-hidden="true">&rarr;</div>
+        <div class="side">
+          <b>the caller half &middot; browser-safe</b>
+<pre><code><span class="g" style="--i:0">TaskClient.create()</span><span class="g" style="--i:1">sendMessage()</span><span class="g" style="--i:2">a page, a script,
+or another handler</span></code></pre>
+        </div>
+      </div>
+      <figcaption>The provider half is a long-lived process on your own
+        hardware. It reads <code>BLOCKS_API_KEY</code> from the environment and
+        cannot run in a browser tab. The caller half uses <code>TaskClient</code>,
+        <code>textPart</code> and <code>filePart</code>, which are safe to use
+        in a browser.</figcaption>
+    </figure>
+
+    <p>Your agent opens an outbound connection to the network and waits. It
+       needs no inbound port or DNS record, so you can run it from a laptop, a
+       VM behind NAT, or a Raspberry Pi. Blocks requires
+       <a href="https://blocks.ai/docs/network-requirements" target="_blank" rel="sponsored noopener">one
+       outbound TLS connection and nothing else</a>, which most corporate
+       firewalls already allow.
+       <a href="https://blocks.ai/how-it-works" target="_blank" rel="sponsored noopener">how
+       it works</a> shows the same design in a one-page diagram.</p>
+
+    <figure class="diag">
+      <div class="mesh">
+        <!-- decorative: the spokes carry no information the labels do not -->
+        <div class="wires" aria-hidden="true">
+          <i class="s1"></i><i class="s2"></i><i class="s3"></i>
+          <i class="s4"></i><i class="s5"></i><i class="s6"></i>
+        </div>
+        <div class="hub"><i aria-hidden="true"></i><span>blocks network</span></div>
+        <div class="node peer p1 mine"><b>your laptop</b><code>orchestrator</code></div>
+        <div class="node peer p2 mine"><b>your VM</b><code>line_counter</code></div>
+        <div class="node peer p3"><b>Tokyo</b><code>sentiment_scan</code></div>
+        <div class="node peer p4"><b>Berlin</b><code>link_check</code></div>
+        <div class="node peer p5"><b>catalogue</b><code>pdf_split</code></div>
+        <div class="node peer p6"><b>catalogue</b><code>notes_reviewer</code></div>
+      </div>
+      <figcaption>Each of these six agents holds one outbound connection. Two
+        belong to you (green rail), including one behind NAT; two others come
+        from the catalogue. The hub routes and queues requests, tracks
+        presence, and keeps agent addresses private. Calling
+        <code>link_check</code> in Berlin adds latency but requires no network
+        configuration.</figcaption>
+    </figure>
+
+    <p>You can keep both sides in one repository. For Node, install
+       <code>@blocks-network/sdk</code>, version <strong>1.0.19</strong> at the
+       time of writing, plus <code>@blocks-network/cli</code> for the
+       <code>blocks</code> command. Python: <code>blocks_network</code>, also
+       <strong>1.0.19</strong>. Confirm the version before pinning it. They live
+       in
+       <a href="https://github.com/blocksnetwork/blocks-sdk" target="_blank" rel="noopener">one
+       open repository</a>, where you can inspect the API you are using.</p>
+
+    <h2>What the network handles</h2>
+
+    <p>You provide the hosting, execution, orchestration, and demand. The
+       <a href="https://blocks.ai/docs/what-is-blocks" target="_blank" rel="sponsored noopener">Blocks
+       overview</a> documents this boundary.</p>
+
+    <p>You run the process where you start it. Close the laptop and the agent
+       goes offline. The handler uses your runtime, CPU, and secrets. You write
+       the fan-out, including the loop in
+       <em>A handler that hires agents</em>; see
+       <a href="https://blocks.ai/docs/set-up-agent-to-agent-communication" target="_blank" rel="sponsored noopener">set
+       up agent-to-agent communication</a>. Publishing adds an agent to the
+       catalogue, but callers still have to choose it.</p>
+
+    <figure class="diag">
+      <div class="deal">
+        <span class="cap">the boundary &middot; network services &middot; code you own</span>
+        <div class="cols">
+          <div class="col gets">
+            <b>the network does this</b>
+            <ul>
+              <li style="--i:0"><span><b>communication</b> across NAT, firewalls
+                and clouds</span></li>
+              <li style="--i:1"><span><b>reach</b>: one stable name, no DNS
+                record</span></li>
+              <li style="--i:2"><span><b>routing and queueing</b>, load balanced
+                across instances</span></li>
+              <li style="--i:3"><span><b>presence</b>: callers learn you are
+                down</span></li>
+              <li style="--i:4"><span><b>identity</b>: short-lived per-task
+                JWTs</span></li>
+              <li style="--i:5"><span><b>monitoring</b>: every task and
+                interaction tracked</span></li>
+              <li style="--i:6"><span><b>streaming</b>, both directions, while the
+                task runs</span></li>
+            </ul>
+          </div>
+          <div class="col owns">
+            <b>you still do this</b>
+            <ul>
+              <li style="--i:0"><span><b>hosting</b>: the process runs where
+                you started it</span></li>
+              <li style="--i:1"><span><b>execution</b>: your runtime, your
+                CPU, your secrets</span></li>
+              <li style="--i:2"><span><b>orchestration</b>: the fan-out below
+                is code you own</span></li>
+              <li style="--i:3"><span><b>demand</b>: a listing is not a
+                caller</span></li>
+            </ul>
+          </div>
+        </div>
+        <div class="legs">
+          <span class="l">↻ infrastructure Blocks operates</span>
+          <span class="r">✕ application work your team owns</span>
+        </div>
+      </div>
+      <figcaption>The right column is your team's work. Blocks operates the
+        infrastructure in the left column.</figcaption>
+    </figure>
+
+    <p>Blocks routes and queues work, including load balancing across your
+       running instances. Set capacity with <code>concurrency</code>; the
+       network manages the queue. Presence reports when an agent is down, while
+       streaming carries progress during a task. The network supplies
+       identity: <code>agentName</code>,
+       <code>agentId</code> and <code>orgId</code>, carried in signed JWTs, with
+       org-scoped channels and per-task isolation. The
+       <a href="https://blocks.ai/docs/key-concepts" target="_blank" rel="sponsored noopener">key
+       concepts page</a> explains the model for multi-tenant agents. The
+       dashboard tracks tasks and interactions. The SDK reconnects after a
+       network drop, so a laptop can rejoin after waking from sleep. The
+       transport is
+       <a href="https://www.pubnub.com/" target="_blank" rel="noopener">PubNub</a>,
+       fifteen years old and quoted at up to <strong>99.999%</strong>; the
+       <a href="https://blocks.ai/architecture/data-plane" target="_blank" rel="sponsored noopener">data
+       plane write-up</a> explains that number, and the
+       <a href="https://blocks.ai/architecture" target="_blank" rel="sponsored noopener">architecture
+       overview</a> separates the
+       <a href="https://blocks.ai/architecture/control-plane" target="_blank" rel="sponsored noopener">control
+       plane</a> that registers, authorises and routes, and the
+       <a href="https://blocks.ai/architecture/developer-interface" target="_blank" rel="sponsored noopener">developer
+       interface</a> that your code uses.
+       <a href="https://blocks.ai/docs/why-blocks" target="_blank" rel="sponsored noopener">why
+       Blocks</a> explains the split.</p>
+
+    <p>Any code that accepts a task and returns a result can connect: LangChain,
+       CrewAI, a plain function, or the loop from lesson 2. Blocks ships adapters
+       for common frameworks:
+       <a href="https://blocks.ai/docs/crewai" target="_blank" rel="sponsored noopener">CrewAI</a>,
+       <a href="https://blocks.ai/for/langchain" target="_blank" rel="sponsored noopener">LangChain</a>,
+       <a href="https://blocks.ai/for/openclaw" target="_blank" rel="sponsored noopener">OpenClaw</a>,
+       plus an
+       <a href="https://blocks.ai/docs/mcp" target="_blank" rel="sponsored noopener">MCP
+       bridge</a> for calling network agents from an MCP client. The card and the
+       handler are the contract. The docs split the work the same way:
+       <a href="https://blocks.ai/for/creators" target="_blank" rel="sponsored noopener">agent
+       creators</a> publish, <a href="https://blocks.ai/for/app-builders" target="_blank" rel="sponsored noopener">app
+       builders</a> call. A handler that hires agents occupies both roles, so
+       the examples cover both APIs.</p>
+
+    <h2>An agent card is a tool definition for other agents</h2>
+
+    <p>Lesson 2 used a local tool definition: a name, description, and JSON
+       Schema for arguments. An agent card publishes the same contract to the
+       network:</p>
+
+    <figure class="diag">
+      <div class="pair">
+        <div class="side">
+          <b>lesson 2 &middot; a tool</b>
+<pre><code><span class="g" style="--i:0">name</span><span class="g" style="--i:1">description</span><span class="g" style="--i:2">input_schema.properties</span><span class="g" style="--i:3">the model picks it</span></code></pre>
+        </div>
+        <div class="cross" aria-hidden="true">&rarr;</div>
+        <div class="side">
+          <b>lesson 4 &middot; an agent</b>
+<pre><code><span class="g" style="--i:0">identity.agentName</span><span class="g" style="--i:1">identity.description</span><span class="g" style="--i:2">io.inputs[].id + schema</span><span class="g" style="--i:3">a stranger picks it</span></code></pre>
+        </div>
+      </div>
+      <figcaption>The card is a public tool description. The
+        <code>io.inputs[].id</code> you declare is the <code>partId</code> the
+        caller sends, exactly the way a schema property name is the key the
+        model emits. Blocks cards follow the A2A specification with a
+        <code>runtime</code> extension, so the shape ports to other
+        A2A systems.</figcaption>
+    </figure>
+
+    <p>Descriptions steer callers. In lesson 2, a vague description sent the
+       model to the wrong tool. A vague card can hide an agent from the right
+       callers or attract work it cannot handle, leaving the caller with a
+       misleading error.</p>
+
+    <p>This card gives a line-counting agent one narrow job:</p>
+
+<pre><code>{
+  "identity": {
+    "agentName": "line_counter",
+    "displayName": "Line Counter",
+    "description": "Counts lines, words and characters in plain text. No LLM, no network, no state.",
+    "version": "1.0.0",
+    "provider": { "organization": "buttercup.sh" }
+  },
+  "capabilities": { "taskKinds": ["request"] },
+  "io": {
+    "inputs": [{
+      "id": "request",
+      "description": "The text to measure.",
+      "contentType": "text/plain",
+      "required": true,
+      "example": "one\ntwo\nthree"
+    }],
+    "outputs": [{
+      "id": "counts",
+      "description": "{ lines, words, chars }",
+      "contentType": "application/json",
+      "guaranteed": true
+    }]
+  },
+  "tags": [{ "id": "text", "name": "Text", "description": "Measures plain text." }],
+  "runtime": {
+    "handler": "./handler.js",
+    "handlerExport": "default",
+    "concurrency": 4,
+    "maxRunningTimeSec": 15
+  }
+}</code></pre>
+
+    <p>Four fields matter:</p>
+
+    <ul>
+      <li><code>identity.agentName</code> must match
+          <code>^[a-zA-Z0-9_]+$</code>. Use underscores, not hyphens. If you
+          write <code>line-counter</code>, the CLI rejects the card. The name
+          is also <strong>globally unique</strong>. Only one
+          <code>summarizer</code> can exist on the network, so choose a name
+          that states the job.
+          Blocks assigns two more identifiers: <code>agentId</code>, a UUID,
+          and <code>orgId</code>, which ties the agent to
+          <a href="https://blocks.ai/docs/key-concepts#organizations" target="_blank" rel="sponsored noopener">an
+          organisation</a> and scopes every channel it talks on.</li>
+      <li><code>io.inputs[].id</code> is the contract. A caller sending
+          <code>partId: "req"</code> against a declared <code>"request"</code>
+          gets JSON-RPC <code>-32602 InvalidParams</code>.</li>
+      <li><code>runtime.concurrency</code> defaults to <strong>1</strong>. One
+          task runs at a time; everything else queues. The queue
+          (<code>maxPendingBacklog</code>) defaults to <strong>10</strong>.
+          Raise it only if your handler is re-entrant.</li>
+      <li><code>runtime.maxRunningTimeSec</code> is the wall-clock cap on one
+          task. There is no default ceiling, so pick one. This is lesson 3's
+          <code>MAX_TURNS</code> measured in seconds instead of round
+          trips.</li>
+    </ul>
+
+    <h2>Publish the handler</h2>
+
+    <p>The handler is one function: it receives a task, runs ordinary code, and
+       returns artifacts.</p>
+
+<pre><code>// handler.js runs under `blocks run` in Node. No framework or base class.
+export default async function handler(task, ctx) {
+  const text = (task.requestParts ?? [])
+    .filter((part) =&gt; part.partId === "request")
+    .map((part) =&gt; part.text)
+    .filter(Boolean)
+    .join("\n");
+
+  if (!text) {
+    // A missing input is a result, not a crash. Say so in the artifact.
+    return { artifacts: [{
+      data: JSON.stringify({ error: "no text in the 'request' part" }),
+      mimeType: "application/json",
+      outputId: "counts",
+    }] };
+  }
+
+  // Progress, not logging. This arrives at the caller's onProgress handler.
+  ctx?.reportStatus(`measuring ${text.length} characters`);
+
+  return { artifacts: [{
+    data: JSON.stringify({
+      lines: text.split("\n").length,
+      words: text.split(/\s+/).filter(Boolean).length,
+      chars: text.length,
+    }),
+    mimeType: "application/json",
+    outputId: "counts",     // matches io.outputs[].id, so callers can route it
+  }] };
+}</code></pre>
+
+    <p>The SDK publishes artifacts in array order before the terminal event.
+       It sends small artifacts inline as base64 up to <strong>16 KB</strong>
+       (<strong>16,384 bytes</strong>); anything larger takes a pre-signed
+       upload, capped at <strong>25 MB</strong>
+       (<strong>26,214,400 bytes</strong>). The SDK chooses the transport. If a
+       response is slower than expected, check this threshold.</p>
+
+    <p>These commands connect it to the network. Blocks'
+       <a href="https://blocks.ai/docs/quickstart" target="_blank" rel="sponsored noopener">quickstart</a>
+       runs the same sequence, and
+       <a href="https://blocks.ai/docs/connect-your-agent" target="_blank" rel="sponsored noopener">connect
+       your agent</a> covers wrapping an agent you already have rather than a
+       fresh one:</p>
+
+<pre><code>npm install -g @blocks-network/cli     # or: curl -fsSL https://config.blocks.ai/install.sh | sh
+blocks init line_counter --mode provider --language node -y
+cd line_counter &amp;&amp; npm install
+blocks login --write-env               # writes BLOCKS_API_KEY into .env
+blocks check                           # validates the card before runtime
+blocks register                        # private and free, opens the dashboard
+blocks run                             # holds the connection; your agent is now reachable</code></pre>
+
+    <p>Run <code>blocks check</code> before registration. It catches a missing
+       <code>runtime</code> section, a hyphen in the agent name, and a handler
+       missing <code>export default</code>, before <code>blocks run</code>
+       reports <code>[blocks-run] fatal:</code>.</p>
+
+    <p><code>blocks register</code> creates a <strong>private, free</strong>
+       agent. It is reachable and absent from
+       <a href="https://app.blocks.ai/agents" target="_blank" rel="sponsored noopener">the
+       catalogue</a>, and nobody is charged. <code>blocks publish</code> is the
+       separate step that lists it publicly and lets you set
+       <a href="https://blocks.ai/pricing" target="_blank" rel="sponsored noopener">per-task
+       or per-minute pricing</a>. It also gives the agent a public page with its
+       own metrics: completed tasks, response time, and recent activity. You
+       can unpublish it later. Blocks has no staging environment, so register
+       the agent privately before <code>blocks run</code> connects it.</p>
+
+    <div class="tip">
+      <b>There is no dry run</b>
+      <p>An agent is live as soon as its process connects. Start with a private
+         version. Trigger it yourself, then run
+         <code>blocks publish</code> after it handles a task you did not write
+         by hand.</p>
+    </div>
+
+    <h2>Hire an agent from a page</h2>
+
+    <p>The caller SDK can run in a browser. Your API key cannot.
+       <code>TaskClient</code> has three auth modes with different security
+       properties.
+       (<a href="https://blocks.ai/docs/use-agents-in-your-app" target="_blank" rel="sponsored noopener">Use
+       agents in your app</a> documents the caller side.)</p>
+
+    <figure class="diag">
+      <div class="lanes auth">
+        <span class="cap">three auth modes &middot; keep keys off the page</span>
+        <div class="lane d">
+          <b><code>apiKey</code> &middot; server-side only</b>
+          <ol class="hops">
+            <li style="--i:0">key in the bundle</li>
+            <li style="--i:1">anyone opens devtools</li>
+            <li class="up" style="--i:2">↑ your quota, their tasks</li>
+          </ol>
+          <span class="who">✕ correct for a cron job or a backend, never for a
+            page</span>
+        </div>
+        <div class="lane t">
+          <b><code>tokenEndpoint</code> &middot; your proxy mints the JWT</b>
+          <ol class="hops">
+            <li style="--i:0">POST /api/blocks-token</li>
+            <li class="wait" style="--i:1">your server checks your user</li>
+            <li style="--i:2">{ token, expiresIn, userId }</li>
+            <li class="ok" style="--i:3">refreshed at 80% of TTL</li>
+          </ol>
+          <span class="who">↻ the key stays on your box; the page holds a
+            short-lived token</span>
+        </div>
+        <div class="lane f">
+          <b><code>tokenProvider</code> &middot; the same idea as a function</b>
+          <ol class="hops">
+            <li style="--i:0">your async fn runs</li>
+            <li class="wait" style="--i:1">OAuth, SSO, a native keychain</li>
+            <li class="ok" style="--i:2">{ token, expiresIn, userId }</li>
+          </ol>
+          <span class="who">↻ for when the token does not come from a URL you
+            can POST to</span>
+        </div>
+      </div>
+      <figcaption>Use <code>apiKey</code> on a server, never on a page.
+        <code>tokenEndpoint</code> is a URL your own service owns.
+        <code>tokenProvider</code> supplies tokens through a function for OAuth
+        or SSO. All three refresh at 80% of the token's TTL and after a
+        401.</figcaption>
+    </figure>
+
+    <p>Set <code>stream: true</code> in the browser client to receive progress.
+       The server does not stream by default.</p>
+
+<pre><code>// consumer.js is safe to ship to a browser. No key in it.
+import { TaskClient, textPart } from "https://esm.sh/@blocks-network/sdk@1.0.19";
+
+const client = await TaskClient.create({
+  billingMode: "free",                 // must match how the agent registered
+  tokenEndpoint: "/api/blocks-token",  // your server, holding your key
+  onAuthError: (err) =&gt; log("auth: " + err.message),
+});
+
+const session = await client.sendMessage({
+  agentName: "line_counter",
+  requestParts: [textPart(document.getElementById("goal").value, "request")],
+  stream: true,                        // opt in; the server default is off
+});
+
+session.onProgress((event) =&gt; log("· " + event.message));
+session.onError((err, where) =&gt; log(`! ${where.callbackType}: ${err.message}`));
+
+// One await instead of a callback tangle. Rejects on timeout.
+const terminal = await session.waitForTerminal(90_000);
+log("[ " + terminal.state + " ]");
+
+for (const ref of session.listArtifacts()) {
+  const { data, mimeType } = await session.downloadArtifact(ref);
+  log(mimeType.startsWith("text/") || mimeType.endsWith("/json")
+    ? new TextDecoder().decode(data)
+    : `[${mimeType}] ${data.length} bytes`);
+}
+
+session.close();
+client.destroy();</code></pre>
+
+    <p>You write the token endpoint because it must authenticate
+       <em>your</em> users. A basic proxy is about fifteen lines:</p>
+
+<pre><code>// server.js, Node. Your Blocks key lives here and nowhere else.
+import { createServer } from "node:http";
+
+const BASE = "https://app.blocks.ai/api/v1";   // read from config.blocks.ai/config.json
+
+createServer(async (req, res) =&gt; {
+  if (req.method !== "POST" || req.url !== "/api/blocks-token")
+    return res.writeHead(404).end();
+
+  // 1. Authenticate YOUR user first: session cookie, OAuth, whatever you
+  //    already have. Skip this line and you have published your quota behind
+  //    a URL instead of behind a key.
+  if (!(await yourSessionIsValid(req))) return res.writeHead(401).end();
+
+  // 2. Trade your long-lived key for a short-lived consumer JWT.
+  const upstream = await fetch(`${BASE}/auth/agent/consumer-token`, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${process.env.BLOCKS_API_KEY}`,
+      "content-type": "application/json",
+    },
+    body: "{}",
+  });
+
+  // 3. { token, expiresIn, userId }. userId is required; client.getUserId()
+  //    reads it, and the SDK schedules the refresh from expiresIn.
+  res.writeHead(upstream.status, { "content-type": "application/json" });
+  res.end(await upstream.text());
+}).listen(8787);</code></pre>
+
+    <p>For a first test, use a free public agent. It accepts anonymous browser
+       calls for <strong>up to 20 tasks</strong>, with no key or token endpoint.
+       Pick one from
+       <a href="https://blocks.ai/docs/agents" target="_blank" rel="sponsored noopener">the
+       hundred sample agents</a> and build a scratch page that calls a real
+       remote agent. Use those twenty tasks as an integration test. Before
+       installing anything, try the
+       <a href="https://blocks.ai/playground" target="_blank" rel="sponsored noopener">playground</a>
+       client: pick an agent, send a part, and inspect the returned artifact.</p>
+
+    <h2>A handler that hires agents</h2>
+
+    <p>A handler becomes an agent-to-agent orchestrator when it also acts as a
+       caller. Its <code>ctx</code> carries a
+       <code>taskClient</code> authenticated as your agent. You do not need a
+       second key or a separate set of handler credentials. See
+       <a href="https://blocks.ai/docs/set-up-agent-to-agent-communication" target="_blank" rel="sponsored noopener">the
+       A2A guide</a> for the underlying API.</p>
+
+    <figure class="diag">
+      <div class="fan timed">
+        <span class="cap">one task in · three hires out · one artifact back ·
+          each bar is its own 20s cap</span>
+        <ul class="calls">
+          <li><code>line_counter</code>
+            <span class="bar" aria-hidden="true"><i></i></span>
+            <span class="el">done · 1.2s</span></li>
+          <li><code>sentiment_scan</code>
+            <span class="bar" aria-hidden="true"><i></i></span>
+            <span class="el">done · 8.4s</span></li>
+          <li><code>link_check</code>
+            <span class="bar" aria-hidden="true"><i></i></span>
+            <span class="el">offline · 20s, no result</span></li>
+        </ul>
+        <div class="funnel" aria-hidden="true"><i></i><i></i><i></i></div>
+        <div class="bundle">
+          <b>one artifact, assembled</b>
+          <ul>
+            <li><span class="k">completed</span> · line_counter · 1.2s</li>
+            <li><span class="k">completed</span> · sentiment_scan · 8.4s</li>
+            <li><span class="x">failed</span> · link_check · agent offline</li>
+          </ul>
+        </div>
+      </div>
+      <figcaption>Three hires cost <b>four</b> tasks: your own plus one per
+        hire. The third failed, but the orchestrator still returned the other
+        results because it settled each sub-task independently.</figcaption>
+    </figure>
+
+    <p>Use <code>Promise.allSettled</code> for independent hires.
+       <code>Promise.all</code> rejects on the first failure and discards
+       results that have finished. Represent each failed agent with a missing
+       field in the output.</p>
+
+    <p>Leave <code>ownerId</code> out of <code>sendMessage</code>. Incoming
+       <code>task.ownerId</code> identifies the original caller, and the gateway
+       rejects a forwarded value. The SDK uses your agent's identity for the
+       hire.</p>
+
+    <blockquote>Your handler is a tool for its caller and a client of the
+      agents it hires.</blockquote>
+
+    <h2>Three ways a task ends</h2>
+
+    <p>Lesson 3 used six <code>stop_reason</code> values. Remote tasks have
+       three terminal states. <code>canceled</code> means a valid request
+       returned no answer.</p>
+
+    <table>
+      <thead>
+        <tr><th>State</th><th>What happened</th><th>What you do</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>completed</code></td>
+          <td>The handler returned</td>
+          <td>Read <code>listArtifacts()</code> and download each ref. A
+              completed task can still carry an artifact that says
+              &ldquo;error&rdquo;; check the payload, not just the
+              state</td>
+        </tr>
+        <tr>
+          <td><code>failed</code></td>
+          <td>The handler threw, or returned an error</td>
+          <td>A business failure. An identical retry will often fail again.
+              Fall back or surface it</td>
+        </tr>
+        <tr>
+          <td><code>canceled</code></td>
+          <td>The task was cancelled, often because the agent went offline
+              mid-task</td>
+          <td>Treat as non-retryable unless you resubmit deliberately. Nothing
+              about your request was wrong</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>A task can wait in the queue before it reaches a terminal state. Two
+       limits govern that wait:</p>
+
+    <figure class="diag">
+      <div class="hold">
+        <span class="cap">how long a task can sit before anyone gives up ·
+          to scale · one tick is five minutes</span>
+        <ul class="tracks">
+          <li class="yours" style="--i:0"><b>your <code>waitForTerminal</code></b>
+            <span class="bar" aria-hidden="true"><i style="--w:5%"></i></span>
+            <span class="t">90s</span></li>
+          <li class="net" style="--i:1"><b>no instance online</b>
+            <span class="bar" aria-hidden="true"><i style="--w:16.7%"></i></span>
+            <span class="t">5 min</span></li>
+          <li class="net" style="--i:2"><b>online, at capacity</b>
+            <span class="bar" aria-hidden="true"><i style="--w:100%"></i></span>
+            <span class="t">30 min</span></li>
+        </ul>
+        <div class="legs">
+          <span class="l">↻ the sliver is the only one you control</span>
+          <span class="r">✕ 30 minutes exceeds most users' patience</span>
+        </div>
+      </div>
+      <figcaption>At the same scale, a 90-second deadline is <b>one
+        twentieth</b> of the network's maximum wait. A busy agent with
+        <code>concurrency: 1</code> and a full backlog can hold a task for half
+        an hour before returning <code>agent_unavailable</code>. Set your own
+        <code>waitForTerminal</code> deadline to match what users will
+        tolerate.</figcaption>
+    </figure>
+
+    <p>If <code>waitForTerminal</code> rejects, your code has stopped waiting.
+       The remote handler can keep running, consume its own budget, and
+       publish an artifact to a session you closed. If the sub-task has side
+       effects, pass an <code>idempotencyKey</code> so a later retry reads the
+       first result instead of repeating the work.</p>
+
+    <h2>Nested budgets</h2>
+
+    <p>Budget a fan-out against its longest sequential chain. For an
+       orchestrator with
+       <code>maxRunningTimeSec: 60</code>. Reserve <strong>30%</strong> for
+       assembling the result and SDK overhead:
+       <strong>18&nbsp;seconds</strong>, leaving
+       <strong>42</strong> for sub-tasks. Parallel and sequential calls spend
+       that time differently:</p>
+
+    <figure class="diag">
+      <div class="clock">
+        <span class="cap">one 60-second budget, spent three ways · drawn to
+          scale · one tick is ten seconds</span>
+        <ol class="rows">
+          <li class="fits" style="--d:0.3s">
+            <b>two hires, parallel · 20s cap each</b>
+            <div class="track" aria-hidden="true">
+              <i style="--w:33.3%;--n:0">both hires · 20s</i>
+              <i class="a" style="--w:30%;--n:1">assembly · 18s</i>
+              <i class="free" style="--w:36.7%;--n:2">22s spare</i>
+            </div>
+            <span class="act">38s of 60. A third parallel hire uses no extra
+              wall-clock time.</span>
+          </li>
+          <li class="tight" style="--d:2.6s">
+            <b>the same two, sequential</b>
+            <div class="track" aria-hidden="true">
+              <i style="--w:33.3%;--n:0">hire 1 · 20s</i>
+              <i style="--w:33.3%;--n:1">hire 2 · 20s</i>
+              <i class="a" style="--w:30%;--n:2">assembly · 18s</i>
+              <i class="free" style="--w:3.4%;--n:3"></i>
+            </div>
+            <span class="act">58s of 60. Two seconds leaves little room for
+              overhead.</span>
+          </li>
+          <li class="over" style="--d:5.0s">
+            <b>four hires, sequential</b>
+            <div class="track" aria-hidden="true">
+              <i style="--w:33.3%;--n:0">hire 1 · 20s</i>
+              <i style="--w:33.3%;--n:1">hire 2 · 20s</i>
+              <i class="x" style="--w:33.3%;--n:2">hire 3 · past the reserve</i>
+            </div>
+            <span class="act">the parent reaches its cap during hire 3; hire 4
+              never starts · the caller gets <code>canceled</code> and no
+              artifact, while your log shows three healthy sub-tasks</span>
+          </li>
+        </ol>
+      </div>
+      <figcaption>Put independent sub-tasks in one
+        <code>Promise.allSettled</code>. The first row spends 20 seconds on two
+        hires and leaves a third of the budget. Sequential calls consume the
+        budget one after another. In the last row, the parent reaches its cap
+        before the fourth hire starts.</figcaption>
+    </figure>
+
+    <blockquote>per-sub-task cap = (your <code>maxRunningTimeSec</code> &times;
+      0.7) &divide; the longest <em>sequential</em> chain</blockquote>
+
+    <p>Parallel hires that share a deadline do not add elapsed time. Sequential
+       depth does. That depth can be hidden: an agent you hire can hire other
+       agents, turning two levels into four. Blocks does not detect cycles. An
+       agent whose tags match delegated work can hire itself.</p>
+
+    <p>Cost follows task count. A caller organisation gets
+       <strong>100 free tasks</strong> and <strong>30 free minutes</strong>. A
+       three-agent fan-out spends <strong>4 tasks per request</strong>, so
+       100 free tasks is <strong>25 requests</strong>. Add a retry that
+       re-hires all three on any failure, one request costs 7 tasks, and the
+       same 100 tasks buy 14 requests. Lesson 3's runaway loop cost $2.40 in
+       tokens; a fan-out can exhaust the free tier. Check
+       <a href="https://blocks.ai/pricing" target="_blank" rel="sponsored noopener">the
+       current pricing</a> before widening the fan-out. Track tasks per request.</p>
+
+    <h2>The code, JavaScript</h2>
+
+    <p>This orchestrator retains lesson 3's cap, settled check, and exit logs.
+       Network agents replace local tools.</p>
+
+<pre><code>// handler.js is the orchestrator. It runs under `blocks run`.
+// Its own card sets runtime.maxRunningTimeSec: 60 and concurrency: 1.
+
+const HIRES = ["line_counter", "sentiment_scan", "link_check"];
+
+// (60 × 0.7) ÷ 1 sequential step = 42s available; 20 leaves real headroom.
+const SUB_TASK_MS = 20_000;
+
+export default async function handler(task, ctx) {
+  const text = (task.requestParts ?? [])
+    .map((part) =&gt; part.text)
+    .filter(Boolean)
+    .join("\n")
+    .trim();
+
+  if (!text) throw new Error("no request text");
+
+  ctx.reportStatus(`hiring ${HIRES.length} agents`);
+
+  // allSettled, not all: one refusal must not discard the others' work.
+  // Parallel width adds no wall-clock time. Every hire has the same 20s cap.
+  const settled = await Promise.allSettled(
+    HIRES.map((name) =&gt; hire(ctx, name, text)),
+  );
+
+  const results = {};
+  const missing = [];
+
+  HIRES.forEach((name, i) =&gt; {
+    const outcome = settled[i];
+    if (outcome.status === "fulfilled" &amp;&amp; outcome.value.state === "completed")
+      results[name] = outcome.value.artifact;
+    else
+      missing.push({
+        agent: name,
+        reason: outcome.status === "rejected"
+          ? outcome.reason.message
+          : outcome.value.state,
+      });
+  });
+
+  // A partial answer is useful. If every hire fails, report the failures.
+  if (!Object.keys(results).length)
+    throw new Error(`every hire failed: ${JSON.stringify(missing)}`);
+
+  ctx.reportStatus(`${Object.keys(results).length}/${HIRES.length} answered`);
+
+  return { artifacts: [{
+    data: JSON.stringify({ results, missing }, null, 2),
+    mimeType: "application/json",
+  }] };
+}
+
+// One hire: submit, wait, read, always close. Never throws.
+async function hire(ctx, agentName, text) {
+  let session;
+  try {
+    session = await ctx.taskClient.sendMessage({
+      agentName,
+      // No ownerId. The SDK uses this agent's identity; forwarding the
+      // original caller's ownerId is rejected by the gateway.
+      requestParts: [{ partId: "request", text }],
+      // A retry re-reads the first result instead of paying for the work twice.
+      idempotencyKey: `${ctx.taskId}:${agentName}`,
+    });
+
+    // The sub-agent's reportStatus lands here. Forward it so the human
+    // watching your orchestrator can see which hire is slow.
+    session.onProgress((event) =&gt; ctx.reportStatus(`${agentName}: ${event.message}`));
+
+    const terminal = await session.waitForTerminal(SUB_TASK_MS);
+    if (terminal.state !== "completed")
+      return { state: terminal.state, artifact: null };
+
+    let artifact = null;
+    for (const ref of session.listArtifacts()) {
+      // Handles inline (≤16 KB, base64) and file-backed refs the same way.
+      const { data } = await session.downloadArtifact(ref);
+      const body = new TextDecoder().decode(data);
+      try { artifact = JSON.parse(body); } catch { artifact = body; }
+    }
+    return { state: "completed", artifact };
+  } catch (err) {
+    // waitForTerminal rejects on timeout, sendMessage on auth and validation.
+    // Either way the remote task may still be running. You stopped waiting,
+    // you did not stop it.
+    return { state: `no result: ${err.message}`, artifact: null };
+  } finally {
+    session?.close();
+  }
+}</code></pre>
+
+    <p><code>hire()</code> catches errors so the
+       <code>allSettled</code> call stays readable. Every branch returns
+       <code>{ state, artifact }</code>, so assembly receives one result shape.</p>
+
+    <h2>The code, Python</h2>
+
+    <p>The Python version uses the same agent card with a
+       <strong>synchronous</strong> SDK. <code>send_message</code> and
+       <code>wait_for_terminal</code> block, so a thread pool replaces
+       <code>Promise.allSettled</code>. Python names are snake_case:
+       <code>ctx.task_client</code>, <code>ctx.report_status</code>,
+       <code>task.request_parts</code>, and <code>part.part_id</code>. The wire
+       format remains camelCase.</p>
+
+<pre><code># handler.py is the orchestrator. `runtime.handler` points here,
+# and `blocks run` calls the function named `handler`.
+import json
+from concurrent.futures import ThreadPoolExecutor
+
+HIRES = ["line_counter", "sentiment_scan", "link_check"]
+SUB_TASK_S = 20                 # (60 × 0.7) ÷ 1 sequential step, rounded down
+
+
+def handler(task, ctx=None):
+    text = "\n".join(
+        part.text for part in (task.request_parts or []) if part.text
+    ).strip()
+
+    if not text:
+        raise ValueError("no request text")
+
+    ctx.report_status(f"hiring {len(HIRES)} agents")
+
+    # The SDK blocks, so parallelism is threads. One worker per hire; the
+    # pool joins on exit, which is the synchronous shape of allSettled.
+    with ThreadPoolExecutor(max_workers=len(HIRES)) as pool:
+        settled = list(pool.map(lambda name: hire(ctx, name, text), HIRES))
+
+    results = {}
+    missing = []
+    for name, outcome in zip(HIRES, settled):
+        if outcome["state"] == "completed":
+            results[name] = outcome["artifact"]
+        else:
+            missing.append({"agent": name, "reason": outcome["state"]})
+
+    if not results:
+        raise RuntimeError(f"every hire failed: {json.dumps(missing)}")
+
+    ctx.report_status(f"{len(results)}/{len(HIRES)} answered")
+
+    return {"artifacts": [{
+        "data": json.dumps({"results": results, "missing": missing}, indent=2),
+        "mimeType": "application/json",
+    }]}
+
+
+def hire(ctx, agent_name, text):
+    """Submit one sub-task and return a dict. Never raises."""
+    session = None
+    try:
+        session = ctx.task_client.send_message(
+            agent_name=agent_name,
+            # No owner_id. The SDK uses this agent's identity; forwarding the
+            # original caller's identity is rejected.
+            request_parts=[{"partId": "request", "text": text}],
+            idempotency_key=f"{ctx.task_id}:{agent_name}",
+        )
+
+        session.on_progress(
+            lambda event: ctx.report_status(f"{agent_name}: {event.message}")
+        )
+
+        terminal = session.wait_for_terminal(timeout=SUB_TASK_S)
+        if terminal.state != "completed":
+            return {"state": terminal.state, "artifact": None}
+
+        artifact = None
+        for ref in session.list_artifacts():
+            downloaded = session.download_artifact(ref)
+            body = downloaded.data.decode("utf-8", errors="replace")
+            try:
+                artifact = json.loads(body)
+            except ValueError:
+                artifact = body
+        return {"state": "completed", "artifact": artifact}
+
+    except Exception as err:                       # noqa: BLE001, deliberate
+        # wait_for_terminal raises on timeout. The remote task keeps running.
+        return {"state": f"no result: {err}", "artifact": None}
+
+    finally:
+        if session is not None:
+            session.close()</code></pre>
+
+    <p>Install with <code>pip install blocks_network</code> and scaffold with
+       <code>blocks init my_agent --mode provider</code>. Python is the CLI's
+       default language, so that command needs no <code>--language</code> flag.</p>
+
+    <h2>What the SDK retries, and what you retry</h2>
+
+    <p>As in lesson 3, separate connection failures from answers. The SDK
+       handles connection failures only.</p>
+
+    <figure class="diag">
+      <div class="lanes">
+        <span class="cap">the retry boundary &middot; who handles what</span>
+        <div class="lane t">
+          <b>the SDK, silently</b>
+          <ol class="hops">
+            <li style="--i:0">ECONNRESET</li>
+            <li class="wait" style="--i:1">~550ms</li>
+            <li class="wait" style="--i:2">~1,050ms</li>
+            <li class="wait" style="--i:3">~2,050ms</li>
+            <li class="ok" style="--i:4">then it propagates</li>
+          </ol>
+          <span class="who">↻ 3 attempts, 500ms × 2^n plus 0–100ms of
+            jitter</span>
+        </div>
+        <div class="lane d">
+          <b>yours, explicitly</b>
+          <ol class="hops">
+            <li style="--i:0">RateLimited · read data.retryAfter</li>
+            <li style="--i:1">5xx · same backoff, your code</li>
+            <li class="up" style="--i:2">↑ state: failed · a decision, not a
+              glitch</li>
+          </ol>
+          <span class="who">✕ BillingModeMismatch requires a configuration
+            change</span>
+        </div>
+      </div>
+      <figcaption>Transport errors such as <code>ENOTFOUND</code>,
+        <code>ETIMEDOUT</code>, and <code>ECONNRESET</code> retry three times
+        inside the call. Rate limits, server errors, and business failures reach
+        your code because only you can decide whether a second attempt is safe.</figcaption>
+    </figure>
+
+    <p>The limits are <strong>600 <code>sendMessage</code> calls per 60
+       seconds</strong> and <strong>1,200 <code>listTasks</code> calls</strong>
+       in the same window. A three-agent fan-out is modest; putting it inside a
+       retry and a poll raises the call count quickly.</p>
+
+    <p>Retrying will not fix these configuration and request errors:</p>
+
+    <ul>
+      <li><code>BillingModeMismatchError</code>, JSON-RPC
+          <strong>-32000</strong>. Your <code>billingMode</code> does not match
+          how the target agent registered. It carries
+          <code>expected</code> and <code>got</code>. Fix the value before
+          sending the request again.</li>
+      <li><code>-32602 InvalidParams</code>. The usual cause is a
+          <code>partId</code> that
+          does not appear in the target's <code>io.inputs[].id</code>. Read the
+          card with <code>client.getAgentCard(agentName)</code> instead of
+          guessing.</li>
+    </ul>
+
+    <p>Streams work only while a task is live. At a terminal state, they close,
+       and opening a stream you never opened throws
+       <code>StreamUnavailableError</code>. Streams you <em>had</em> open keep
+       draining for <strong>30 seconds</strong> after terminal, which is enough
+       to finish a <code>for await</code> loop, but cannot start one. To receive
+       progress from a long task as well as its result,
+       <a href="https://blocks.ai/docs/stream-data" target="_blank" rel="sponsored noopener">stream
+       data</a> documents the API. Open the stream
+       before you await the terminal state.</p>
+
+    <h2>Trusting remote agents</h2>
+
+    <p>You cannot control a remote agent's code or uptime. Your handler chooses
+       the agent, call order, and decision logic. The network handles
+       transport and identity. Short-lived per-task JWTs, org-scoped
+       channels, encrypted transport, <code>ownerId</code> validation, and
+       credential isolation are documented in
+       <a href="https://blocks.ai/docs/security" target="_blank" rel="sponsored noopener">security
+       and compliance</a>, in
+       <a href="https://blocks.ai/architecture/security" target="_blank" rel="sponsored noopener">the
+       security architecture</a>, and in
+       <a href="https://blocks.ai/architecture/security-whitepaper" target="_blank" rel="sponsored noopener">the
+       whitepaper</a>. Include
+       <a href="https://blocks.ai/architecture/network-whitepaper" target="_blank" rel="sponsored noopener">the
+       network one</a> when documenting this boundary for a security review.
+       The network protects the connection and caller identity; you remain
+       responsible for assessing the agent's output.</p>
+
+    <p>Use these safeguards:</p>
+
+    <ul>
+      <li>Treat returned artifacts as untrusted input. They come from a
+          program you may not be able to inspect, and they may become part of a
+          later model prompt. If you paste one into a model turn with write
+          tools, remote text can influence those tools. Parse it, validate the
+          shape declared in <code>io.outputs</code>, and quote it as data
+          rather than as instructions.</li>
+      <li>Allowlist providers. Catalogue statistics help with routing. Pin agent
+          names you have tested. A name resolved at runtime is an unreviewed
+          dependency.</li>
+      <li>Check the payload as well as the state. A
+          <code>completed</code> task whose artifact reads
+          <code>{"error": "..."}</code> still failed. The handler above uses
+          this pattern, so the assembly step must inspect the artifact.</li>
+    </ul>
+
+    <p>Lessons 1 through 3 ran in one process you could inspect. Remote agents
+       add latency and failure modes along with new capabilities. Give each
+       remote call lesson 3's stopping condition, or your handler can wait half
+       an hour for an offline agent.</p>
+
+    <p>For production teams,
+       <a href="https://blocks.ai/docs/enterprise" target="_blank" rel="sponsored noopener">Blocks
+       Enterprise</a> adds the controls a security review asks for: an
+       <a href="https://blocks.ai/docs/enterprise-admin-console" target="_blank" rel="sponsored noopener">admin
+       console</a>,
+       <a href="https://blocks.ai/docs/enterprise-organizations" target="_blank" rel="sponsored noopener">organisations
+       and access control</a>,
+       <a href="https://blocks.ai/docs/enterprise-sso" target="_blank" rel="sponsored noopener">SSO
+       against your own identity provider</a>, and an
+       <a href="https://blocks.ai/docs/enterprise-audit-log" target="_blank" rel="sponsored noopener">audit
+       log</a> of who called what. These controls leave the handler unchanged. The
+       <a href="https://blocks.ai/docs/enterprise-getting-started" target="_blank" rel="sponsored noopener">
+       getting-started page</a> covers the setup, and
+       <a href="mailto:enterprise@blocks.ai">enterprise support</a> can answer
+       deployment questions.</p>
+
+    <h2>A2A checklist</h2>
+
+    <ul>
+      <li>Declare <code>runtime.maxRunningTimeSec</code>. There is no default
+          ceiling, and this is the wall-clock version of lesson 3's turn
+          cap.</li>
+      <li>Reserve 30% for assembly, then divide the remainder by the longest
+          <em>sequential</em> chain. The number of parallel agents does not
+          determine the wall-clock cap.</li>
+      <li>Fan out with <code>Promise.allSettled</code>, or a thread pool in
+          Python. Represent a failed hire as a missing field.</li>
+      <li>Give every sub-task its own deadline, and remember that your deadline
+          expiring does not stop the remote task.</li>
+      <li>Omit <code>ownerId</code> on <code>sendMessage</code> from inside a
+          handler. Forwarding the original caller's identity is rejected.</li>
+      <li>Pass an <code>idempotencyKey</code> whenever a retry could pay twice
+          for the same work.</li>
+      <li><code>session.close()</code> in a <code>finally</code>, and
+          <code>client.destroy()</code> when the client is done.</li>
+      <li>Match <code>billingMode</code> to how the target registered, and match
+          <code>partId</code> to its declared <code>io.inputs[].id</code>.</li>
+      <li>Keep your API key server-side. Give a page a
+          <code>tokenEndpoint</code> or <code>tokenProvider</code>.</li>
+      <li>Run <code>blocks check</code> before <code>blocks run</code>, and
+          <code>blocks register</code> (private, free) long before
+          <code>blocks publish</code>.</li>
+    </ul>
+
+    <h2>The exercise</h2>
+
+    <p>Open <a href="/">the harness</a>. It writes the provider and caller so
+       you can focus on the agent design. Open <em>KEYS</em>, paste an API key
+       or select
+       Ollama, then ask for the build:</p>
+
+<pre><code>scaffold a blocks.ai research agent, then run it</code></pre>
+
+    <p>A request mentioning Blocks.AI, MCP, or an agent loop puts the harness in
+       <code>agent-builder</code> mode. You can also run
+       <code>/mode agent-builder</code>. Look for
+       <code>framework_docs {"framework":"blocks-ai"}</code> in the transcript:
+       the agent reads the SDK before writing against it. Then
+       <code>scaffold</code> writes the card, <code>handler.js</code>, the
+       shared agent loop, and a consumer page under <code>web/</code>.</p>
+
+    <p>Focus on three files:
+       <code>agent-card.json</code> for the contract,
+       <code>handler.js</code> for the provider half, and
+       <code>web/consumer.js</code> for the caller half. The scaffold omits the
+       token endpoint because it cannot know how your application authenticates
+       users.</p>
+
+    <p>To take it off your laptop, <code>export_zip</code>, then in the unpacked
+       directory:</p>
+
+<pre><code>npm init -y &amp;&amp; npm install @blocks-network/sdk
+npm install -g @blocks-network/cli
+blocks login --write-env
+blocks check &amp;&amp; blocks register &amp;&amp; blocks run</code></pre>
+
+    <p>Make each of these changes and inspect the resulting error:</p>
+
+    <ul>
+      <li>Rename the agent to <code>my-agent</code> with a hyphen and run
+          <code>blocks check</code>. Read the message; you will see that regex
+          again.</li>
+      <li>In the consumer page, send <code>partId: "req"</code> against a card
+          declaring <code>"request"</code>. You should get
+          <strong>-32602</strong>, not a helpful hint.</li>
+      <li>Set <code>billingMode: "paid"</code> against your free registered
+          agent. The <code>expected</code>/<code>got</code> pair on
+          <code>BillingModeMismatchError</code> tells you exactly what to
+          change.</li>
+      <li>Stop <code>blocks run</code>, then submit a task from the page. Watch
+          it wait. It will sit there for <strong>5 minutes</strong> before
+          failing <code>agent_unavailable</code>. Set a
+          <code>waitForTerminal</code> deadline.</li>
+      <li>Add a <code>sleep(30_000)</code> to the sub-agent's handler and leave
+          the orchestrator's cap at 20 seconds. Your handler reports a timeout
+          while the sub-agent continues its work. Observe the difference between
+          &ldquo;I stopped waiting&rdquo; and &ldquo;it stopped.&rdquo;</li>
+      <li>Point one agent at itself in <code>HIRES</code>. Blocks will allow it.
+          Count the tasks.</li>
+    </ul>
+
+    <p>The harness writes to a virtual filesystem in <code>localStorage</code>
+       in your tab, so the scaffold does not touch your disk until you export
+       it. <code>/wipe</code> clears the workspace and
+       <code>/undo</code> rewinds both the files and the conversation.</p>
+
+    <h2>The pages worth bookmarking</h2>
+
+    <p>Keep these references near the project:</p>
+
+    <ul>
+      <li><a href="https://blocks.ai/docs/quickstart" target="_blank" rel="sponsored noopener">Quickstart</a>
+          and <a href="https://blocks.ai/docs/what-is-blocks" target="_blank" rel="sponsored noopener">what
+          is Blocks</a>: commands and the division of responsibility.</li>
+      <li><a href="https://blocks.ai/docs/key-concepts" target="_blank" rel="sponsored noopener">Key
+          concepts</a>: agent, task, artifact, organisation. The vocabulary
+          behind the error messages.</li>
+      <li><a href="https://blocks.ai/docs/connect-your-agent" target="_blank" rel="sponsored noopener">Connect
+          your agent</a> and
+          <a href="https://blocks.ai/docs/use-agents-in-your-app" target="_blank" rel="sponsored noopener">use
+          agents in your app</a>: one page for each direction.</li>
+      <li><a href="https://blocks.ai/docs/set-up-agent-to-agent-communication" target="_blank" rel="sponsored noopener">Set
+          up agent-to-agent communication</a>: the reference for the code above.
+          Return to it after your first fan-out times out.</li>
+      <li><a href="https://app.blocks.ai/agents" target="_blank" rel="sponsored noopener">The
+          catalogue</a>: what other people published, with response times on
+          each page. Use it to calibrate what &ldquo;fast&rdquo; means before
+          promising it.</li>
+      <li><a href="https://blocks.ai/docs/network-requirements" target="_blank" rel="sponsored noopener">Network
+          requirements</a>: two paragraphs your security team will ask for.</li>
+    </ul>
+
+    <p>When an error message makes no sense, inspect the SDK source
+       <a href="https://github.com/blocksnetwork/blocks-sdk" target="_blank" rel="noopener">open
+       on GitHub</a>. Search for the thrown string before guessing. The
+       <a href="https://discord.gg/cAmDfWBbzP" target="_blank" rel="sponsored noopener">Discord</a>
+       is another place to ask maintainers. Source inspection is harder with
+       network agents because you control only one side of the call.</p>
+
+    <h2>Lesson 5</h2>
+
+    <p>Your agent can now accept work and delegate it. <strong>Lesson 5,
+       vision</strong> adds image content blocks. The agent writes a page,
+       inspects a screenshot, finds an off-screen button, and fixes the layout.
+       Lesson 3's loop makes that visual feedback useful.</p>
+
+    <p>See <a href="2026-09-04-the-syllabus.html">the syllabus</a> for the full
+       course. If you started here, read the stopping condition in
+       <a href="2026-09-22-lesson-3-loops-and-goals.html">lesson 3, loops and
+       goals</a>.</p>
+
+    <p><a class="cta" href="/">open the harness</a></p>
+
+  </article>
+
+  <!-- ══ subscribe: the same form the harness carries, posting to the same
+          list. Every page in the archive ends here. ═══════════════════════ -->
+  <section class="subscribe">
+    <h2>One lesson a week</h2>
+    <form class="signup" id="signup"
+          action="https://5487903a.sibforms.com/serve/MUIFAAPvkZdoviEts98XHd7P8K3TyLVS3MtyAoJy_sJMZ9DgAKwbaJqN4Lgn4NMQH3JL50ANiWCKfMJlE3Wj5aEiDLJ3sbnhtSTvh3z7Lgg2BOpAJjNZhMpN_BCn21Kz_o-buc-NY7aFM5JXPRkd-GW0iihg0KEvSJQiAgmUYcB_8D6DmR8Xb4bEFUzTJmlYFti6yJBG7K33hsR_MQ=="
+          method="POST" target="signup-sink" autocomplete="on">
+      <label class="sigil" for="signup-email" aria-hidden="true">&gt;</label>
+      <label class="slabel" for="signup-email">EMAIL</label>
+      <input id="signup-email" name="EMAIL" type="email" required
+             spellcheck="false" placeholder="you@example.com">
+      <input type="text" name="email_address_check" value="" class="trap"
+             tabindex="-1" aria-hidden="true" autocomplete="off">
+      <input type="hidden" name="locale" value="en">
+      <button type="submit">SUBSCRIBE</button>
+      <p class="note">one AI Agent training lesson, weekly</p>
+      <p class="thanks" role="status">subscribed, thank you!</p>
+    </form>
+    <iframe name="signup-sink" title="subscription result" hidden></iframe>
+  </section>
+
+  <footer class="foot">
+    <p><a href="./">← all lessons</a> &middot;
+       <a href="https://github.com/stephenlb/buttercup.sh">source</a> &middot;
+       <a href="https://github.com/stephenlb/buttercup.sh/issues/new">feedback</a></p>
+  </footer>
+
+</div>
+
+<script src="signup.js"></script>
+<script src="../js/announce.js"></script>
+</body>
+</html>
