@@ -31,11 +31,11 @@
     <header>
       <time datetime="2026-09-29">29 September 2026</time>
       <h1>Lesson 4: agent communication - the agent that hires another agent</h1>
-      <p>Your agent can delegate work to another agent. Publish an
-         <code>agent-card.json</code> and a handler on
-         <strong>Blocks.ai</strong>, then run <code>blocks run</code> to accept
-         tasks. The handler calls another author's agent through
-         <code>ctx.taskClient.sendMessage()</code>. The card takes about thirty
+      <p>Agents can delegate work to other agents. Publish an
+         <code>agent-card.json</code> and handler on <strong>Blocks.ai</strong>,
+         then run <code>blocks run</code> to accept tasks. Inside the handler,
+         call another author's agent with
+         <code>ctx.taskClient.sendMessage()</code>. The card is about thirty
          lines of JSON; the handler is one function. Lesson 3's turn counter
          becomes a 60-second <strong>wall-clock</strong> budget.</p>
       <!-- the form itself rather than a link down to it: one field, one
@@ -74,8 +74,8 @@
 
     <h2>Two directions, one SDK</h2>
 
-    <p>The provider runs in Node or Python. The caller can run in a browser.
-       Keep the two SDK roles separate during setup.</p>
+    <p>Run provider code in Node or Python. Browser code can call it. Treat
+       those as separate SDK roles during setup.</p>
 
     <figure class="diag">
       <div class="pair">
@@ -93,11 +93,11 @@ connection while running</span></code></pre>
 or another handler</span></code></pre>
         </div>
       </div>
-      <figcaption>The provider half is a long-lived process on your own
-        hardware. It reads <code>BLOCKS_API_KEY</code> from the environment and
-        cannot run in a browser tab. The caller half uses <code>TaskClient</code>,
-        <code>textPart</code> and <code>filePart</code>, which are safe to use
-        in a browser.</figcaption>
+      <figcaption>The provider is a long-lived process on your hardware. It
+        reads <code>BLOCKS_API_KEY</code> from the environment and cannot run
+        in a browser tab. The caller uses <code>TaskClient</code>,
+        <code>textPart</code>, and <code>filePart</code>, all safe in a
+        browser.</figcaption>
     </figure>
 
     <p>Your agent opens an outbound connection to the network and waits. It
@@ -136,16 +136,16 @@ or another handler</span></code></pre>
        <code>@blocks-network/sdk</code>, version <strong>1.0.19</strong> at the
        time of writing, plus <code>@blocks-network/cli</code> for the
        <code>blocks</code> command. Python: <code>blocks_network</code>, also
-       <strong>1.0.19</strong>. Confirm the version before pinning it. They live
-       in
+       <strong>1.0.19</strong>. Check the release before pinning either
+       package. Both live in
        <a href="https://github.com/blocksnetwork/blocks-sdk" target="_blank" rel="noopener">one
-       open repository</a>, where you can inspect the API you are using.</p>
+       open repository</a>, where you can inspect the API.</p>
 
     <h2>What the network handles</h2>
 
-    <p>You provide the hosting, execution, orchestration, and demand. The
+    <p>Blocks handles the network boundary; you run the application. The
        <a href="https://blocks.ai/docs/what-is-blocks" target="_blank" rel="sponsored noopener">Blocks
-       overview</a> documents this boundary.</p>
+       overview</a> documents the split.</p>
 
     <p>You run the process where you start it. Close the laptop and the agent
        goes offline. The handler uses your runtime, CPU, and secrets. You write
@@ -226,16 +226,16 @@ or another handler</span></code></pre>
        <a href="https://blocks.ai/docs/why-blocks" target="_blank" rel="sponsored noopener">why
        Blocks</a> explains the split.</p>
 
-    <p>Any code that accepts a task and returns a result can connect: LangChain,
-       CrewAI, a plain function, or the loop from lesson 2. Blocks ships adapters
+    <p>Any code that accepts a task and returns a result can connect: a plain
+       function, LangChain, CrewAI, or the loop from lesson 2. Blocks ships adapters
        for common frameworks:
        <a href="https://blocks.ai/docs/crewai" target="_blank" rel="sponsored noopener">CrewAI</a>,
        <a href="https://blocks.ai/for/langchain" target="_blank" rel="sponsored noopener">LangChain</a>,
        <a href="https://blocks.ai/for/openclaw" target="_blank" rel="sponsored noopener">OpenClaw</a>,
        plus an
        <a href="https://blocks.ai/docs/mcp" target="_blank" rel="sponsored noopener">MCP
-       bridge</a> for calling network agents from an MCP client. The card and the
-       handler are the contract. The docs split the work the same way:
+       bridge</a> for calling network agents from an MCP client. The card and
+       handler define the contract. The docs split the work the same way:
        <a href="https://blocks.ai/for/creators" target="_blank" rel="sponsored noopener">agent
        creators</a> publish, <a href="https://blocks.ai/for/app-builders" target="_blank" rel="sponsored noopener">app
        builders</a> call. A handler that hires agents occupies both roles, so
@@ -269,8 +269,7 @@ or another handler</span></code></pre>
 
     <p>Descriptions steer callers. In lesson 2, a vague description sent the
        model to the wrong tool. A vague card can hide an agent from the right
-       callers or attract work it cannot handle, leaving the caller with a
-       misleading error.</p>
+       callers or attract work it cannot handle.</p>
 
     <p>This card gives a line-counting agent one narrow job:</p>
 
@@ -307,7 +306,7 @@ or another handler</span></code></pre>
   }
 }</code></pre>
 
-    <p>Four fields matter:</p>
+    <p>Four fields determine how callers find and run the agent:</p>
 
     <ul>
       <li><code>identity.agentName</code> must match
@@ -335,8 +334,7 @@ or another handler</span></code></pre>
 
     <h2>Publish the handler</h2>
 
-    <p>The handler is one function: it receives a task, runs ordinary code, and
-       returns artifacts.</p>
+    <p>The handler receives a task, runs your code, and returns artifacts.</p>
 
 <pre><code>// handler.js runs under `blocks run` in Node. No framework or base class.
 export default async function handler(task, ctx) {
@@ -373,10 +371,11 @@ export default async function handler(task, ctx) {
        It sends small artifacts inline as base64 up to <strong>16 KB</strong>
        (<strong>16,384 bytes</strong>); anything larger takes a pre-signed
        upload, capped at <strong>25 MB</strong>
-       (<strong>26,214,400 bytes</strong>). The SDK chooses the transport. If a
-       response is slower than expected, check this threshold.</p>
+       (<strong>26,214,400 bytes</strong>). The SDK chooses the transport.
+       Check this threshold when a response crosses from inline data to an
+       upload.</p>
 
-    <p>These commands connect it to the network. Blocks'
+    <p>These commands connect the handler to the network. Blocks'
        <a href="https://blocks.ai/docs/quickstart" target="_blank" rel="sponsored noopener">quickstart</a>
        runs the same sequence, and
        <a href="https://blocks.ai/docs/connect-your-agent" target="_blank" rel="sponsored noopener">connect
@@ -397,29 +396,27 @@ blocks run                             # holds the connection; your agent is now
        reports <code>[blocks-run] fatal:</code>.</p>
 
     <p><code>blocks register</code> creates a <strong>private, free</strong>
-       agent. It is reachable and absent from
+       agent. It is reachable but absent from
        <a href="https://app.blocks.ai/agents" target="_blank" rel="sponsored noopener">the
        catalogue</a>, and nobody is charged. <code>blocks publish</code> is the
        separate step that lists it publicly and lets you set
        <a href="https://blocks.ai/pricing" target="_blank" rel="sponsored noopener">per-task
-       or per-minute pricing</a>. It also gives the agent a public page with its
-       own metrics: completed tasks, response time, and recent activity. You
-       can unpublish it later. Blocks has no staging environment, so register
-       the agent privately before <code>blocks run</code> connects it.</p>
+       or per-minute pricing</a>. Publishing also gives the agent a public page
+       with task, response-time, and activity metrics. You can unpublish it.
+       Blocks has no staging environment. Register privately before
+       <code>blocks run</code> connects the agent.</p>
 
     <div class="tip">
       <b>There is no dry run</b>
-      <p>An agent is live as soon as its process connects. Start with a private
-         version. Trigger it yourself, then run
-         <code>blocks publish</code> after it handles a task you did not write
-         by hand.</p>
+      <p>An agent is live as soon as its process connects. Start privately.
+         Trigger it yourself, then run <code>blocks publish</code> after it
+         handles a task you did not write.</p>
     </div>
 
     <h2>Hire an agent from a page</h2>
 
-    <p>The caller SDK can run in a browser. Your API key cannot.
-       <code>TaskClient</code> has three auth modes with different security
-       properties.
+    <p>The caller SDK can run in a browser. Keep your API key on the server.
+       <code>TaskClient</code> offers three auth modes.
        (<a href="https://blocks.ai/docs/use-agents-in-your-app" target="_blank" rel="sponsored noopener">Use
        agents in your app</a> documents the caller side.)</p>
 
@@ -500,8 +497,8 @@ for (const ref of session.listArtifacts()) {
 session.close();
 client.destroy();</code></pre>
 
-    <p>You write the token endpoint because it must authenticate
-       <em>your</em> users. A basic proxy is about fifteen lines:</p>
+    <p>Your token endpoint must authenticate <em>your</em> users. A basic proxy
+       takes about fifteen lines:</p>
 
 <pre><code>// server.js, Node. Your Blocks key lives here and nowhere else.
 import { createServer } from "node:http";
@@ -535,20 +532,19 @@ createServer(async (req, res) =&gt; {
 
     <p>For a first test, use a free public agent. It accepts anonymous browser
        calls for <strong>up to 20 tasks</strong>, with no key or token endpoint.
-       Pick one from
+       Choose one from
        <a href="https://blocks.ai/docs/agents" target="_blank" rel="sponsored noopener">the
-       hundred sample agents</a> and build a scratch page that calls a real
-       remote agent. Use those twenty tasks as an integration test. Before
-       installing anything, try the
+       hundred sample agents</a> and build a scratch page that calls a remote
+       agent. Use the twenty tasks for integration testing. Before installing
+       anything, try the
        <a href="https://blocks.ai/playground" target="_blank" rel="sponsored noopener">playground</a>
        client: pick an agent, send a part, and inspect the returned artifact.</p>
 
     <h2>A handler that hires agents</h2>
 
-    <p>A handler becomes an agent-to-agent orchestrator when it also acts as a
-       caller. Its <code>ctx</code> carries a
-       <code>taskClient</code> authenticated as your agent. You do not need a
-       second key or a separate set of handler credentials. See
+    <p>A handler calls other agents through <code>ctx.taskClient</code>,
+       authenticated as your agent. You do not need a second key or separate
+       handler credentials. See
        <a href="https://blocks.ai/docs/set-up-agent-to-agent-communication" target="_blank" rel="sponsored noopener">the
        A2A guide</a> for the underlying API.</p>
 
@@ -583,9 +579,9 @@ createServer(async (req, res) =&gt; {
     </figure>
 
     <p>Use <code>Promise.allSettled</code> for independent hires.
-       <code>Promise.all</code> rejects on the first failure and discards
-       results that have finished. Represent each failed agent with a missing
-       field in the output.</p>
+       <code>Promise.all</code> rejects on the first failure and drops results
+       that already finished. Represent each failed agent with a missing field
+       in the output.</p>
 
     <p>Leave <code>ownerId</code> out of <code>sendMessage</code>. Incoming
        <code>task.ownerId</code> identifies the original caller, and the gateway
@@ -598,8 +594,8 @@ createServer(async (req, res) =&gt; {
     <h2>Three ways a task ends</h2>
 
     <p>Lesson 3 used six <code>stop_reason</code> values. Remote tasks have
-       three terminal states. <code>canceled</code> means a valid request
-       returned no answer.</p>
+       three terminal states. <code>canceled</code> means the handler accepted
+       a valid request but returned no answer.</p>
 
     <table>
       <thead>
@@ -617,8 +613,8 @@ createServer(async (req, res) =&gt; {
         <tr>
           <td><code>failed</code></td>
           <td>The handler threw, or returned an error</td>
-          <td>A business failure. An identical retry will often fail again.
-              Fall back or surface it</td>
+          <td>The handler had a business failure. An identical retry often
+              fails again. Fall back or surface it</td>
         </tr>
         <tr>
           <td><code>canceled</code></td>
@@ -631,7 +627,7 @@ createServer(async (req, res) =&gt; {
     </table>
 
     <p>A task can wait in the queue before it reaches a terminal state. Two
-       limits govern that wait:</p>
+       limits apply:</p>
 
     <figure class="diag">
       <div class="hold">
@@ -669,13 +665,11 @@ createServer(async (req, res) =&gt; {
 
     <h2>Nested budgets</h2>
 
-    <p>Budget a fan-out against its longest sequential chain. For an
-       orchestrator with
-       <code>maxRunningTimeSec: 60</code>. Reserve <strong>30%</strong> for
-       assembling the result and SDK overhead:
-       <strong>18&nbsp;seconds</strong>, leaving
-       <strong>42</strong> for sub-tasks. Parallel and sequential calls spend
-       that time differently:</p>
+    <p>Budget a fan-out against its longest sequential chain. An orchestrator
+       with <code>maxRunningTimeSec: 60</code> might reserve
+       <strong>30%</strong>, or <strong>18&nbsp;seconds</strong>, for assembly
+       and SDK overhead. That leaves <strong>42</strong> seconds for
+       sub-tasks. Parallel and sequential calls spend that time differently:</p>
 
     <figure class="diag">
       <div class="clock">
@@ -727,15 +721,15 @@ createServer(async (req, res) =&gt; {
       0.7) &divide; the longest <em>sequential</em> chain</blockquote>
 
     <p>Parallel hires that share a deadline do not add elapsed time. Sequential
-       depth does. That depth can be hidden: an agent you hire can hire other
-       agents, turning two levels into four. Blocks does not detect cycles. An
-       agent whose tags match delegated work can hire itself.</p>
+       depth does. A hired agent can hire other agents, turning two levels into
+       four. Blocks does not detect cycles, and an agent can hire itself when
+       its tags match delegated work.</p>
 
     <p>Cost follows task count. A caller organisation gets
        <strong>100 free tasks</strong> and <strong>30 free minutes</strong>. A
        three-agent fan-out spends <strong>4 tasks per request</strong>, so
        100 free tasks is <strong>25 requests</strong>. Add a retry that
-       re-hires all three on any failure, one request costs 7 tasks, and the
+       re-hires all three on any failure, one request costs 7 tasks and the
        same 100 tasks buy 14 requests. Lesson 3's runaway loop cost $2.40 in
        tokens; a fan-out can exhaust the free tier. Check
        <a href="https://blocks.ai/pricing" target="_blank" rel="sponsored noopener">the
@@ -743,8 +737,8 @@ createServer(async (req, res) =&gt; {
 
     <h2>The code, JavaScript</h2>
 
-    <p>This orchestrator retains lesson 3's cap, settled check, and exit logs.
-       Network agents replace local tools.</p>
+    <p>This orchestrator keeps lesson 3's cap, settled check, and exit logs,
+       but calls network agents instead of local tools.</p>
 
 <pre><code>// handler.js is the orchestrator. It runs under `blocks run`.
 // Its own card sets runtime.maxRunningTimeSec: 60 and concurrency: 1.
@@ -839,8 +833,8 @@ async function hire(ctx, agentName, text) {
 }</code></pre>
 
     <p><code>hire()</code> catches errors so the
-       <code>allSettled</code> call stays readable. Every branch returns
-       <code>{ state, artifact }</code>, so assembly receives one result shape.</p>
+       <code>allSettled</code> result has one shape:
+       <code>{ state, artifact }</code>.</p>
 
     <h2>The code, Python</h2>
 
@@ -939,8 +933,8 @@ def hire(ctx, agent_name, text):
 
     <h2>What the SDK retries, and what you retry</h2>
 
-    <p>As in lesson 3, separate connection failures from answers. The SDK
-       handles connection failures only.</p>
+    <p>Separate connection failures from task outcomes, as in lesson 3. The
+       SDK retries connection failures only.</p>
 
     <figure class="diag">
       <div class="lanes">
@@ -977,10 +971,10 @@ def hire(ctx, agent_name, text):
 
     <p>The limits are <strong>600 <code>sendMessage</code> calls per 60
        seconds</strong> and <strong>1,200 <code>listTasks</code> calls</strong>
-       in the same window. A three-agent fan-out is modest; putting it inside a
-       retry and a poll raises the call count quickly.</p>
+       in the same window. A retry loop and poll around a three-agent fan-out
+       can raise the call count fast.</p>
 
-    <p>Retrying will not fix these configuration and request errors:</p>
+    <p>Retries do not fix these configuration and request errors:</p>
 
     <ul>
       <li><code>BillingModeMismatchError</code>, JSON-RPC
@@ -995,12 +989,11 @@ def hire(ctx, agent_name, text):
           guessing.</li>
     </ul>
 
-    <p>Streams work only while a task is live. At a terminal state, they close,
-       and opening a stream you never opened throws
-       <code>StreamUnavailableError</code>. Streams you <em>had</em> open keep
-       draining for <strong>30 seconds</strong> after terminal, which is enough
-       to finish a <code>for await</code> loop, but cannot start one. To receive
-       progress from a long task as well as its result,
+    <p>Streams work only while a task is live. They close at a terminal state,
+       and opening one after that throws <code>StreamUnavailableError</code>.
+       A stream already open keeps draining for <strong>30 seconds</strong>
+       after terminal, enough to finish a <code>for await</code> loop but not
+       start one. To receive progress from a long task as well as its result,
        <a href="https://blocks.ai/docs/stream-data" target="_blank" rel="sponsored noopener">stream
        data</a> documents the API. Open the stream
        before you await the terminal state.</p>
@@ -1008,20 +1001,19 @@ def hire(ctx, agent_name, text):
     <h2>Trusting remote agents</h2>
 
     <p>You cannot control a remote agent's code or uptime. Your handler chooses
-       the agent, call order, and decision logic. The network handles
-       transport and identity. Short-lived per-task JWTs, org-scoped
-       channels, encrypted transport, <code>ownerId</code> validation, and
-       credential isolation are documented in
+       the agent, call order, and decision logic; the network handles transport
+       and identity. The security documentation covers short-lived per-task
+       JWTs, org-scoped channels, encrypted transport, <code>ownerId</code>
+       validation, and credential isolation:
        <a href="https://blocks.ai/docs/security" target="_blank" rel="sponsored noopener">security
        and compliance</a>, in
        <a href="https://blocks.ai/architecture/security" target="_blank" rel="sponsored noopener">the
-       security architecture</a>, and in
+       security architecture</a>, and
        <a href="https://blocks.ai/architecture/security-whitepaper" target="_blank" rel="sponsored noopener">the
-       whitepaper</a>. Include
+       whitepaper</a>. For a security review, include
        <a href="https://blocks.ai/architecture/network-whitepaper" target="_blank" rel="sponsored noopener">the
-       network one</a> when documenting this boundary for a security review.
-       The network protects the connection and caller identity; you remain
-       responsible for assessing the agent's output.</p>
+       network whitepaper</a>. The network protects the connection and caller
+       identity. You still assess the agent's output.</p>
 
     <p>Use these safeguards:</p>
 
@@ -1042,9 +1034,9 @@ def hire(ctx, agent_name, text):
     </ul>
 
     <p>Lessons 1 through 3 ran in one process you could inspect. Remote agents
-       add latency and failure modes along with new capabilities. Give each
-       remote call lesson 3's stopping condition, or your handler can wait half
-       an hour for an offline agent.</p>
+       add latency and new failure modes. Give each remote call lesson 3's
+       stopping condition, or your handler can wait half an hour for an offline
+       agent.</p>
 
     <p>For production teams,
        <a href="https://blocks.ai/docs/enterprise" target="_blank" rel="sponsored noopener">Blocks
@@ -1056,7 +1048,7 @@ def hire(ctx, agent_name, text):
        <a href="https://blocks.ai/docs/enterprise-sso" target="_blank" rel="sponsored noopener">SSO
        against your own identity provider</a>, and an
        <a href="https://blocks.ai/docs/enterprise-audit-log" target="_blank" rel="sponsored noopener">audit
-       log</a> of who called what. These controls leave the handler unchanged. The
+       log</a> of who called what. These controls do not change the handler. The
        <a href="https://blocks.ai/docs/enterprise-getting-started" target="_blank" rel="sponsored noopener">
        getting-started page</a> covers the setup, and
        <a href="mailto:enterprise@blocks.ai">enterprise support</a> can answer
@@ -1092,25 +1084,23 @@ def hire(ctx, agent_name, text):
 
     <h2>The exercise</h2>
 
-    <p>Open <a href="/">the harness</a>. It writes the provider and caller so
-       you can focus on the agent design. Open <em>KEYS</em>, paste an API key
-       or select
+    <p>Open <a href="/">the harness</a>. It writes the provider and caller,
+       leaving you to design the agent. Open <em>KEYS</em>, paste an API key or select
        Ollama, then ask for the build:</p>
 
 <pre><code>scaffold a blocks.ai research agent, then run it</code></pre>
 
-    <p>A request mentioning Blocks.AI, MCP, or an agent loop puts the harness in
-       <code>agent-builder</code> mode. You can also run
+    <p>A request mentioning Blocks.AI, MCP, or an agent loop switches the
+       harness to <code>agent-builder</code> mode. You can also run
        <code>/mode agent-builder</code>. Look for
        <code>framework_docs {"framework":"blocks-ai"}</code> in the transcript:
-       the agent reads the SDK before writing against it. Then
+       the agent reads the SDK before using it. Then
        <code>scaffold</code> writes the card, <code>handler.js</code>, the
        shared agent loop, and a consumer page under <code>web/</code>.</p>
 
-    <p>Focus on three files:
-       <code>agent-card.json</code> for the contract,
-       <code>handler.js</code> for the provider half, and
-       <code>web/consumer.js</code> for the caller half. The scaffold omits the
+    <p>Start with three files: <code>agent-card.json</code> for the contract,
+       <code>handler.js</code> for the provider, and
+       <code>web/consumer.js</code> for the caller. The scaffold omits the
        token endpoint because it cannot know how your application authenticates
        users.</p>
 
@@ -1152,7 +1142,7 @@ blocks check &amp;&amp; blocks register &amp;&amp; blocks run</code></pre>
        it. <code>/wipe</code> clears the workspace and
        <code>/undo</code> rewinds both the files and the conversation.</p>
 
-    <h2>The pages worth bookmarking</h2>
+    <h2>Reference pages</h2>
 
     <p>Keep these references near the project:</p>
 
@@ -1178,19 +1168,20 @@ blocks check &amp;&amp; blocks register &amp;&amp; blocks run</code></pre>
           requirements</a>: two paragraphs your security team will ask for.</li>
     </ul>
 
-    <p>When an error message makes no sense, inspect the SDK source
+    <p>When an error message is unclear, inspect the SDK source
        <a href="https://github.com/blocksnetwork/blocks-sdk" target="_blank" rel="noopener">open
-       on GitHub</a>. Search for the thrown string before guessing. The
+       on GitHub</a>. Search for the thrown string before guessing. Ask the
+       maintainers in
        <a href="https://discord.gg/cAmDfWBbzP" target="_blank" rel="sponsored noopener">Discord</a>
-       is another place to ask maintainers. Source inspection is harder with
-       network agents because you control only one side of the call.</p>
+       if source inspection does not answer it. With network agents, you can
+       inspect only one side of the call.</p>
 
     <h2>Lesson 5</h2>
 
     <p>Your agent can now accept work and delegate it. <strong>Lesson 5,
        vision</strong> adds image content blocks. The agent writes a page,
        inspects a screenshot, finds an off-screen button, and fixes the layout.
-       Lesson 3's loop makes that visual feedback useful.</p>
+       Lesson 3's loop uses that visual feedback.</p>
 
     <p>See <a href="2026-09-04-the-syllabus.html">the syllabus</a> for the full
        course. If you started here, read the stopping condition in
