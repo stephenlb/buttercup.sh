@@ -1,6 +1,10 @@
 # Pages serves main:/docs, and docs/index.html, docs/lessons/ and
 # docs/sitemap.xml are generated — so every push that touches a source file
 # rebuilds them and commits the result back to main.
+#
+# build.mjs gates each lesson on its filename date, so a post written ahead of
+# time stays out of docs/ until that date arrives — which needs a rebuild on
+# that day even without a new push. The daily schedule below covers that.
 name: build
 
 on:
@@ -21,6 +25,9 @@ on:
       # retrigger this.
       - lessons/**
       - .github/workflows/build.yml
+  schedule:
+    # 00:05 UTC, so a lesson dated today is published the moment its date starts.
+    - cron: "5 0 * * *"
   workflow_dispatch:
 
 permissions:
