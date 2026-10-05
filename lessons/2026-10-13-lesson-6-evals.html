@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>lesson 6: evals - you made it to the buttercup.sh finale</title>
-<meta name="description" content="You made it to the final buttercup.sh agent lesson. Thank you. Now build a small eval, run ten test cases, and replace &quot;seems better&quot; with evidence.">
+<title>lesson 6: evals - make "seems better" prove it</title>
+<meta name="description" content="You made it to the final buttercup.sh agent lesson. Thanks for coming this far. Let's build a small eval and find out whether our agent is actually getting better.">
 <link rel="canonical" href="https://buttercup.sh/lessons/2026-10-13-lesson-6-evals.html">
 <link rel="stylesheet" href="lessons.css">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23191204'/%3E%3Ctext x='2' y='12' font-family='monospace' font-size='11' fill='%23ffd873'%3E%26gt;%3C/text%3E%3C/svg%3E">
@@ -30,17 +30,17 @@
   <article>
     <header>
       <time datetime="2026-10-13">13 October 2026</time>
-      <h1>Lesson 6: evals - goodbye to "seems better"</h1>
-      <p>You made it to the sixth and final lesson. Thank you for building
-         alongside me these past few weeks. We gave a model tools, put it in a
-         loop, added memory, and taught it to see. The final question is less
-         glamorous: did any of that help?</p>
+      <h1>Lesson 6: evals - make "seems better" prove it</h1>
+      <p>You made it to lesson six, the last one. I'm glad you're here. Over
+         the past few weeks, we've given a model tools, put it in a loop,
+         added memory, and taught it to see. Now we get to ask the awkward
+         question: did any of it actually help?</p>
 
-      <p>An edited sentence can produce five great runs in a row, even when
-         you have only hit a lucky streak. We will write
-         <strong>10 cases</strong>, run each case <strong>3 times</strong>, and
-         grade all 30 runs with code. By the end, "seems better" has to show
-         its work.</p>
+      <p>Sometimes a small change looks like it fixed everything, but a few
+         good results can just be luck. In this final lesson, we'll test it
+         properly: <strong>10 cases</strong>, <strong>3 runs</strong> each, and
+         code that grades all 30 results. That way, we'll know whether the
+         change really helped.</p>
       <!-- the form itself rather than a link down to it: a field and a
            button, no jump. Same list, same sink frame as the foot. -->
       <form class="signup lede" id="signup-lede"
@@ -70,22 +70,22 @@
                 referrerpolicy="strict-origin-when-cross-origin"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"></iframe>
       </div>
-      <figcaption>Score an agent on ten cases, rewrite a tool description,
-        then score it again. The final video uses the code below.
+      <figcaption>We'll score an agent on ten cases, rewrite a tool
+        description, and score it again. The final video uses the code below.
         <a href="https://youtu.be/LESSON6_VIDEO_ID">Watch on YouTube</a>.</figcaption>
     </figure>
 
 
-    <h2>Five good runs can still be a fluke</h2>
+    <h2>Five good runs might mean nothing</h2>
 
     <p>A model can answer the same prompt differently from run to run.
-       Say you edit a description, try the agent five times, and get four good
-       answers. The old version might also have passed four times. Until you
-       test both, you are comparing a result with a hunch.</p>
+       You edit a description, try the agent five times, and get four good
+       answers. Nice! Except the old version might also have passed four
+       times. Until you test both, you're comparing a result with a hunch.</p>
 
     <p>A small eval gives you a fair comparison: a list of prompts, a function
-       that scores each run, and a loop that prints the total. The example
-       below fits in a single file. You do not need an eval platform or a
+       that scores each run, and a loop that prints the total. Ours fits in
+       one file. No eval platform, no dashboard, no new hobby maintaining the
        dashboard.</p>
 
     <figure class="diag">
@@ -104,11 +104,11 @@
         measurements will depend on the model and the run.</figcaption>
     </figure>
 
-    <h2>Meet the agent we will test</h2>
+    <h2>Our willing test subject</h2>
 
     <p>Our test subject is a support agent with three tools. Stub functions
-       return canned data, so you can let the agent make a complete mess
-       without touching a customer order or refunding anyone's money.</p>
+       return canned data, so the agent can make a complete mess without
+       touching a real order or refunding anyone's money. Very freeing.</p>
 
     <ul>
       <li><code>lookup_order(order_id)</code> returns the requested order's
@@ -119,14 +119,15 @@
           mistake is expensive.</li>
     </ul>
 
-    <p>The grader watches for mistakes we met in earlier lessons: searching
+    <p>The grader looks for old enemies from earlier lessons: searching
        when the user already supplied an order id, inventing an id, or treating
        an angry complaint as permission to move money. The recorded tool calls
-       give ordinary code everything it needs to catch all three.</p>
+       give plain old code everything it needs to catch them.</p>
 
     <h2>Grade with code first</h2>
 
-    <p>Use the simplest grader that can answer the question.</p>
+    <p>Use the simplest grader that can answer the question. Boring is good
+       here.</p>
 
     <ul>
       <li>Use code on the trace when the verdict depends on which tools ran,
@@ -139,12 +140,12 @@
     </ul>
 
     <p>Give each run a pass or fail. A tone score of 7 out of 10 sounds useful
-       until you have to explain why the next answer earned an 8. A yes-or-no
-       check is easier to defend and much easier to count.</p>
+       until you have to explain why the next answer got an 8. A yes-or-no
+       check is easier to defend, and you can count it without squinting.</p>
 
     <h2>Ten cases</h2>
 
-    <p>Write the cases before you edit the prompts. Otherwise, it is too easy
+    <p>Write the cases before you edit the prompts. Otherwise, it's too easy
        to write tests that flatter the change you just made. Each case pairs a
        user message with a function that reads the recorded tool calls and
        returns true or false. Some cases should expect no tool call at all. A
@@ -168,17 +169,16 @@
       </tbody>
     </table>
 
-    <p>Failures make the best cases. When the agent finds a new way to be
-       wrong, save the prompt as case 11. Add a few troublemakers of your own,
-       especially around costly or irreversible tools. A strange bug often
-       becomes a particularly useful test.</p>
+    <p>Failures make excellent cases. When the agent finds a new and creative
+       way to be wrong, save the prompt as case 11. Add a few troublemakers of
+       your own, especially around costly or irreversible tools. Today's weird
+       bug is tomorrow's very useful test.</p>
 
     <h2>Run each case more than once</h2>
 
-    <p>A pass only proves that the agent passed once. To see whether an
-       improvement holds up, run each case <strong>3 times</strong>. That gives
-       you 30 runs, and each run takes about two requests of 1,000 input
-       tokens. Estimate
+    <p>One pass proves exactly one pass. To see whether an improvement holds
+       up, run each case <strong>3 times</strong>. That gives you 30 runs, and
+       each run takes about two requests of 1,000 input tokens. Budget roughly
        <strong>60,000 input tokens</strong> for the whole eval and check
        <code>usage</code> on your first run for the actual figure.</p>
 
@@ -189,8 +189,8 @@
        noise. At 90 runs, the error drops to about 4 points while the token
        cost triples.</p>
 
-    <p>The total helps you spot broad changes; the traces explain individual
-       failures:</p>
+    <p>Use the total to spot broad changes and the traces to explain
+       individual failures:</p>
 
     <ul>
       <li>Ignore a change of only a couple of passes out of 30.</li>
@@ -203,14 +203,15 @@
     <h2>Two sets of descriptions</h2>
 
     <p>The eval compares two sets of tool descriptions. Variant
-       <strong>A</strong> has the short, vague descriptions we have all written
-       in a hurry. Variant <strong>B</strong> explains when to use each tool,
-       what input it needs, and which requests to reject.</p>
+       <strong>A</strong> contains the short, vague descriptions we've all
+       written while trying to get something working before lunch. Variant
+       <strong>B</strong> says when to use each tool, what input it needs, and
+       which requests to reject.</p>
 
-    <p>Keep the system prompt, model, stubs, and cases fixed. Change a single thing
-       per eval run. If you change the description and model together, a
-       better score leaves you with a mystery. You will know the agent
-       improved, but not why.</p>
+    <p>Keep the system prompt, model, stubs, and cases fixed. Change one thing
+       per eval run. If you change the description and the model together, a
+       better score leaves you with a mystery. The agent improved. Great. You
+       just don't know why.</p>
 
     <h2>JavaScript example</h2>
 
@@ -348,8 +349,8 @@ console.log(`\nvariant ${VARIANT} on ${MODEL}: ${passed}/${total} (${Math.round(
 await mkdir("evals", { recursive: true });
 await writeFile(`evals/${VARIANT}.json`, JSON.stringify({ MODEL, VARIANT, results }, null, 2));</code></pre>
 
-    <p>Each line reports a case: a plus means pass, a minus means fail, and
-       a bang means API error. A line such as <code>+--</code> reveals an
+    <p>Each line reports a case. A plus means pass, a minus means fail, and
+       a bang means API error. A line such as <code>+--</code> exposes an
        unstable case that the total can hide. The script also writes every
        tool call to <code>evals/A.json</code> or <code>evals/B.json</code> for
        later inspection.</p>
@@ -504,10 +505,10 @@ Path("evals").mkdir(exist_ok=True)
 Path(f"evals/{VARIANT}.json").write_text(json.dumps(
     {"MODEL": MODEL, "VARIANT": VARIANT, "results": results}, indent=2, default=str))</code></pre>
 
-    <p>I left out scores for A and B because they vary by model and run. My
-       total would tell you very little about your agent. Run both variants
-       and keep the traces with your code. The useful result is what you
-       can reproduce on your own task.</p>
+    <p>I left out scores for A and B on purpose. They vary by model and by run,
+       and my total would tell you very little about your agent. Run both
+       variants and keep the traces with your code. Your own repeatable result
+       is the one that matters.</p>
 
     <h2>Read the trace before you trust the number</h2>
 
@@ -524,9 +525,10 @@ Path(f"evals/{VARIANT}.json").write_text(json.dumps(
           strict and would reject many valid questions.</li>
     </ul>
 
-    <p>Read five failures by hand the first time you run a new eval. You may
-       find that the grader is wrong and the agent is fine, which saves you
-       from spending an afternoon fixing the wrong thing.</p>
+    <p>Read five failures by hand the first time you run a new eval. Sometimes
+       the grader is wrong and the agent is fine. Finding that early can save
+       you an afternoon of fixing the wrong thing, which is a lovely way to
+       get an afternoon back.</p>
 
     <h2>When you need a model as judge</h2>
 
@@ -544,7 +546,7 @@ Path(f"evals/{VARIANT}.json").write_text(json.dumps(
 });
 const ok = verdict.content[0].text.trim().endsWith("PASS");</code></pre>
 
-    <p>Before you rely on the judge, test its verdicts against your own:</p>
+    <p>Test the judge's verdicts against your own before you rely on it:</p>
 
     <ul>
       <li>Label 20 outputs yourself, then run the judge on the same set. If it
@@ -561,20 +563,22 @@ const ok = verdict.content[0].text.trim().endsWith("PASS");</code></pre>
 
     <h2>Avoid overfitting your own cases</h2>
 
-    <p>After a week of tuning against the same ten cases, you may end up with
+    <p>After a week of tuning against the same ten cases, you can end up with
        descriptions that ace those prompts and fall apart everywhere else.
-       The score climbs, but unfamiliar requests remain just as hard.</p>
+       The score keeps climbing while unfamiliar requests remain just as
+       hard. Sneaky.</p>
 
     <p>Write 15 cases, tune against ten, and leave five untouched until you're
        ready to decide. If only the tuning set improves, you are probably
        overfitting. Move any useful held-out failure into the tuning set and
        replace it with a new case.</p>
 
-    <h2>Test everything you built</h2>
+    <h2>Now test the whole little machine</h2>
 
     <p>Lesson 1 put a model in the browser. Lesson 2 gave it tools. Then you
-       added loops, memory, and vision. Keep the parts that improve the score
-       or make failures easier to diagnose.</p>
+       added loops, memory, and vision. The eval gives you a way to revisit all
+       of those choices. Keep the parts that improve the score or make failures
+       easier to understand.</p>
 
     <ul>
       <li>Try a cheaper model with
@@ -588,15 +592,15 @@ const ok = verdict.content[0].text.trim().endsWith("PASS");</code></pre>
           users do.</li>
     </ul>
 
-    <h2>Build an eval you will keep running</h2>
+    <h2>Build the eval you'll actually run again</h2>
 
-    <p>A suite that takes a few minutes and costs a few dollars can become part
-       of every prompt or tool change. Commit the
+    <p>A suite can take a few minutes, cost a few dollars, and run after every
+       prompt or tool change. Commit the
        <code>evals/*.json</code> files beside the code so each diff shows which
        case results changed after an edit.</p>
 
     <p>This example skips CI. Run it by hand at first. If you keep forgetting,
-       that is your cue to automate it.</p>
+       congratulations: you've found the moment to automate it.</p>
 
     <h2>Eval checklist</h2>
 
@@ -616,7 +620,7 @@ const ok = verdict.content[0].text.trim().endsWith("PASS");</code></pre>
       <li>Keep the turn cap from lesson 3 in the eval loop.</li>
     </ul>
 
-    <h2>Your final exercise</h2>
+    <h2>Your last exercise</h2>
 
     <ol>
       <li>Copy the JavaScript or Python file above and run it with
@@ -634,11 +638,10 @@ const ok = verdict.content[0].text.trim().endsWith("PASS");</code></pre>
           numbers whether it is good enough for this task.</li>
     </ol>
 
-    <p>You can paste a single case into <a href="/">the harness</a> and watch
+    <p>You can paste any case into <a href="/">the harness</a> and watch
        its tool calls in the transcript. Use the file above to calculate a
        pass rate, then replay individual failures in the harness. For the
-       final lab, measure the agent and use a failure to guide a
-       meaningful fix.</p>
+       last lab, measure the agent, pick one failed case, and make it pass.</p>
 
     <h2>Reference pages</h2>
 
@@ -651,30 +654,33 @@ const ok = verdict.content[0].text.trim().endsWith("PASS");</code></pre>
           why the description is the part of a tool the model reads.</li>
     </ul>
 
-    <h2>You made it. Thank you.</h2>
+    <h2>You made it. Really, thank you.</h2>
 
     <p>Six lessons ago, our agent was a blinking cursor attached to an API
        call. Now it can use tools, work through a loop, remember, see, and
-       measure whether its next change helped. We have given the little thing
+       measure whether its next change helped. We've given the little thing
        quite a life.</p>
 
-    <p>Thank you for making it all the way to the end. Knowing that people were
-       running the code and coming back for the next lesson made writing these
-       six worthwhile.</p>
+    <p>And thank you for making it all the way here. I know six lessons is a
+       real chunk of time. The thought that someone out there was running the
+       code, breaking it, fixing it, and coming back for the next lesson made
+       this whole series worth writing.</p>
 
-    <p>Take the sample code and use it on an agent you care about. Write ten
-       cases from mistakes it already makes. Run the eval before you touch
-       anything, make a single change, and run it again.</p>
+    <p>I hope you'll take the sample code and point it at an agent you care
+       about. Start with ten mistakes it already makes. Run the eval before
+       you touch anything, change one thing, and run it again. That's the work:
+       a little less guessing each time.</p>
 
     <p>If you send your results through the feedback link, I will read them.
        Tell me what broke, what surprised you, and what you built after the
-       course. Your notes will help me decide what buttercup.sh tackles
-       next.</p>
+       course. I'd genuinely love to know where you take this, and your notes
+       will help me choose what buttercup.sh tackles next.</p>
 
     <p>If you landed on the finale first, the
        <a href="2026-09-04-the-syllabus.html">syllabus</a> will take you back
-       to the beginning. Otherwise, this is it: you finished the buttercup.sh
-       agent course. Keep the code. Go make something useful and strange.</p>
+       to the beginning. If you've been here since lesson one, this is it. You
+       finished the buttercup.sh agent course. Keep the code, keep the weird
+       failures, and go make something useful and strange.</p>
 
     <p><a class="cta" href="/">take the victory lap: run the final eval</a></p>
 
@@ -683,7 +689,7 @@ const ok = verdict.content[0].text.trim().endsWith("PASS");</code></pre>
   <!-- ══ subscribe: the same form the harness carries, posting to the same
           list. Every page in the archive ends here. ═══════════════════════ -->
   <section class="subscribe">
-    <h2>Thanks for learning with me. Stay in touch?</h2>
+    <h2>Thanks for learning with me. Want to stay in touch?</h2>
     <form class="signup" id="signup"
           action="https://5487903a.sibforms.com/serve/MUIFAAPvkZdoviEts98XHd7P8K3TyLVS3MtyAoJy_sJMZ9DgAKwbaJqN4Lgn4NMQH3JL50ANiWCKfMJlE3Wj5aEiDLJ3sbnhtSTvh3z7Lgg2BOpAJjNZhMpN_BCn21Kz_o-buc-NY7aFM5JXPRkd-GW0iihg0KEvSJQiAgmUYcB_8D6DmR8Xb4bEFUzTJmlYFti6yJBG7K33hsR_MQ=="
           method="POST" target="signup-sink" autocomplete="on">

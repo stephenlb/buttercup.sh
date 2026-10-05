@@ -665,11 +665,21 @@ window.Tools = (function () {
      tool added to DEFS later arrives switched on. */
   const OFF_KEY = "buttercup.tools.off.v1";
 
+  /* The core set: what a small-context engine sees in lean mode, and the only
+     tools on until the user picks otherwise. Fewer declarations per turn means
+     fewer tokens and fewer wrong calls. */
+  const CORE = new Set([
+    "read", "list", "glob", "grep", "write", "edit", "delete", "move",
+    "todo", "set_mode", "run_js", "preview", "http_get",
+  ]);
+
   function loadOff() {
     try {
       const saved = JSON.parse(localStorage.getItem(OFF_KEY));
-      return new Set(Array.isArray(saved) ? saved.filter((n) => typeof n === "string") : []);
-    } catch (_) { return new Set(); }
+      if (Array.isArray(saved)) return new Set(saved.filter((n) => typeof n === "string"));
+    } catch (_) {}
+    // Nothing saved yet: start minimal, everything outside CORE switched off.
+    return new Set(DEFS.filter((d) => !CORE.has(d.name)).map((d) => d.name));
   }
 
   const off = loadOff();
@@ -695,13 +705,9 @@ window.Tools = (function () {
      up withholding the declaration, so the model never calls a dead tool. */
   const why = (d) => (d.blocked ? d.blocked() : "");
 
-  // Lean mode: small-context engines see only the core set, and anything
-  // outside it is refused at run() time too.
+  // Lean mode: small-context engines see only CORE, and anything outside it
+  // is refused at run() time too.
   let leanMode = false;
-  const CORE = new Set([
-    "read", "list", "glob", "grep", "write", "edit", "delete", "move",
-    "todo", "set_mode", "run_js", "preview", "http_get",
-  ]);
 
   return {
     hooks,
