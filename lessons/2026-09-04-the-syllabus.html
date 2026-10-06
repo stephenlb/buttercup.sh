@@ -30,13 +30,13 @@
   <article>
     <header>
       <time datetime="2026-09-04">4 September 2026</time>
-      <h1>The syllabus — six lessons, easiest first</h1>
-      <p>The course now has a shape. Six lessons, ordered by how little has to be
-         true before you can start one: <strong>a model in the tab, tool
+      <h1>The syllabus — six friendly steps into agent building</h1>
+      <p>Welcome in. The course has six lessons, ordered so each one gives you
+         what you need for the next: <strong>a model in the tab, tool
          calling, loops and goals, agents talking to other agents, vision, then
-         evals.</strong> Lesson 1 needs a browser and nothing else. By lesson 4 your
-         agent is hiring other agents. Each lesson arrives as an email or two,
-         free, with code you run rather than read.</p>
+         evals.</strong> Lesson 1 needs only a browser. By lesson 4, your agent
+         is asking other agents for help. Every lesson is free and comes with
+         code you can run, change, and make your own.</p>
       <!-- the form itself rather than a link down to it: one field, one
            button, no jump. Same list, same sink frame as the foot. -->
       <form class="signup lede" id="signup-lede"
@@ -50,12 +50,12 @@
                tabindex="-1" aria-hidden="true" autocomplete="off">
         <input type="hidden" name="locale" value="en">
         <button type="submit">SUBSCRIBE</button>
-        <p class="note">one lesson a week &middot; unsubscribe whenever</p>
-        <p class="thanks" role="status">subscribed — thank you!</p>
+        <p class="note">one friendly agent lesson each week</p>
+        <p class="thanks" role="status">you’re in — welcome!</p>
       </form>
     </header>
 
-    <h2>The climb</h2>
+    <h2>Your path through the course</h2>
 
     <figure class="diag">
       <ol class="ladder">
@@ -74,10 +74,10 @@
       </ol>
       <figcaption>Lessons 1–4 are the spine and each one assumes the one above
         it: a model, a loop, a loop that stops, a loop that reaches other
-        agents. <b>Take those four in order</b> — skipping ahead is the reliable
-        way to spend an evening debugging the wrong layer. Lessons 5 and 6 add
-        eyes and a score; they only need lesson 3, so take them when you want
-        them.</figcaption>
+        agents. <b>Take those four in order</b> and each lesson should feel
+        pleasantly familiar when you arrive. Lessons 5 and 6 add eyes and a
+        score; they only need lesson 3, so you can take them whenever they are
+        useful to you.</figcaption>
     </figure>
 
     <h2>At a glance</h2>
@@ -124,25 +124,25 @@
 
     <p>A language model running entirely inside the browser, on your own GPU,
        through <strong>WebLLM</strong>. No account, no key, no server, no
-       per-token cost, nothing to install. You press a button, a gigabyte or two
-       of weights arrives once into the browser's cache, and after that you are
+       per-token cost, and nothing to install. Press a button, let a gigabyte or
+       two of weights arrive once into the browser's cache, and after that you are
        talking to a model with the network off.</p>
 
-    <p>This is first because it deletes every obstacle at the same time. There
-       is no billing to set up and no fear of leaving a loop running, so you can
+    <p>This comes first because it clears away nearly every obstacle. There
+       is no billing to set up and no worry about leaving a loop running, so you can
        spend the whole lesson on the only question that matters at the start:
        <em>what does a model actually receive, and what does it actually send
        back?</em> Messages in, tokens out. Everything in the five lessons below is
        a wrapper around that one exchange.</p>
 
-    <p>This one lands on Tuesday 8 September:
+    <p>Lesson 1 was published on Tuesday 8 September:
        <a href="2026-09-08-lesson-1-webllm.html">read lesson 1</a>.</p>
 
-    <p>The honest caveat, stated up front: a model small enough to run in a tab
-       is not a clever model. Here that is a feature — it fails in ways you can
-       see, immediately, for free. The harness already talks to
+    <p>One friendly caveat up front: a model small enough to run in a tab has
+       limits. Here that is useful because you can see its choices clearly,
+       immediately, and for free. The harness already talks to
        <strong>Ollama</strong> and <strong>vLLM</strong> if you have them; the
-       in-tab WebGPU path lands with this lesson, so the very first one needs
+       in-tab WebGPU path arrived with this lesson, so the very first one needs
        nothing but the page you are reading.</p>
 
     <h2>Lesson 2 — intro to tool calling</h2>
@@ -157,7 +157,7 @@
        JavaScript and Python, with the SDK shortcuts introduced only afterwards
        — once is the right number of times to write the loop yourself.</p>
 
-    <p>This one follows a week later, on Tuesday 15 September:
+    <p>Lesson 2 followed a week later, on Tuesday 15 September:
        <a href="2026-09-15-lesson-2-tool-calling.html">read lesson 2</a>.</p>
 
     <p>It is also the first lesson that wants a capable model. Small local models
@@ -180,7 +180,7 @@
        build: a task that needs several steps in order — read a file, change it,
        verify the change landed — with a counter and a real termination check.</p>
 
-    <p>This one lands on Tuesday 22 September:
+    <p>Lesson 3 was published on Tuesday 22 September:
        <a href="2026-09-22-lesson-3-loops-and-goals.html">read lesson 3</a>.</p>
 
     <p>Nothing new is required to get here. This is the same loop from lesson 2
@@ -206,17 +206,16 @@
        JWT for the page, because the alternative is your API key in public
        JavaScript.</p>
 
-    <p>This one lands on Tuesday 29 September:
+    <p>Lesson 4 was published on Tuesday 29 September:
        <a href="2026-09-29-lesson-4-agent-communication.html">read lesson 4</a>.</p>
 
-    <p>Fourth, and this is the placement worth arguing about — it is much
-       earlier than the difficulty warrants, on purpose. A loop that stops when
+    <p>Lesson 4 arrives earlier than its difficulty might suggest, on purpose.
+       A loop that stops when
        it should is the only real prerequisite, and this is where the course
-       stops being a tutorial. It does have the largest blast radius in the six:
-       latency is real, the failure may be someone else's, a task can be
-       accepted and then abandoned, and authentication and trust become your
-       problem. Bring lesson 3's stopping condition with you and none of that is
-       fatal.</p>
+       starts connecting to the wider world. It has the most moving parts in
+       the six: latency, remote failures, authentication, and trust. Bring
+       lesson 3's stopping condition with you and you'll have a steady place
+       to begin.</p>
 
     <h2>Lesson 5 — vision</h2>
 
@@ -231,16 +230,14 @@
        eyes: it writes a page, looks at it, notices the overlap, and fixes
        it.</p>
 
-    <p>This one lands on Tuesday 6 October:
+    <p>Lesson 5 is ready today, Tuesday 6 October:
        <a href="2026-10-06-lesson-5-vision.html">read lesson 5</a>.</p>
 
     <h2>Lesson 6 — evals</h2>
 
-    <p>The lesson that is a discipline rather than a mechanism, and the one most
-       people skip. You changed a tool description and the agent seems better.
-       <strong>&ldquo;Seems&rdquo; is not evidence</strong>, and with a
-       non-deterministic system your memory of the last five runs is misleading
-       rather than merely vague.</p>
+    <p>This lesson is a discipline rather than a mechanism. You changed a tool
+       description and the agent seems better. An eval turns that encouraging
+       feeling into evidence you can keep, compare, and build on.</p>
 
     <p>So you build the smallest thing that fixes that: ten cases with known
        good outcomes, a grader that scores a run without you watching it, and
@@ -249,7 +246,7 @@
        changes with evidence, which is the entire difference between an agent
        that demos well and an agent that works on Monday.</p>
 
-    <p>This one lands on Tuesday 13 October:
+    <p>Lesson 6 arrives next Tuesday, 13 October:
        <a href="2026-10-13-lesson-6-evals.html">read lesson 6</a>.</p>
 
     <p>It comes last because it needs something worth measuring, and by now you
@@ -276,7 +273,7 @@
        evals follow: both need only lesson 3, and both are improvements to an agent
        that already works rather than steps toward one.</p>
 
-    <h2>What is not in the six</h2>
+    <h2>There is more waiting after lesson six</h2>
 
     <p>Plenty, and on purpose — six lessons is a course somebody finishes. Context
        and compaction, sandboxing, sub-agents and delegation, planning that
@@ -289,14 +286,14 @@
     <p>Subscribers get each lesson as it is written, in this order. The archive
        keeps the ones you missed, so signing up late costs nothing.</p>
 
-    <p><a class="cta" href="/">open the harness</a></p>
+    <p><a class="cta" href="/">open the harness and take the first step</a></p>
 
   </article>
 
   <!-- ══ subscribe: the same form the harness carries, posting to the same
           list. Every page in the archive ends here. ═══════════════════════ -->
   <section class="subscribe">
-    <h2>One lesson a week</h2>
+    <h2>Want a little company along the way?</h2>
     <form class="signup" id="signup"
           action="https://5487903a.sibforms.com/serve/MUIFAAPvkZdoviEts98XHd7P8K3TyLVS3MtyAoJy_sJMZ9DgAKwbaJqN4Lgn4NMQH3JL50ANiWCKfMJlE3Wj5aEiDLJ3sbnhtSTvh3z7Lgg2BOpAJjNZhMpN_BCn21Kz_o-buc-NY7aFM5JXPRkd-GW0iihg0KEvSJQiAgmUYcB_8D6DmR8Xb4bEFUzTJmlYFti6yJBG7K33hsR_MQ=="
           method="POST" target="signup-sink" autocomplete="on">
@@ -308,9 +305,8 @@
              tabindex="-1" aria-hidden="true" autocomplete="off">
       <input type="hidden" name="locale" value="en">
       <button type="submit">SUBSCRIBE</button>
-      <p class="note">one AI Agent training lesson, weekly</p>
-      <p class="note">starting mid-September 2026</p>
-      <p class="thanks" role="status">subscribed — thank you!</p>
+      <p class="note">one friendly AI agent lesson in your inbox each week</p>
+      <p class="thanks" role="status">you’re in — welcome!</p>
     </form>
     <iframe name="signup-sink" title="subscription result" hidden></iframe>
   </section>

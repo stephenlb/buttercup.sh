@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>buttercup.sh — build AI agents in your browser</title>
-<meta name="description" content="Learn to build AI agents by writing and running them in your browser.">
+<title>buttercup.sh — a friendly place to build AI agents in your browser</title>
+<meta name="description" content="Learn to build AI agents in a friendly browser workshop where you can write, run, inspect, and undo every step.">
 <!-- The apex host is canonical; www and http both 301 here. -->
 <link rel="canonical" href="https://buttercup.sh/">
 <link rel="stylesheet" href="css/buttercup.css">
@@ -38,7 +38,7 @@
   <header class="titlebar">
     <span class="lamps" aria-hidden="true"><i></i><i></i><i></i></span>
     <h1>buttercup.sh<span class="rev"></span></h1>
-    <p class="tagline">em dashes welcome — <a href="lessons/">lessons</a> &middot; <a href="https://github.com/stephenlb/buttercup.sh">github</a> &middot; <a href="https://github.com/stephenlb/buttercup.sh/issues/new">feedback</a> &middot; <a href="https://blocks.ai/docs/what-is-blocks" target="_blank" rel="sponsored noopener" title="sponsor">blocks.ai</a>
+    <p class="tagline">come build something curious — <a href="lessons/">lessons</a> &middot; <a href="https://github.com/stephenlb/buttercup.sh">github</a> &middot; <a href="https://github.com/stephenlb/buttercup.sh/issues/new">feedback</a> &middot; <a href="https://blocks.ai/docs/what-is-blocks" target="_blank" rel="sponsored noopener" title="sponsor">blocks.ai</a>
       &middot; <button type="button" id="install" title="Install buttercup.sh as an app" hidden>install</button></p>
     <output class="lamp-status" id="status" data-state="notready" aria-live="polite">NOT READY</output>
     <!-- All three faces ship here; CSS shows the live one. See js/theme.js.
@@ -58,7 +58,7 @@
 <pre>
  ┌────────────────────────────────────────────────┐
  │  B U T T E R C U P                             │
- │  a new agent lesson weekly                     │
+ │  a friendly agent lesson every week            │
  └────────────────────────────────────────────────┘
 </pre>
           <form class="signup" id="signup"
@@ -72,26 +72,28 @@
                    tabindex="-1" aria-hidden="true" autocomplete="off">
             <input type="hidden" name="locale" value="en">
             <button type="submit" class="mini">SUBSCRIBE</button>
-            <p class="note">one practical AI agent lesson each week</p>
-            <p class="note">subscribe for the next lesson</p>
-            <p class="thanks" role="status">subscribed — thank you!</p>
+            <p class="note">one friendly, practical AI agent lesson each week</p>
+            <p class="note">join whenever you’re ready</p>
+            <p class="thanks" role="status">you’re in — welcome!</p>
           </form>
           <iframe name="signup-sink" title="subscription result" hidden></iframe>
-          <p>Em dashes welcome. This free course teaches you to build AI agents
-             with code that runs on this page. Each lesson adds a capability,
-             starting with a completion call and working up to agents that use
-             tools and control a browser. Past lessons stay in the
+          <p>Welcome to buttercup.sh. This is a free, hands-on place to learn
+             how AI agents work by building one right here in the page. Each
+             lesson adds a capability, from a first completion call to tools,
+             browser control, vision, and evals. You can begin anywhere, and
+             every past lesson is waiting in the
              <a href="lessons/">archive</a>.</p>
-          <p>You do not need to sign up. Open
+          <p>You do not need to sign up. When you’re ready, open
              <label for="tab-keys" class="linky">KEYS</label>, choose a provider,
-             and paste an API key. Your browser saves the key in
+             and paste an API key. Your browser keeps the key in
              <code>localStorage</code> and sends requests directly to the
              provider.</p>
-          <p>Try <em>&ldquo;scaffold a blocks.ai research agent, then run
+          <p>A lovely first prompt is <em>&ldquo;scaffold a blocks.ai research agent, then run
              it&rdquo;</em>. The agent's files will appear in the
              <label for="tab-files" class="linky">workspace</label>.
-             Use <code>/help</code> for commands and <code>/undo</code> to roll
-             back the latest file and conversation changes.</p>
+             If you wander down an interesting wrong path, <code>/undo</code>
+             rolls back the latest file and conversation changes.
+             <code>/help</code> is always nearby.</p>
         </article>
       </div>
 
@@ -114,7 +116,7 @@
       <form class="prompt" id="prompt-form" autocomplete="off">
         <label class="sigil" for="prompt-input" aria-hidden="true">&gt;</label>
         <textarea id="prompt-input" name="prompt" rows="1" spellcheck="false"
-          placeholder="describe the agent you want built…   paste an image   /help"></textarea>
+          placeholder="what would you like to build?   paste an image   /help"></textarea>
         <input type="file" id="attach-input" accept="image/png,image/jpeg,image/gif,image/webp"
           multiple hidden>
         <button type="button" id="attach-btn" title="attach an image (or just paste one)">IMG</button>
@@ -197,8 +199,9 @@
           <button type="button" id="wipe" class="mini danger">WIPE</button>
           <input type="file" id="import-input" multiple hidden>
         </div>
-        <p class="note">Drop text files or a folder anywhere on the page.
-          <code>/undo</code> removes the last import.</p>
+        <p class="note">Drop text files or a folder anywhere on the page and
+          they’ll join your workspace. <code>/undo</code> removes the last
+          import.</p>
         <ul class="tree" id="tree"><li class="dim">empty workspace</li></ul>
         <div class="viewer" id="viewer" hidden>
           <div class="viewer-head"><code id="viewer-path"></code>
@@ -224,8 +227,8 @@
           <span class="dim">sandboxed iframe</span>
           <button type="button" id="preview-shot" class="mini" disabled
                   title="screenshot this frame and attach it to the prompt (shift-click for a pixel-exact tab capture)">SEND TO MODEL</button></div>
-        <p class="note" id="preview-empty">Nothing mounted.
-           <code>preview</code> opens a workspace file here.
+        <p class="note" id="preview-empty">Your preview will appear here.
+           <code>preview</code> opens a workspace file.
            <code>run_agent</code> executes it. The model can take screenshots
            or use <code>navigate</code> to interact with the page.
            <code>SEND TO MODEL</code> attaches the current view to your next

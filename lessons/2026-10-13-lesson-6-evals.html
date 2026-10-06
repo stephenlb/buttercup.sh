@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>lesson 6: evals - make "seems better" prove it</title>
+<title>lesson 6: evals - turn "seems better" into something you can see</title>
 <meta name="description" content="You made it to the final buttercup.sh agent lesson. Thanks for coming this far. Let's build a small eval and find out whether our agent is actually getting better.">
 <link rel="canonical" href="https://buttercup.sh/lessons/2026-10-13-lesson-6-evals.html">
 <link rel="stylesheet" href="lessons.css">
@@ -30,17 +30,18 @@
   <article>
     <header>
       <time datetime="2026-10-13">13 October 2026</time>
-      <h1>Lesson 6: evals - make "seems better" prove it</h1>
-      <p>You made it to lesson six, the last one. I'm glad you're here. Over
-         the past few weeks, we've given a model tools, put it in a loop,
-         added memory, and taught it to see. Now we get to ask the awkward
-         question: did any of it actually help?</p>
+      <h1>Lesson 6: evals - turn "seems better" into something you can see</h1>
+      <p>You made it to lesson six, the last one. I'm really glad you're here.
+         Over the past few weeks, we've given a model tools, put it in a loop,
+         added memory, and taught it to see. Now we get to answer one useful
+         question together: did any of it actually help?</p>
 
       <p>Sometimes a small change looks like it fixed everything, but a few
-         good results can just be luck. In this final lesson, we'll test it
-         properly: <strong>10 cases</strong>, <strong>3 runs</strong> each, and
-         code that grades all 30 results. That way, we'll know whether the
-         change really helped.</p>
+         good results can just be luck. In this final lesson, we'll build a
+         small, practical eval together: <strong>10 cases</strong>,
+         <strong>3 runs</strong> each, and code that grades all 30 results.
+         By the end, you'll have a friendly little safety net for every change
+         you make next.</p>
       <!-- the form itself rather than a link down to it: a field and a
            button, no jump. Same list, same sink frame as the foot. -->
       <form class="signup lede" id="signup-lede"
@@ -54,8 +55,8 @@
                tabindex="-1" aria-hidden="true" autocomplete="off">
         <input type="hidden" name="locale" value="en">
         <button type="submit">SUBSCRIBE</button>
-        <p class="note">agent notes, weekly &middot; unsubscribe whenever</p>
-        <p class="thanks" role="status">subscribed, thank you!</p>
+        <p class="note">one friendly agent note a week &middot; leave whenever</p>
+        <p class="thanks" role="status">you’re in — welcome!</p>
       </form>
     </header>
 
@@ -76,17 +77,18 @@
     </figure>
 
 
-    <h2>Five good runs might mean nothing</h2>
+    <h2>A few good runs can fool any of us</h2>
 
     <p>A model can answer the same prompt differently from run to run.
        You edit a description, try the agent five times, and get four good
-       answers. Nice! Except the old version might also have passed four
-       times. Until you test both, you're comparing a result with a hunch.</p>
+       answers. Encouraging! The old version might also have passed four
+       times, though. Testing both gives you a fairer comparison and a result
+       you can feel comfortable building on.</p>
 
     <p>A small eval gives you a fair comparison: a list of prompts, a function
        that scores each run, and a loop that prints the total. Ours fits in
-       one file. No eval platform, no dashboard, no new hobby maintaining the
-       dashboard.</p>
+       one file. You don't need an eval platform or a dashboard to get
+       started.</p>
 
     <figure class="diag">
       <div class="pair">
@@ -104,11 +106,11 @@
         measurements will depend on the model and the run.</figcaption>
     </figure>
 
-    <h2>Our willing test subject</h2>
+    <h2>Meet our test subject</h2>
 
     <p>Our test subject is a support agent with three tools. Stub functions
-       return canned data, so the agent can make a complete mess without
-       touching a real order or refunding anyone's money. Very freeing.</p>
+       return canned data, so we can experiment freely without touching a
+       real order or refunding anyone's money.</p>
 
     <ul>
       <li><code>lookup_order(order_id)</code> returns the requested order's
@@ -119,10 +121,30 @@
           mistake is expensive.</li>
     </ul>
 
-    <p>The grader looks for old enemies from earlier lessons: searching
+    <figure class="diag">
+      <div class="board">
+        <span class="cap">three tools &middot; one of them is expensive</span>
+        <ul class="doors">
+          <li class="loop" style="--i:0"><b>lookup_order</b>
+            <span class="w">read-only: needs an order id, returns status and total</span></li>
+          <li class="loop" style="--i:1"><b>search_orders</b>
+            <span class="w">read-only: needs an email, returns order ids</span></li>
+          <li class="stop" style="--i:2"><b>refund_order</b>
+            <span class="w">moves money: only on an explicit ask, never on a complaint</span></li>
+        </ul>
+        <div class="legs">
+          <span class="l">&#8635; two are safe to call</span>
+          <span class="r">&#10005; one needs the strictest cases</span>
+        </div>
+      </div>
+      <figcaption>The stubs answer with canned data, so even the red row
+        refunds nothing. Most of our cases guard that one tool.</figcaption>
+    </figure>
+
+    <p>The grader checks for familiar mistakes from earlier lessons: searching
        when the user already supplied an order id, inventing an id, or treating
        an angry complaint as permission to move money. The recorded tool calls
-       give plain old code everything it needs to catch them.</p>
+       give plain old code everything it needs to spot them.</p>
 
 
     <figure class="diag">
@@ -143,8 +165,8 @@
           <ol class="hops">
             <li style="--i:0">pass(calls)</li>
             <li style="--i:1">true / false</li>
-            <li style="--i:2">+ - +</li>
-            <li class="ok" style="--i:3">27/30</li>
+            <li style="--i:2">marks per case: +-+</li>
+            <li class="ok" style="--i:3">total: 27/30</li>
           </ol>
           <span class="who">plain code reads the trace, so the same run gets the same verdict</span>
         </div>
@@ -154,10 +176,10 @@
         with which arguments.</figcaption>
     </figure>
 
-    <h2>Grade with code first</h2>
+    <h2>Let simple code do the grading</h2>
 
-    <p>Use the simplest grader that can answer the question. Boring is good
-       here.</p>
+    <p>Use the simplest grader that can answer the question. Clear and
+       predictable is exactly what we want here.</p>
 
     <ul>
       <li>Use code on the trace when the verdict depends on which tools ran,
@@ -166,12 +188,12 @@
       <li>Use code on the end state when a file should exist, a test should
           pass, or a database row should change.</li>
       <li>Use a model as judge for prose that a function cannot grade. Judge
-          calls cost tokens and can make grading errors.</li>
+          calls cost tokens and need a little extra checking of their own.</li>
     </ul>
 
     <p>Give each run a pass or fail. A tone score of 7 out of 10 sounds useful
        until you have to explain why the next answer got an 8. A yes-or-no
-       check is easier to defend, and you can count it without squinting.</p>
+       check is easier to explain, and much easier to count.</p>
 
 
     <figure class="diag">
@@ -192,17 +214,17 @@
             <ul>
               <li style="--i:0"><span>Does the reply sound polite?</span></li>
               <li style="--i:1"><span>Does the summary keep the key fact?</span></li>
-              <li style="--i:2"><span>Costs tokens, and can be wrong itself</span></li>
+              <li style="--i:2"><span>Costs tokens and needs its own checks</span></li>
             </ul>
           </div>
         </div>
         <div class="legs">
           <span class="l">&#8635; fast, free, same verdict every time</span>
-          <span class="r">&#10005; last resort, and check it against your own labels</span>
+          <span class="r">&#10005; useful for judgment calls; compare it with your own labels</span>
         </div>
       </div>
-      <figcaption>Start on the left. Reach for a judge only when a function
-        truly cannot answer the question.</figcaption>
+      <figcaption>Start on the left. Bring in a judge when the question really
+        does need human-like judgment.</figcaption>
     </figure>
 
     <h2>Ten cases</h2>
@@ -262,9 +284,9 @@
     </figure>
 
     <p>Failures make excellent cases. When the agent finds a new and creative
-       way to be wrong, save the prompt as case 11. Add a few troublemakers of
-       your own, especially around costly or irreversible tools. Today's weird
-       bug is tomorrow's very useful test.</p>
+       way to surprise you, save the prompt as case 11. Add a few tricky cases
+       of your own, especially around costly or irreversible tools. Today's
+       weird bug is tomorrow's very useful test.</p>
 
     <h2>Run each case more than once</h2>
 
@@ -285,7 +307,8 @@
        individual failures:</p>
 
     <ul>
-      <li>Ignore a change of only a couple of passes out of 30.</li>
+      <li>Treat a change of only a couple of passes out of 30 as a reason to
+          gather a little more evidence.</li>
       <li>Open the trace when a case falls from 3/3 to 0/3. A change that
           sharp points to a specific regression.</li>
       <li>Rerun a total that moves by 15 points or more. A repeat is cheap
@@ -321,8 +344,8 @@
     <h2>Two sets of descriptions</h2>
 
     <p>The eval compares two sets of tool descriptions. Variant
-       <strong>A</strong> contains the short, vague descriptions we've all
-       written while trying to get something working before lunch. Variant
+       <strong>A</strong> contains the short, vague descriptions many of us
+       write while trying to get something working before lunch. Variant
        <strong>B</strong> says when to use each tool, what input it needs, and
        which requests to reject.</p>
 
@@ -351,10 +374,38 @@
         below.</figcaption>
     </figure>
 
+    <figure class="diag">
+      <div class="lanes">
+        <span class="cap">same cases, same stubs, one difference</span>
+        <div class="lane d">
+          <b>variant A &middot; vague</b>
+          <ol class="hops">
+            <li style="--i:0">10 cases x 3</li>
+            <li style="--i:1">graders read traces</li>
+            <li style="--i:2">evals/A.json</li>
+            <li class="ok" style="--i:3">total A</li>
+          </ol>
+          <span class="who">VARIANT=A node eval.mjs</span>
+        </div>
+        <div class="lane t">
+          <b>variant B &middot; when, what, when not</b>
+          <ol class="hops">
+            <li style="--i:0">10 cases x 3</li>
+            <li style="--i:1">graders read traces</li>
+            <li style="--i:2">evals/B.json</li>
+            <li class="ok" style="--i:3">total B</li>
+          </ol>
+          <span class="who">VARIANT=B node eval.mjs</span>
+        </div>
+      </div>
+      <figcaption>Compare the per-case marks first, then the totals. A gap
+        smaller than the noise between two runs of A proves nothing.</figcaption>
+    </figure>
+
     <p>Keep the system prompt, model, stubs, and cases fixed. Change one thing
        per eval run. If you change the description and the model together, a
-       better score leaves you with a mystery. The agent improved. Great. You
-       just don't know why.</p>
+       better score leaves you with a mystery. The agent improved, which is
+       lovely, but you won't know which change deserves the credit.</p>
 
     <h2>JavaScript example</h2>
 
@@ -688,10 +739,11 @@ Path(f"evals/{VARIANT}.json").write_text(json.dumps(
        variants and keep the traces with your code. Your own repeatable result
        is the one that matters.</p>
 
-    <h2>Read the trace before you trust the number</h2>
+    <h2>Let the trace tell you the story behind the number</h2>
 
-    <p>Open <code>evals/A.json</code> and inspect a failing run. The agent may
-       have made a bad decision, or the grader may have rejected a valid choice.</p>
+    <p>Open <code>evals/A.json</code> and inspect a failing run. You may find
+       an agent decision to improve, or a perfectly valid choice that the
+       grader missed.</p>
 
     <ul>
       <li>If the agent chose the wrong tool or argument, fix the description
@@ -706,29 +758,29 @@ Path(f"evals/{VARIANT}.json").write_text(json.dumps(
 
     <figure class="diag">
       <div class="lanes">
-        <span class="cap">a failing run has two suspects</span>
+        <span class="cap">a failing run gives you two places to look</span>
         <div class="lane t">
-          <b>the agent was wrong</b>
+          <b>the agent needs a clearer cue</b>
           <ol class="hops">
             <li style="--i:0">open the trace</li>
             <li style="--i:1">wrong tool or argument</li>
             <li class="ok" style="--i:2">fix the description</li>
             <li class="ok" style="--i:3">rerun</li>
           </ol>
-          <span class="who">the score was telling the truth</span>
+          <span class="who">the score found something useful to improve</span>
         </div>
         <div class="lane d">
-          <b>the grader was wrong</b>
+          <b>the grader needs a clearer rule</b>
           <ol class="hops">
             <li style="--i:0">open the trace</li>
             <li style="--i:1">valid behavior, marked -</li>
             <li class="ok" style="--i:2">fix the grader</li>
             <li class="ok" style="--i:3">rerun</li>
           </ol>
-          <span class="who">the agent was fine all along; don't touch the prompt</span>
+          <span class="who">the agent was fine; update the check and carry on</span>
         </div>
       </div>
-      <figcaption>Read the trace before changing anything. Both suspects
+      <figcaption>Read the trace before changing anything. Both situations
         produce the same minus sign.</figcaption>
     </figure>
 
@@ -753,6 +805,34 @@ Path(f"evals/{VARIANT}.json").write_text(json.dumps(
 });
 const ok = verdict.content[0].text.trim().endsWith("PASS");</code></pre>
 
+    <figure class="diag">
+      <div class="lanes">
+        <span class="cap">a judge is one more thing to test</span>
+        <div class="lane t">
+          <b>grading a run</b>
+          <ol class="hops">
+            <li style="--i:0">agent reply</li>
+            <li style="--i:1">rubric, one yes/no question</li>
+            <li style="--i:2">judge call</li>
+            <li class="ok" style="--i:3">PASS / FAIL</li>
+          </ol>
+          <span class="who">a separate call, ending in exactly PASS or FAIL</span>
+        </div>
+        <div class="lane d">
+          <b>checking the judge</b>
+          <ol class="hops">
+            <li style="--i:0">you label 20 outputs</li>
+            <li style="--i:1">judge labels the same 20</li>
+            <li style="--i:2">count disagreements</li>
+            <li class="ok" style="--i:3">3 or fewer: trust it</li>
+          </ol>
+          <span class="who">more than 3 disagreements means fix the rubric first</span>
+        </div>
+      </div>
+      <figcaption>Do the bottom lane once per rubric, before the top lane
+        touches a real score.</figcaption>
+    </figure>
+
     <p>Test the judge's verdicts against your own before you rely on it:</p>
 
     <ul>
@@ -770,10 +850,10 @@ const ok = verdict.content[0].text.trim().endsWith("PASS");</code></pre>
 
     <h2>Avoid overfitting your own cases</h2>
 
-    <p>After a week of tuning against the same ten cases, you can end up with
-       descriptions that ace those prompts and fall apart everywhere else.
+    <p>After a week of tuning against the same ten cases, it's easy to end up
+       with descriptions that ace those prompts and fall apart everywhere else.
        The score keeps climbing while unfamiliar requests remain just as
-       hard. Sneaky.</p>
+       hard.</p>
 
     <p>Write 15 cases, tune against ten, and leave five untouched until you're
        ready to decide. If only the tuning set improves, you are probably
@@ -822,9 +902,9 @@ const ok = verdict.content[0].text.trim().endsWith("PASS");</code></pre>
         <li><span class="t">Evals</span>
             <span class="m">the number that answers the other five</span></li>
       </ol>
-      <figcaption>Every earlier lesson made a choice you took on faith. Turn
-        each one into a variant, change only that, and let the score
-        decide.</figcaption>
+      <figcaption>Every earlier lesson introduced a choice worth revisiting.
+        Turn each one into a variant, change only that, and let the score help
+        you decide.</figcaption>
     </figure>
 
     <ul>
@@ -846,8 +926,36 @@ const ok = verdict.content[0].text.trim().endsWith("PASS");</code></pre>
        <code>evals/*.json</code> files beside the code so each diff shows which
        case results changed after an edit.</p>
 
-    <p>This example skips CI. Run it by hand at first. If you keep forgetting,
-       congratulations: you've found the moment to automate it.</p>
+    <figure class="diag">
+      <div class="lanes">
+        <span class="cap">the loop you'll keep running</span>
+        <div class="lane t">
+          <b>every change</b>
+          <ol class="hops">
+            <li style="--i:0">run the eval</li>
+            <li style="--i:1">read the marks</li>
+            <li style="--i:2">open the failing traces</li>
+            <li style="--i:3">change one thing</li>
+          </ol>
+          <span class="who">&#8635; then run it again and compare with the last run</span>
+        </div>
+        <div class="lane d">
+          <b>every surprise</b>
+          <ol class="hops">
+            <li style="--i:0">agent does something odd</li>
+            <li style="--i:1">save the prompt</li>
+            <li style="--i:2">write its grader</li>
+            <li class="ok" style="--i:3">case 11</li>
+          </ol>
+          <span class="who">today's bug is tomorrow's regression test</span>
+        </div>
+      </div>
+      <figcaption>Commit <code>evals/*.json</code> with each change so the diff
+        shows which cases moved.</figcaption>
+    </figure>
+
+    <p>This example skips CI. Run it by hand at first. When it becomes part of
+       your regular rhythm, that's a good moment to automate it.</p>
 
     <h2>Eval checklist</h2>
 
@@ -867,7 +975,7 @@ const ok = verdict.content[0].text.trim().endsWith("PASS");</code></pre>
       <li>Keep the turn cap from lesson 3 in the eval loop.</li>
     </ul>
 
-    <h2>Your last exercise</h2>
+    <h2>Your final exercise</h2>
 
     <ol>
       <li>Copy the JavaScript or Python file above and run it with
@@ -885,10 +993,12 @@ const ok = verdict.content[0].text.trim().endsWith("PASS");</code></pre>
           numbers whether it is good enough for this task.</li>
     </ol>
 
-    <p>You can paste any case into <a href="/">the harness</a> and watch
+    <p>If you'd like to see a case in motion, paste it into
+       <a href="/">the harness</a> and watch
        its tool calls in the transcript. Use the file above to calculate a
        pass rate, then replay individual failures in the harness. For the
-       last lab, measure the agent, pick one failed case, and make it pass.</p>
+       final lab, measure the agent, choose one failed case, and help it
+       pass.</p>
 
     <h2>Reference pages</h2>
 
@@ -929,7 +1039,7 @@ const ok = verdict.content[0].text.trim().endsWith("PASS");</code></pre>
        finished the buttercup.sh agent course. Keep the code, keep the weird
        failures, and go make something useful and strange.</p>
 
-    <p><a class="cta" href="/">take the victory lap: run the final eval</a></p>
+    <p><a class="cta" href="/">take a victory lap: run your final eval</a></p>
 
   </article>
 
@@ -949,7 +1059,7 @@ const ok = verdict.content[0].text.trim().endsWith("PASS");</code></pre>
       <input type="hidden" name="locale" value="en">
       <button type="submit">STAY IN TOUCH</button>
       <p class="note">future agent lessons, experiments, and odd little builds</p>
-      <p class="thanks" role="status">you're in, thank you!</p>
+      <p class="thanks" role="status">you’re in — welcome!</p>
     </form>
     <iframe name="signup-sink" title="subscription result" hidden></iframe>
   </section>
