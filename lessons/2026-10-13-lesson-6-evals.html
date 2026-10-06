@@ -231,6 +231,36 @@
       </tbody>
     </table>
 
+    <figure class="diag">
+      <!-- lesson 3's board, with the glyphs read as verdicts on a case:
+           ↻ must call a tool, ✕ must not move money, ? must call nothing -->
+      <div class="board">
+        <span class="cap">ten cases &middot; six behaviours to pin down</span>
+        <ul class="doors">
+          <li class="loop" style="--i:0"><b>1 &middot; 6</b>
+            <span class="w">an id is given, so look it up, no search</span></li>
+          <li class="loop" style="--i:1"><b>2 &middot; 10</b>
+            <span class="w">only an email, so search first, never guess the id</span></li>
+          <li class="loop" style="--i:2"><b>4 &middot; 5</b>
+            <span class="w">a refund was asked for, so refund the right id</span></li>
+          <li class="stop" style="--i:3"><b>3</b>
+            <span class="w">an angry complaint is not a refund request</span></li>
+          <li class="stop" style="--i:4"><b>9</b>
+            <span class="w">no cancel tool, and refund is not a stand-in</span></li>
+          <li class="ask" style="--i:5"><b>7 &middot; 8</b>
+            <span class="w">nothing to do, or nothing to go on, so make no call</span></li>
+        </ul>
+        <div class="legs">
+          <span class="l">&#8635; six must call a tool</span>
+          <span class="r">&#10005; two must not move money</span>
+          <span class="m">? two must call nothing</span>
+        </div>
+      </div>
+      <figcaption>Four of the ten cases pass when the agent holds back. An
+        eval that only rewards tool calls trains an agent that always makes
+        one.</figcaption>
+    </figure>
+
     <p>Failures make excellent cases. When the agent finds a new and creative
        way to be wrong, save the prompt as case 11. Add a few troublemakers of
        your own, especially around costly or irreversible tools. Today's weird
@@ -295,6 +325,31 @@
        written while trying to get something working before lunch. Variant
        <strong>B</strong> says when to use each tool, what input it needs, and
        which requests to reject.</p>
+
+    <figure class="diag">
+      <div class="pair">
+        <div class="side">
+          <b>variant A &middot; vague</b>
+<pre><code><span class="g" style="--i:0">lookup_order:
+  "Look up an order."</span><span class="g" style="--i:1">search_orders:
+  "Search orders."</span><span class="g" style="--i:2">refund_order:
+  "Refund an order."</span></code></pre>
+        </div>
+        <div class="cross" aria-hidden="true">&rarr;</div>
+        <div class="side">
+          <b>variant B &middot; when, what, and when not</b>
+<pre><code><span class="g" style="--i:0">lookup_order:
+  have an id? never guess one</span><span class="g" style="--i:1">search_orders:
+  email only, then lookup_order</span><span class="g" style="--i:2">refund_order:
+  only on an explicit ask;
+  a complaint is not a request</span></code></pre>
+        </div>
+      </div>
+      <figcaption>Same tools, same schemas, same stubs, same cases. The
+        descriptions are the only difference, so any gap in the score belongs
+        to them. The right side is shortened; the full text is in the code
+        below.</figcaption>
+    </figure>
 
     <p>Keep the system prompt, model, stubs, and cases fixed. Change one thing
        per eval run. If you change the description and the model together, a
@@ -442,6 +497,41 @@ await writeFile(`evals/${VARIANT}.json`, JSON.stringify({ MODEL, VARIANT, result
        unstable case that the total can hide. The script also writes every
        tool call to <code>evals/A.json</code> or <code>evals/B.json</code> for
        later inspection.</p>
+
+    <figure class="diag">
+      <!-- lesson 3's limits panel: one row per printed line, one chip per run -->
+      <div class="caps">
+        <span class="cap">three lines of output &middot; three ways to read them</span>
+        <ol class="rows">
+          <li class="ends" style="--d:0.4s">
+            <b>+++ &nbsp;status by id</b>
+            <span class="c yes" style="--n:0">run 1 &#10003;</span>
+            <span class="c yes" style="--n:1">run 2 &#10003;</span>
+            <span class="c yes" style="--n:2">run 3 &#10003;</span>
+            <span class="act">stable, so leave it alone and look elsewhere</span>
+          </li>
+          <li style="--d:2.3s">
+            <b>+-- &nbsp;complaint is not a refund</b>
+            <span class="c yes" style="--n:0">run 1 &#10003;</span>
+            <span class="c no" style="--n:1">run 2 &#10007;</span>
+            <span class="c no" style="--n:2">run 3 &#10007;</span>
+            <span class="act">unstable, and the total hides it, so open the
+              trace for runs 2 and 3</span>
+          </li>
+          <li class="soft" style="--d:4.2s">
+            <b>!++ &nbsp;explicit refund</b>
+            <span class="c no" style="--n:0">run 1 API error</span>
+            <span class="c yes" style="--n:1">run 2 &#10003;</span>
+            <span class="c yes" style="--n:2">run 3 &#10003;</span>
+            <span class="act">the agent never answered run 1, so rerun before
+              you count it as a failure</span>
+          </li>
+        </ol>
+      </div>
+      <figcaption>Each of these lines adds two passes to the total, but the
+        three cases need different responses. Read the marks before the
+        total.</figcaption>
+    </figure>
 
     <h2>Python example</h2>
 
@@ -714,6 +804,28 @@ const ok = verdict.content[0].text.trim().endsWith("PASS");</code></pre>
        added loops, memory, and vision. The eval gives you a way to revisit all
        of those choices. Keep the parts that improve the score or make failures
        easier to understand.</p>
+
+    <figure class="diag">
+      <!-- the syllabus ladder again, each rung now a question the eval can
+           settle -->
+      <ol class="ladder">
+        <li><span class="t">A model in the tab</span>
+            <span class="m">is a local model within noise of the API on these ten?</span></li>
+        <li><span class="t">Tool calling</span>
+            <span class="m">does description A or B pick the right tool more often?</span></li>
+        <li><span class="t">Loops and goals</span>
+            <span class="m">do any runs hit the six-turn cap, and which ones?</span></li>
+        <li><span class="t">Agent communication</span>
+            <span class="m">does a hired agent pass the cases yours passes?</span></li>
+        <li><span class="t">Vision</span>
+            <span class="m">does adding the screenshot change the score?</span></li>
+        <li><span class="t">Evals</span>
+            <span class="m">the number that answers the other five</span></li>
+      </ol>
+      <figcaption>Every earlier lesson made a choice you took on faith. Turn
+        each one into a variant, change only that, and let the score
+        decide.</figcaption>
+    </figure>
 
     <ul>
       <li>Try a cheaper model with
