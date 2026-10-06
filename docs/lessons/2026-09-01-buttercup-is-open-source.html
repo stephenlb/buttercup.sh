@@ -31,11 +31,12 @@
     <header>
       <time datetime="2026-09-01">1 September 2026</time>
       <h1>buttercup.sh is open source: an agent harness that lives in your browser</h1>
-      <p>A coding agent with file tools, previews, and sub-agents, all in one
-         static page that runs on your laptop or phone. Connect it to a cloud
-         model or one on your own machine. There is no server, build step, or account.
-         <strong>Free forever.</strong></p>
-      <a class="cta" href="/">open the harness</a>
+      <p>Welcome to buttercup.sh: a small coding agent with file tools,
+         previews, and sub-agents, all in one static page that runs on your
+         laptop or phone. Bring a cloud model or one on your own machine.
+         There is no server, build step, or account. <strong>Free
+         forever.</strong></p>
+      <a class="cta" href="/">come try the harness</a>
       
       <form class="signup lede" id="signup-lede"
             action="https://5487903a.sibforms.com/serve/MUIFAAPvkZdoviEts98XHd7P8K3TyLVS3MtyAoJy_sJMZ9DgAKwbaJqN4Lgn4NMQH3JL50ANiWCKfMJlE3Wj5aEiDLJ3sbnhtSTvh3z7Lgg2BOpAJjNZhMpN_BCn21Kz_o-buc-NY7aFM5JXPRkd-GW0iihg0KEvSJQiAgmUYcB_8D6DmR8Xb4bEFUzTJmlYFti6yJBG7K33hsR_MQ=="
@@ -48,12 +49,12 @@
                tabindex="-1" aria-hidden="true" autocomplete="off">
         <input type="hidden" name="locale" value="en">
         <button type="submit">SUBSCRIBE</button>
-        <p class="note">one lesson a week, starting mid-September 2026</p>
-        <p class="thanks" role="status">subscribed, thank you!</p>
+        <p class="note">one friendly agent lesson each week</p>
+        <p class="thanks" role="status">you’re in — welcome!</p>
       </form>
     </header>
 
-    <h2>What it is</h2>
+    <h2>Meet the little machine</h2>
 
     <p>Coding agents such as Claude Code, Codex, Cursor, and Antigravity all
        run a small loop: send the model a conversation and a list of tools,
@@ -72,7 +73,7 @@
        in <code>js/tools.js</code>, and the wire protocols are in
        <code>js/llm.js</code>. Those files contain the whole harness.</p>
 
-    <h2>Eighteen tools, one tab</h2>
+    <h2>A whole toolbox in one tab</h2>
 
     <p>On each turn, the model can read, search, write, move, and delete files.
        It can scaffold projects, run JavaScript, spawn sub-agents, fetch pages
@@ -97,7 +98,7 @@ http_get  npm_info  npm_file  framework_docs</code></pre>
        iframe on an opaque origin, so it cannot reach the page, the DOM, or your
        keys. <code>allow-same-origin</code> is never granted.</p>
 
-    <h2>It works on your phone</h2>
+    <h2>Take it with you</h2>
 
     <p>The tab calls model endpoints over HTTPS, so it works in laptop and
        phone browsers. On a narrow screen, the interface becomes one column:
@@ -107,7 +108,7 @@ http_get  npm_info  npm_file  framework_docs</code></pre>
        a key, and use it on the train. The files stay in that browser's storage
        until you export a ZIP.</p>
 
-    <h2>Free forever</h2>
+    <h2>Free, with no account</h2>
 
     <p>The program is free. It has no account system.</p>
 
@@ -120,7 +121,7 @@ http_get  npm_info  npm_file  framework_docs</code></pre>
     <p>The code is <a href="https://github.com/stephenlb/buttercup.sh">on
        GitHub</a>. A fork will keep working if buttercup.sh goes offline.</p>
 
-    <h2>Local models: nothing leaves your machine</h2>
+    <h2>Prefer local? Nothing has to leave your machine</h2>
 
     <p>Connect the harness to <strong>Ollama</strong> or
        <strong>vLLM</strong> to keep every request on your machine. Buttercup
@@ -166,9 +167,9 @@ vllm serve &lt;model&gt; --allowed-origins '["https://buttercup.sh"]'</code></pr
       run script on that origin can read them. Use a scoped, revocable key.
     </blockquote>
 
-    <h2>Why bother</h2>
+    <h2>Why it is worth opening up</h2>
 
-    <p>Most agent harnesses bury a small loop inside a large application.
+    <p>Most agent harnesses tuck a small loop inside a large application.
        Buttercup leaves the loop where you can read it. If you know JavaScript,
        you can inspect the code in an afternoon, change its prompts, add a tool,
        or connect it to a model on your own hardware.</p>
@@ -176,12 +177,12 @@ vllm serve &lt;model&gt; --allowed-origins '["https://buttercup.sh"]'</code></pr
     <p>You choose the model, keep control of your keys, and can change every
        part of the program beneath the old-terminal interface.</p>
 
-    <p><a class="cta" href="/">open the harness</a></p>
+    <p><a class="cta" href="/">open the harness and make it yours</a></p>
   </article>
 
   
   <section class="subscribe">
-    <h2>One lesson a week</h2>
+    <h2>Want to build along with us?</h2>
     <form class="signup" id="signup"
           action="https://5487903a.sibforms.com/serve/MUIFAAPvkZdoviEts98XHd7P8K3TyLVS3MtyAoJy_sJMZ9DgAKwbaJqN4Lgn4NMQH3JL50ANiWCKfMJlE3Wj5aEiDLJ3sbnhtSTvh3z7Lgg2BOpAJjNZhMpN_BCn21Kz_o-buc-NY7aFM5JXPRkd-GW0iihg0KEvSJQiAgmUYcB_8D6DmR8Xb4bEFUzTJmlYFti6yJBG7K33hsR_MQ=="
           method="POST" target="signup-sink" autocomplete="on">
@@ -193,9 +194,8 @@ vllm serve &lt;model&gt; --allowed-origins '["https://buttercup.sh"]'</code></pr
              tabindex="-1" aria-hidden="true" autocomplete="off">
       <input type="hidden" name="locale" value="en">
       <button type="submit">SUBSCRIBE</button>
-      <p class="note">one AI Agent training lesson, weekly</p>
-      <p class="note">starting mid-September 2026</p>
-      <p class="thanks" role="status">subscribed, thank you!</p>
+      <p class="note">one friendly AI agent lesson in your inbox each week</p>
+      <p class="thanks" role="status">you’re in — welcome!</p>
     </form>
     <iframe name="signup-sink" title="subscription result" hidden></iframe>
   </section>

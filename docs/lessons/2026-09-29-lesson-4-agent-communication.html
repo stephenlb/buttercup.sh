@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>lesson 4: agent communication - free AI Agent training from buttercup.sh</title>
+<title>lesson 4: agent communication - when one agent asks another for help</title>
 <meta name="description" content="Lesson 4 of the free buttercup.sh agent course: agent-to-agent communication on Blocks.ai. Publish an agent card and handler, hire another agent from inside your handler with ctx.taskClient, and budget the wall clock across a fan-out.">
 <link rel="canonical" href="https://buttercup.sh/lessons/2026-09-29-lesson-4-agent-communication.html">
 <link rel="stylesheet" href="lessons.css">
@@ -30,11 +30,12 @@
   <article>
     <header>
       <time datetime="2026-09-29">29 September 2026</time>
-      <h1>Lesson 4: agent communication - the agent that hires another agent</h1>
-      <p>Build an agent that delegates work to agents written by other people.
-         Publish an <code>agent-card.json</code> and a handler on
+      <h1>Lesson 4: agent communication - when one agent asks another for help</h1>
+      <p>Welcome back. This time, we'll help an agent share the work with
+         agents built by other people. Together we'll publish an
+         <code>agent-card.json</code> and a handler on
          <strong>Blocks.ai</strong>, accept tasks with <code>blocks run</code>,
-         and call another agent from the handler with
+         and invite another agent into the handler with
          <code>ctx.taskClient.sendMessage()</code>.</p>
       
       <form class="signup lede" id="signup-lede"
@@ -48,29 +49,30 @@
                tabindex="-1" aria-hidden="true" autocomplete="off">
         <input type="hidden" name="locale" value="en">
         <button type="submit">SUBSCRIBE</button>
-        <p class="note">one lesson a week &middot; unsubscribe whenever</p>
-        <p class="thanks" role="status">subscribed, thank you!</p>
+        <p class="note">one friendly lesson a week &middot; leave whenever</p>
+        <p class="thanks" role="status">you’re in — welcome!</p>
       </form>
     </header>
 
     <figure class="diag tube">
       <div class="screen">
         <iframe src="https://www.youtube-nocookie.com/embed/pF7Uz6lPkdg"
-                title="Lesson 4, agent communication: the agent that hires another agent"
+                title="Lesson 4, agent communication: when one agent asks another for help"
                 loading="lazy" allowfullscreen
                 referrerpolicy="strict-origin-when-cross-origin"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"></iframe>
       </div>
-      <figcaption>Publish a handler, then hire another agent from it. The video
-        follows the copyable code below.
+      <figcaption>Publish a handler, then ask another agent for help from
+        inside it. The video follows the copyable code below.
         <a href="https://youtu.be/pF7Uz6lPkdg">Watch on YouTube</a>.</figcaption>
     </figure>
 
-    <h2>Two directions, one SDK</h2>
+    <h2>Two sides that fit together</h2>
 
-    <p>The provider runs in Node or Python. Browser code can call it through
-       the same SDK, but the two sides use different credentials and
-       entry points.</p>
+    <p>There are two small pieces to connect. The provider runs in Node or
+       Python, and browser code calls it through the same SDK. They use
+       different credentials and entry points, so we'll take them one at a
+       time.</p>
 
     <figure class="diag">
       <div class="pair">
@@ -134,9 +136,10 @@ or another handler</span></code></pre>
        <a href="https://github.com/blocksnetwork/blocks-sdk" target="_blank" rel="noopener">one
        open repository</a>, where you can inspect the API.</p>
 
-    <h2>What the network handles</h2>
+    <h2>What the network takes care of</h2>
 
-    <p>Blocks operates the network boundary. You run the application. The
+    <p>Blocks takes care of the network boundary while you run the
+       application. The
        <a href="https://blocks.ai/docs/what-is-blocks" target="_blank" rel="sponsored noopener">Blocks
        overview</a> documents the split.</p>
 
@@ -172,7 +175,7 @@ or another handler</span></code></pre>
             </ul>
           </div>
           <div class="col owns">
-            <b>you still do this</b>
+            <b>the parts you shape</b>
             <ul>
               <li style="--i:0"><span><b>hosting</b>: the process runs where
                 you started it</span></li>
@@ -187,11 +190,11 @@ or another handler</span></code></pre>
         </div>
         <div class="legs">
           <span class="l">↻ infrastructure Blocks operates</span>
-          <span class="r">✕ application work your team owns</span>
+          <span class="r">✕ application choices your team gets to make</span>
         </div>
       </div>
-      <figcaption>The right column is your team's work. Blocks operates the
-        infrastructure in the left column.</figcaption>
+      <figcaption>Blocks operates the infrastructure in the left column. Your
+        team gets to shape the application in the right column.</figcaption>
     </figure>
 
     <p>Blocks routes and queues work across your running instances. You set
@@ -244,7 +247,7 @@ or another handler</span></code></pre>
         <div class="cross" aria-hidden="true">&rarr;</div>
         <div class="side">
           <b>lesson 4 &middot; an agent</b>
-<pre><code><span class="g" style="--i:0">identity.agentName</span><span class="g" style="--i:1">identity.description</span><span class="g" style="--i:2">io.inputs[].id + schema</span><span class="g" style="--i:3">a stranger picks it</span></code></pre>
+<pre><code><span class="g" style="--i:0">identity.agentName</span><span class="g" style="--i:1">identity.description</span><span class="g" style="--i:2">io.inputs[].id + schema</span><span class="g" style="--i:3">another builder finds it</span></code></pre>
         </div>
       </div>
       <figcaption>The card is a public tool description. The caller sends your
@@ -255,9 +258,10 @@ or another handler</span></code></pre>
         A2A systems.</figcaption>
     </figure>
 
-    <p>Descriptions steer callers. In lesson 2, a vague description sent the
-       model to the wrong tool. Here, a vague card can hide your agent from a
-       suitable caller or attract requests it cannot handle.</p>
+    <p>Descriptions help callers find the right fit. In lesson 2, a vague
+       description could send the model to a less suitable tool. Here, a clear
+       card helps the right callers discover your agent and understand what it
+       can do for them.</p>
 
     <p>This card gives a line-counting agent one narrow job:</p>
 
@@ -320,9 +324,10 @@ or another handler</span></code></pre>
           round trips.</li>
     </ul>
 
-    <h2>Publish the handler</h2>
+    <h2>Bring the handler online</h2>
 
-    <p>A handler receives a task and returns one or more artifacts.</p>
+    <p>Now for the satisfying part: a handler receives a task and returns one
+       or more artifacts. This first one stays deliberately small.</p>
 
 <pre><code>// handler.js runs under `blocks run` in Node. No framework or base class.
 export default async function handler(task, ctx) {
@@ -394,16 +399,17 @@ blocks run                             # holds the connection; your agent is now
        <code>blocks run</code> connects the agent.</p>
 
     <div class="tip">
-      <b>There is no dry run</b>
-      <p>An agent is live as soon as its process connects. Start privately and
-         trigger it yourself. Publish only after someone else has sent it a
-         task successfully.</p>
+      <b>Start with a private rehearsal</b>
+      <p>There isn't a separate dry-run mode: an agent is live as soon as its
+         process connects. Register it privately, send the first task
+         yourself, and publish when you're happy with the result.</p>
     </div>
 
-    <h2>Hire an agent from a page</h2>
+    <h2>Ask an agent for help from a page</h2>
 
-    <p>The caller SDK runs in a browser, but your API key must stay on the
-       server. <code>TaskClient</code> offers three auth modes.
+    <p>The caller SDK is happy in a browser. Your API key stays safely on the
+       server, and <code>TaskClient</code> gives you three ways to connect the
+       two.
        (<a href="https://blocks.ai/docs/use-agents-in-your-app" target="_blank" rel="sponsored noopener">Use
        agents in your app</a> documents the caller side.)</p>
 
@@ -414,8 +420,8 @@ blocks run                             # holds the connection; your agent is now
           <b><code>apiKey</code> &middot; server-side only</b>
           <ol class="hops">
             <li style="--i:0">key in the bundle</li>
-            <li style="--i:1">anyone opens devtools</li>
-            <li class="up" style="--i:2">↑ your quota, their tasks</li>
+            <li style="--i:1">the key appears in devtools</li>
+            <li class="up" style="--i:2">↑ an exposed key and shared quota</li>
           </ol>
           <span class="who">✕ correct for a cron job or a backend, never for a
             page</span>
@@ -517,21 +523,22 @@ createServer(async (req, res) =&gt; {
   res.end(await upstream.text());
 }).listen(8787);</code></pre>
 
-    <p>For your first test, use a free public agent. It accepts anonymous
+    <p>For an easy first test, use a free public agent. It accepts anonymous
        browser calls for <strong>up to 20 tasks</strong>, with no key or token
        endpoint. Choose one from
        <a href="https://blocks.ai/docs/agents" target="_blank" rel="sponsored noopener">the
-       hundred sample agents</a> and build a scratch page that calls a remote
-       agent. Use the twenty tasks for integration testing. Before installing
-       anything, try the
+       hundred sample agents</a> and build a small scratch page that calls a
+       remote agent. Those twenty tasks are plenty for an initial integration
+       test. Before installing anything, you can also try the
        <a href="https://blocks.ai/playground" target="_blank" rel="sponsored noopener">playground</a>
        client to pick an agent, send a part, and inspect the returned
        artifact.</p>
 
-    <h2>A handler that hires agents</h2>
+    <h2>Let the handler bring in a few helpers</h2>
 
     <p>A handler calls other agents through <code>ctx.taskClient</code>. The
-       SDK authenticates each call as your agent, so you need no second key.
+       SDK authenticates each call as your agent, so there is no second key to
+       manage.
        See
        <a href="https://blocks.ai/docs/set-up-agent-to-agent-communication" target="_blank" rel="sponsored noopener">the
        A2A guide</a> for the underlying API.</p>
@@ -579,7 +586,7 @@ createServer(async (req, res) =&gt; {
     <blockquote>Your handler is a tool for its caller and a client of the
       agents it hires.</blockquote>
 
-    <h2>Three ways a task ends</h2>
+    <h2>Three ways a task can wrap up</h2>
 
     <p>Lesson 3 used six <code>stop_reason</code> values. A remote task ends in
        one of three states. <code>canceled</code> means the handler accepted a
@@ -651,9 +658,10 @@ createServer(async (req, res) =&gt; {
        effects, pass an <code>idempotencyKey</code> so a later retry reads the
        first result instead of repeating the work.</p>
 
-    <h2>Nested budgets</h2>
+    <h2>Give every helper enough time</h2>
 
-    <p>Base the fan-out budget on its longest sequential chain. An orchestrator
+    <p>A little time planning keeps the whole group working comfortably.
+       Base the fan-out budget on its longest sequential chain. An orchestrator
        with <code>maxRunningTimeSec: 60</code> can reserve
        <strong>30%</strong>, or <strong>18&nbsp;seconds</strong>, for assembly
        and SDK overhead. That leaves <strong>42</strong> seconds for
@@ -723,10 +731,10 @@ createServer(async (req, res) =&gt; {
        <a href="https://blocks.ai/pricing" target="_blank" rel="sponsored noopener">the
        current pricing</a> before widening the fan-out. Track tasks per request.</p>
 
-    <h2>The code, JavaScript</h2>
+    <h2>Put it together in JavaScript</h2>
 
-    <p>This orchestrator applies lesson 3's cap and settled check to network
-       agents.</p>
+    <p>Here is the complete JavaScript orchestrator. It brings lesson 3's cap
+       and settled check along for the trip.</p>
 
 <pre><code>// handler.js is the orchestrator. It runs under `blocks run`.
 // Its own card sets runtime.maxRunningTimeSec: 60 and concurrency: 1.
@@ -822,7 +830,7 @@ async function hire(ctx, agentName, text) {
        <code>allSettled</code> result has one shape:
        <code>{ state, artifact }</code>.</p>
 
-    <h2>The code, Python</h2>
+    <h2>Or put it together in Python</h2>
 
     <p>The Python SDK is <strong>synchronous</strong>.
        <code>send_message</code> and
@@ -916,10 +924,11 @@ def hire(ctx, agent_name, text):
        <code>blocks init my_agent --mode provider</code>. Python is the CLI's
        default language, so that command needs no <code>--language</code> flag.</p>
 
-    <h2>What the SDK retries, and what you retry</h2>
+    <h2>Share the retry work with the SDK</h2>
 
     <p>As in lesson 3, connection failures and task outcomes need different
-       retry policies. The SDK retries only connection failures.</p>
+       retry policies. The SDK handles connection retries; your code decides
+       what to do with task outcomes.</p>
 
     <figure class="diag">
       <div class="lanes">
@@ -984,9 +993,10 @@ def hire(ctx, agent_name, text):
        data</a> documents the API. Open the stream
        before you await the terminal state.</p>
 
-    <h2>Trusting remote agents</h2>
+    <h2>Welcome remote agents with clear boundaries</h2>
 
-    <p>You do not control a remote agent's code or uptime. Your handler chooses
+    <p>Working with remote agents means working with code and uptime you do not
+       control. Your handler still chooses
        the agent, call order, and decision logic. Blocks handles transport and
        identity. The security documentation covers short-lived per-task
        JWTs, org-scoped channels, encrypted transport, <code>ownerId</code>
@@ -999,9 +1009,10 @@ def hire(ctx, agent_name, text):
        whitepaper</a>. For a security review, include
        <a href="https://blocks.ai/architecture/network-whitepaper" target="_blank" rel="sponsored noopener">the
        network whitepaper</a>. These controls protect the connection and caller
-       identity. They do not make the agent's output trustworthy.</p>
+       identity. Your application still gets the important job of checking the
+       agent's output.</p>
 
-    <p>Protect the rest of your application at the handler boundary:</p>
+    <p>A few clear boundaries keep the rest of your application comfortable:</p>
 
     <ul>
       <li>Treat returned artifacts as untrusted input. They come from a
@@ -1040,7 +1051,7 @@ def hire(ctx, agent_name, text):
        <a href="mailto:enterprise@blocks.ai">enterprise support</a> can answer
        deployment questions.</p>
 
-    <h2>A2A checklist</h2>
+    <h2>A friendly pre-flight checklist</h2>
 
     <ul>
       <li>Declare <code>runtime.maxRunningTimeSec</code>. There is no default
@@ -1068,11 +1079,11 @@ def hire(ctx, agent_name, text):
           <code>blocks publish</code>.</li>
     </ul>
 
-    <h2>The exercise</h2>
+    <h2>Try it yourself</h2>
 
-    <p>Open <a href="/">the harness</a>. It writes the provider and caller;
-       you design the agent. Open <em>KEYS</em>, paste an API key or select
-       Ollama, then enter:</p>
+    <p>Ready to connect the pieces? Open <a href="/">the harness</a>. It writes
+       the provider and caller while you design the agent. Open <em>KEYS</em>,
+       paste an API key or select Ollama, then enter:</p>
 
 <pre><code>scaffold a blocks.ai research agent, then run it</code></pre>
 
@@ -1098,7 +1109,8 @@ npm install -g @blocks-network/cli
 blocks login --write-env
 blocks check &amp;&amp; blocks register &amp;&amp; blocks run</code></pre>
 
-    <p>Break the scaffold on purpose and inspect each error:</p>
+    <p>Once the happy path works, try these small, deliberate experiments.
+       Each one makes an error message easier to recognise later:</p>
 
     <ul>
       <li>Rename the agent to <code>my-agent</code> with a hyphen and run
@@ -1153,7 +1165,7 @@ blocks check &amp;&amp; blocks register &amp;&amp; blocks run</code></pre>
           requirements</a>: two paragraphs your security team will ask for.</li>
     </ul>
 
-    <p>If an error message is unclear, inspect the SDK source
+    <p>If an error message is unclear, you're not stuck. Inspect the SDK source
        <a href="https://github.com/blocksnetwork/blocks-sdk" target="_blank" rel="noopener">open
        on GitHub</a>. Search for the thrown string before guessing. Ask the
        maintainers in
@@ -1161,7 +1173,11 @@ blocks check &amp;&amp; blocks register &amp;&amp; blocks run</code></pre>
        if source inspection does not answer it. You can inspect your side of a
        remote call, but often not the agent at the other end.</p>
 
-    <h2>Lesson 5</h2>
+    <h2>You're ready for lesson 5</h2>
+
+    <p>Nicely done. You now have an agent that can offer its own skills, ask
+       other agents for help, and bring their answers back together without
+       losing sight of time, cost, or safety.</p>
 
     <p><strong>Lesson 5, vision</strong> adds image content blocks to the loop
        from lesson 3. The agent writes a page, inspects a screenshot, finds an
@@ -1172,13 +1188,13 @@ blocks check &amp;&amp; blocks register &amp;&amp; blocks run</code></pre>
        <a href="2026-09-22-lesson-3-loops-and-goals.html">lesson 3, loops and
        goals</a>.</p>
 
-    <p><a class="cta" href="/">open the harness</a></p>
+    <p><a class="cta" href="/">open the harness and connect your first agents</a></p>
 
   </article>
 
   
   <section class="subscribe">
-    <h2>One lesson a week</h2>
+    <h2>Want to keep learning together?</h2>
     <form class="signup" id="signup"
           action="https://5487903a.sibforms.com/serve/MUIFAAPvkZdoviEts98XHd7P8K3TyLVS3MtyAoJy_sJMZ9DgAKwbaJqN4Lgn4NMQH3JL50ANiWCKfMJlE3Wj5aEiDLJ3sbnhtSTvh3z7Lgg2BOpAJjNZhMpN_BCn21Kz_o-buc-NY7aFM5JXPRkd-GW0iihg0KEvSJQiAgmUYcB_8D6DmR8Xb4bEFUzTJmlYFti6yJBG7K33hsR_MQ=="
           method="POST" target="signup-sink" autocomplete="on">
@@ -1190,8 +1206,8 @@ blocks check &amp;&amp; blocks register &amp;&amp; blocks run</code></pre>
              tabindex="-1" aria-hidden="true" autocomplete="off">
       <input type="hidden" name="locale" value="en">
       <button type="submit">SUBSCRIBE</button>
-      <p class="note">one AI Agent training lesson, weekly</p>
-      <p class="thanks" role="status">subscribed, thank you!</p>
+      <p class="note">one friendly AI agent lesson in your inbox each week</p>
+      <p class="thanks" role="status">you’re in — welcome!</p>
     </form>
     <iframe name="signup-sink" title="subscription result" hidden></iframe>
   </section>

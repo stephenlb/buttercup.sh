@@ -31,12 +31,13 @@
     <header>
       <time datetime="2026-09-22">22 September 2026</time>
       <h1>Lesson 3: loops and goals - the agent that stops on purpose</h1>
-      <p>Lesson 2's loop ended when the model stopped asking for tools. Now
-         your program will decide when the agent stops. You'll add
+      <p>Welcome back. Lesson 2 gave us a loop; now we'll help it know when the
+         work is truly done. Your program will decide when the agent stops,
+         and you'll add
          <strong>a turn counter, a goal check, and a timeout on every
          tool</strong>, plus a <code>report_status</code> tool with an
          <code>enum</code> your code can test. In this example, the counter
-         cuts a runaway bill from $2.40 to $0.22. The loop takes about forty
+         turns a possible $2.40 runaway bill into a bounded $0.22 run. The loop takes about forty
          lines in JavaScript or Python. Most of the remaining code defines the
          tools.</p>
       
@@ -51,8 +52,8 @@
                tabindex="-1" aria-hidden="true" autocomplete="off">
         <input type="hidden" name="locale" value="en">
         <button type="submit">SUBSCRIBE</button>
-        <p class="note">one lesson a week &middot; unsubscribe whenever</p>
-        <p class="thanks" role="status">subscribed, thank you!</p>
+        <p class="note">one friendly agent lesson each week</p>
+        <p class="thanks" role="status">you’re in — welcome!</p>
       </form>
     </header>
 
@@ -69,10 +70,10 @@
         <a href="https://youtu.be/0DDIeA38q-s">Watch on YouTube</a>.</figcaption>
     </figure>
 
-    <h2>Control how the loop ends</h2>
+    <h2>Give the loop a clear finish line</h2>
 
-    <p>Without reliable stopping conditions, an agent may run up a bill or quit
-       with a half-written file.</p>
+    <p>A reliable stopping condition helps an agent finish the file, protect
+       the budget, and leave you with a result you can trust.</p>
 
     <p>This loop can end in four ways:</p>
 
@@ -191,7 +192,7 @@
        the loop needs no provider-specific branches. Find the equivalent field
        for your provider and handle each value explicitly.</p>
 
-    <h2>Cap the turns</h2>
+    <h2>Give the loop a comfortable boundary</h2>
 
     <p>An uncapped <code>while (true)</code> can keep a mistaken agent running.
        If the model misreads a tool description, it may call the same tool on
@@ -1018,7 +1019,7 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
     <p>The harness runs one loop. Your script can compose separate improve and
        verify loops.</p>
 
-    <h2>Task budgets help the model pace itself</h2>
+    <h2>Help the model pace itself</h2>
 
     <p>The model cannot see your turn counter, so the counter may stop a run
        mid-task. A <strong>task budget</strong> gives the model a visible token
@@ -1078,7 +1079,7 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
        <code>stopped after 40 steps (the max-steps setting)</code>. Add this
        enforced limit before adding a task budget.</p>
 
-    <h2>Your counter and the SDK's counter</h2>
+    <h2>Let your counter and the SDK work together</h2>
 
     <p>The tool runners from lesson 2 have a counter built in. In TypeScript,
        <code>client.beta.messages.toolRunner({ ..., max_iterations: 12 })</code>
@@ -1099,7 +1100,7 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
        finishes cleanly; <code>pause_turn</code> can otherwise look like
        success.</p>
 
-    <h2>Loop checklist</h2>
+    <h2>A quick pre-flight checklist</h2>
 
     <ul>
       <li>Cap the turns and log when the run reaches the limit. Include the
@@ -1118,9 +1119,9 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
           model, and make state-changing tools idempotent before retrying them.</li>
     </ul>
 
-    <h2>The exercise</h2>
+    <h2>Your turn to guide the loop</h2>
 
-    <p>Open <a href="/">the harness</a>. It runs the same loop with twenty-one
+    <p>When you're ready, open <a href="/">the harness</a>. It runs the same loop with twenty-one
        tools on a virtual filesystem, and its <em>max steps</em> setting controls
        the counter. Open <em>KEYS</em>, paste an API key or select Ollama, then
        give it a task with ordered steps:</p>
@@ -1147,7 +1148,7 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
        Repeat the review without <code>/clear</code> to compare how the existing
        conversation affects the response.</p>
 
-    <p>Then break it on purpose:</p>
+    <p>Then explore these safe edge cases on purpose:</p>
 
     <ul>
       <li>Set <strong>max steps to 2</strong> and ask again. The run should stop
@@ -1169,11 +1170,11 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
        disk. <code>/wipe</code> clears the workspace, and <code>/undo</code> rewinds
        both the files and the conversation until you close the tab.</p>
 
-    <h2>Lesson 4</h2>
+    <h2>You're ready for lesson 4</h2>
 
     <p>Your agent now stops when a condition in your code becomes true. In
        <strong>Lesson 4, agent communication</strong>, you'll publish a handler
-       on <strong>Blocks.ai</strong> so other agents can hire yours. You'll also
+       on <strong>Blocks.ai</strong> so other agents can ask yours for help. You'll also
        write a client that hands work to an agent you did not build. Network
        delays, remote failures, and abandoned tasks enter the picture.</p>
 
@@ -1186,13 +1187,13 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
        <a href="2026-09-15-lesson-2-tool-calling.html">lesson 2, tool
        calling</a>.</p>
 
-    <p><a class="cta" href="/">open the harness</a></p>
+    <p><a class="cta" href="/">open the harness and give your loop a goal</a></p>
 
   </article>
 
   
   <section class="subscribe">
-    <h2>One lesson a week</h2>
+    <h2>Want to keep learning together?</h2>
     <form class="signup" id="signup"
           action="https://5487903a.sibforms.com/serve/MUIFAAPvkZdoviEts98XHd7P8K3TyLVS3MtyAoJy_sJMZ9DgAKwbaJqN4Lgn4NMQH3JL50ANiWCKfMJlE3Wj5aEiDLJ3sbnhtSTvh3z7Lgg2BOpAJjNZhMpN_BCn21Kz_o-buc-NY7aFM5JXPRkd-GW0iihg0KEvSJQiAgmUYcB_8D6DmR8Xb4bEFUzTJmlYFti6yJBG7K33hsR_MQ=="
           method="POST" target="signup-sink" autocomplete="on">
@@ -1204,9 +1205,8 @@ for (let round = 1; round &lt;= MAX_ROUNDS; round++) {
              tabindex="-1" aria-hidden="true" autocomplete="off">
       <input type="hidden" name="locale" value="en">
       <button type="submit">SUBSCRIBE</button>
-      <p class="note">one AI Agent training lesson, weekly</p>
-      <p class="note">starting mid-September 2026</p>
-      <p class="thanks" role="status">subscribed, thank you!</p>
+      <p class="note">one friendly AI agent lesson in your inbox each week</p>
+      <p class="thanks" role="status">you’re in — welcome!</p>
     </form>
     <iframe name="signup-sink" title="subscription result" hidden></iframe>
   </section>

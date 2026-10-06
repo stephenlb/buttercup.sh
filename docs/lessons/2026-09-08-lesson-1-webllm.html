@@ -132,8 +132,8 @@
       <time datetime="2026-09-08">8 September 2026</time>
       <h1>Lesson 1, WebLLM: a language model in the tab, no key, no server,
           no bill</h1>
-      <p>Every agent needs a model to talk to. Most tutorials start by asking for
-         your credit card. We are going to skip that step. <strong>WebLLM runs a
+      <p>Welcome to lesson one. Every agent needs a model to talk to, and we can
+         begin without an account or a credit card. <strong>WebLLM runs a
          real language model inside your browser, on your own GPU, with the
          network off.</strong> No account. No key. No server. Nothing to install.
          By the end of this lesson you will have the one exchange the whole course
@@ -150,8 +150,8 @@
                tabindex="-1" aria-hidden="true" autocomplete="off">
         <input type="hidden" name="locale" value="en">
         <button type="submit">SUBSCRIBE</button>
-        <p class="note">one lesson a week &middot; unsubscribe whenever</p>
-        <p class="thanks" role="status">subscribed — thank you!</p>
+        <p class="note">one friendly agent lesson each week</p>
+        <p class="thanks" role="status">you’re in — welcome!</p>
       </form>
     </header>
 
@@ -169,7 +169,7 @@
         copyable. <a href="https://youtu.be/yLoCggcxoy0">Watch on YouTube</a>.</figcaption>
     </figure>
 
-    <h2>The one idea</h2>
+    <h2>One small idea to begin</h2>
 
     <p>A language model is a function. You hand it an array of messages. It hands
        you back text, one token at a time. That is the whole interface. It does not
@@ -579,19 +579,19 @@ reply.choices[0].message.tool_calls;</code></pre>
         same deal with the parsing done for you.</figcaption>
     </figure>
 
-    <p>The cost of doing it yourself is that nothing is enforced anymore. The native
+    <p>The tradeoff is that nothing is enforced anymore. The native
        path could not return malformed JSON if it tried, because the grammar forbids
        it. Here you are only <em>asking</em> the model to keep the shape, and small
-       models are bad at that. They invent parameter names. They describe the call
+       models can struggle with that. They invent parameter names. They describe the call
        instead of making it. They write the <code>&lt;tool_response&gt;</code>
-       themselves and answer their own question. So write a suspicious parser: match
+       themselves and answer their own question. So write a careful parser: match
        the tags, parse what is between them, and when that fails, send a message back
        to the model instead of crashing. Watch this go wrong once and you will know
        exactly why lesson 2 asks for a capable model.</p>
 
-    <h2>The exercise</h2>
+    <h2>Your turn to try it</h2>
 
-    <p>You do not need to save a file for this part. Open <a href="/">the
+    <p>You do not need to save a file for this part. When you're ready, open <a href="/">the
        harness</a>, or any page you are serving from <code>localhost</code>, and
        open devtools on the <em>Console</em> tab. Paste this in and press
        enter:</p>
@@ -631,12 +631,12 @@ await ask([
   { role: "user",   content: "Why is the sky blue?" },
 ]);</code></pre>
 
-    <p>Two console details worth knowing, because both of them will bite you. The
+    <p>Two console details are worth knowing now so they feel familiar later. The
        top-level <code>await</code> only works in a devtools console, so this
        snippet is not the same code as the file above. And every declaration is
        <code>var</code> on purpose. You are going to re-paste these lines a dozen
        times, and <code>var</code> lets you redeclare while <code>const</code>
-       argues with you about it. If the import itself fails with a
+       asks you to choose a new name. If the import itself fails with a
        content-security-policy error, then the page you are on will not load
        modules from a CDN. Move to the harness or your own <code>localhost</code>
        and try again.</p>
@@ -663,8 +663,8 @@ console.log(((performance.now() - t) / 1000).toFixed(1), "s from cache");</code>
           tools fill, and it is where lesson 2 starts.</li>
     </ul>
 
-    <p>Now break it on purpose. Most people skip this half, and it teaches more
-       than the half above it:</p>
+    <p>Now let's explore a few safe failure cases. They make the happy path
+       much easier to understand:</p>
 
 <pre><code>// ── a model id that doesn't exist. Read the error, you'll meet it again
 //    the first time you typo a model against a paid API. ───────────────
@@ -755,28 +755,28 @@ engine = await CreateMLCEngine("Hermes-3-Llama-3.1-8B-q4f16_1-MLC",
           projects, and no browser in the way. The harness speaks both.</dd>
     </dl>
 
-    <h2>Next week</h2>
+    <h2>Keep going with lesson 2</h2>
 
     <p><strong>Lesson 2: tool calling</strong> gives the model hands. You hand it a
        list of functions. It asks for one by name. Your code runs the real thing and
        passes the answer back. That loop is all an agent is, it takes about twenty
        lines of code, and it
-       <a href="2026-09-15-lesson-2-tool-calling.html">arrives next
-       Tuesday</a>.</p>
+       <a href="2026-09-15-lesson-2-tool-calling.html">is ready when you
+       are</a>.</p>
 
     <p>Where this sits in the whole course, and what comes after:
        <a href="2026-09-04-the-syllabus.html">the syllabus</a>.</p>
 
-    <p>If someone forwarded you this, the lessons are free and weekly and the
-       archive keeps the ones you missed:</p>
+    <p>If someone forwarded you this, welcome. The lessons are free, and the
+       archive keeps every one you missed:</p>
 
-    <p><a class="cta" href="/">open the harness</a></p>
+    <p><a class="cta" href="/">open the harness and meet your first model</a></p>
 
   </article>
 
   
   <section class="subscribe">
-    <h2>One lesson a week</h2>
+    <h2>Want to keep learning together?</h2>
     <form class="signup" id="signup"
           action="https://5487903a.sibforms.com/serve/MUIFAAPvkZdoviEts98XHd7P8K3TyLVS3MtyAoJy_sJMZ9DgAKwbaJqN4Lgn4NMQH3JL50ANiWCKfMJlE3Wj5aEiDLJ3sbnhtSTvh3z7Lgg2BOpAJjNZhMpN_BCn21Kz_o-buc-NY7aFM5JXPRkd-GW0iihg0KEvSJQiAgmUYcB_8D6DmR8Xb4bEFUzTJmlYFti6yJBG7K33hsR_MQ=="
           method="POST" target="signup-sink" autocomplete="on">
@@ -788,9 +788,8 @@ engine = await CreateMLCEngine("Hermes-3-Llama-3.1-8B-q4f16_1-MLC",
              tabindex="-1" aria-hidden="true" autocomplete="off">
       <input type="hidden" name="locale" value="en">
       <button type="submit">SUBSCRIBE</button>
-      <p class="note">one AI Agent training lesson, weekly</p>
-      <p class="note">starting mid-September 2026</p>
-      <p class="thanks" role="status">subscribed — thank you!</p>
+      <p class="note">one friendly AI agent lesson in your inbox each week</p>
+      <p class="thanks" role="status">you’re in — welcome!</p>
     </form>
     <iframe name="signup-sink" title="subscription result" hidden></iframe>
   </section>
