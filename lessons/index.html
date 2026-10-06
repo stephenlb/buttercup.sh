@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>lessons | buttercup.sh</title>
-<meta name="description" content="Practical lessons on building AI agents, plus release notes for the open-source buttercup.sh browser harness.">
+<title>come learn with buttercup.sh | friendly AI agent lessons</title>
+<meta name="description" content="Friendly, practical lessons that help you build AI agents one approachable step at a time, with working code and browser exercises.">
 <link rel="canonical" href="https://buttercup.sh/lessons/">
 <link rel="stylesheet" href="lessons.css">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23191204'/%3E%3Ctext x='2' y='12' font-family='monospace' font-size='11' fill='%23ffd873'%3E%26gt;%3C/text%3E%3C/svg%3E">
@@ -26,8 +26,12 @@
     <span class="where">lessons</span>
   </header>
 
-  <h1>Come learn with buttercup.sh</h1>
-  <p class="kicker">friendly, practical agent lessons and release notes</p>
+  <h1>Come build an agent with us</h1>
+  <p class="kicker">friendly lessons, working code, and room to experiment</p>
+  <p>Whether this is your first model call or your fifth agent, you’re welcome
+     here. Start with <a href="2026-09-04-the-syllabus.html">the syllabus</a>,
+     choose the lesson that sounds useful, or simply begin at lesson one.
+     Everything stays in the archive, so there’s no need to rush.</p>
 
   <!-- top and bottom, on every page in this directory — the archive included.
        Same list and same sink frame as the copy in the foot. -->
@@ -41,8 +45,8 @@
     <input type="text" name="email_address_check" value="" class="trap"
            tabindex="-1" aria-hidden="true" autocomplete="off">
     <input type="hidden" name="locale" value="en">
-    <button type="submit">SUBSCRIBE</button>
-    <p class="note">one friendly agent lesson each week &middot; leave anytime</p>
+    <button type="submit">JOIN THE LESSONS</button>
+    <p class="note">a friendly agent lesson each week &middot; leave anytime</p>
     <p class="thanks" role="status">you’re in — welcome!</p>
   </form>
 
@@ -52,76 +56,76 @@
   <ul class="log">
     <li>
       <time datetime="2026-10-13">Coming 13 October 2026</time>
-      <a href="2026-10-13-lesson-6-evals.html">Lesson 6: evals, or how you know the agent got better</a>
-      <p>We’ll write ten cases with code graders, run each three times, and get
-         one useful number. Then we’ll change a single tool description and
-         see whether the result moved more than noise. JavaScript and Python
-         examples will use the Anthropic SDK.</p>
+      <a href="2026-10-13-lesson-6-evals.html">Lesson 6: evals, or turning “seems better” into something you can see</a>
+      <p>For our final lesson, we’ll build a small eval together: ten cases,
+         three runs each, and one useful number. Then we’ll change a tool
+         description and see whether it genuinely helped. JavaScript and
+         Python examples will use the Anthropic SDK.</p>
     </li>
     <li>
       <time datetime="2026-10-06">6 October 2026</time>
       <a href="2026-10-06-lesson-5-vision.html">Lesson 5: vision, or how an agent looks at what it built</a>
-      <p>Send a screenshot as an image content block, budget what it costs in
-         tokens, and give the lesson 3 loop eyes. A DOM check, not the model,
-         decides when the layout is fixed. The JavaScript and Python examples
-         run on Playwright.</p>
+      <p>Give the lesson 3 loop a pair of eyes. We’ll send it a screenshot,
+         help it tidy a layout, and use a simple DOM check to confirm the page
+         is ready. JavaScript and Python examples run on Playwright.</p>
     </li>
     <li>
       <time datetime="2026-09-29">29 September 2026</time>
       <a href="2026-09-29-lesson-4-agent-communication.html">Lesson 4: agent communication, or how agents ask each other for help</a>
-      <p>Publish an agent card and handler on Blocks.ai, then ask an agent you
-         did not write for help from inside your own handler. The JavaScript and Python
-         orchestrators fan out, survive a partial failure, and divide one
-         60-second budget.</p>
+      <p>Help your agent join a wider team. We’ll publish an agent card and
+         handler on Blocks.ai, ask another agent for help, and bring the
+         answers safely back together. JavaScript and Python examples share
+         one 60-second budget.</p>
     </li>
     <li>
       <time datetime="2026-09-22">22 September 2026</time>
       <a href="2026-09-22-lesson-3-loops-and-goals.html">Lesson 3: loops and goals, or how an agent stops on purpose</a>
-      <p>Handle each <code>stop_reason</code>, set a turn limit, and write goals
-         your program can check. The JavaScript and Python examples recover
-         from hung tools and verify the result before stopping.</p>
+      <p>Give your agent a clear finish line. We’ll set a turn limit, write a
+         goal your program can check, recover from slow tools, and verify the
+         result before the loop says it is done.</p>
     </li>
     <li>
       <time datetime="2026-09-15">15 September 2026</time>
       <a href="2026-09-15-lesson-2-tool-calling.html">Lesson 2: tool calling, or how a chat model gets hands</a>
-      <p>Build a tool-calling loop by hand in JavaScript or Python. Learn what
-         the model sends, what your code must run, and how tool descriptions
-         shape its choices. The exercise runs in your browser.</p>
+      <p>Give a chat model its first useful tool. We’ll build the loop by hand
+         in JavaScript or Python, follow one complete trip around it, and see
+         how a friendly, precise description guides the model’s choices.</p>
     </li>
     <li>
       <time datetime="2026-09-08">8 September 2026</time>
       <a href="2026-09-08-lesson-1-webllm.html">Lesson 1: WebLLM, a language model in the browser with no key or server</a>
-      <p>Run a language model on your GPU with the network off. Inspect its
-         input and output, build a single-file WebLLM demo, and move it into a
-         web worker with tools. You'll also see the download and VRAM costs.</p>
+      <p>Begin with a real language model running on your own GPU—no account,
+         key, or server needed. We’ll inspect what goes in and comes back,
+         build a one-file demo, and gently explore the limits of browser
+         inference.</p>
     </li>
     <li>
       <time datetime="2026-09-04">4 September 2026</time>
-      <a href="2026-09-04-the-syllabus.html">The syllabus: six lessons, starting with the loop</a>
-      <p>See the project and requirements for each of the six lessons. The
-         course covers tool calling, loops and goals, delegation, WebLLM,
-         vision, and evals, with the agent loop first.</p>
+      <a href="2026-09-04-the-syllabus.html">The syllabus: six friendly steps into agent building</a>
+      <p>Meet the whole course before you begin. You’ll see what each lesson
+         builds, what you need, and how WebLLM, tools, loops, communication,
+         vision, and evals fit together.</p>
     </li>
     <li>
       <time datetime="2026-09-02">2 September 2026</time>
       <a href="2026-09-02-weekly-agent-training.html">A new agent lesson every week</a>
-      <p>Each email pairs one agent concept with working code and a browser
-         exercise. The course is free, requires no account, and works with
-         local models.</p>
+      <p>A warm invitation to learn at a comfortable pace: one idea, working
+         code, and a browser exercise each week. The course is free, needs no
+         account, and works with local models.</p>
     </li>
     <li>
       <time datetime="2026-09-01">1 September 2026</time>
       <a href="2026-09-01-buttercup-is-open-source.html">buttercup.sh is open source: an agent harness that lives in your browser</a>
-      <p>buttercup.sh provides up to 23 tools, a virtual filesystem, and undo in
-         one static page. It runs on desktop or phone without a backend or
-         build step, and local models keep your data on your machine.</p>
+      <p>Come meet the little machine behind the lessons: one open-source page
+         with a virtual filesystem, undo, previews, and up to 23 tools. It runs
+         on desktop or phone, and it is yours to inspect and change.</p>
     </li>
   </ul>
 
   <!-- ══ subscribe: the same form the harness carries, posting to the same
           list. Every page in the archive ends here. ═══════════════════════ -->
   <section class="subscribe">
-    <h2>Want to keep learning together?</h2>
+    <h2>There’s always room for one more</h2>
     <form class="signup" id="signup"
           action="https://5487903a.sibforms.com/serve/MUIFAAPvkZdoviEts98XHd7P8K3TyLVS3MtyAoJy_sJMZ9DgAKwbaJqN4Lgn4NMQH3JL50ANiWCKfMJlE3Wj5aEiDLJ3sbnhtSTvh3z7Lgg2BOpAJjNZhMpN_BCn21Kz_o-buc-NY7aFM5JXPRkd-GW0iihg0KEvSJQiAgmUYcB_8D6DmR8Xb4bEFUzTJmlYFti6yJBG7K33hsR_MQ=="
           method="POST" target="signup-sink" autocomplete="on">
@@ -132,7 +136,7 @@
       <input type="text" name="email_address_check" value="" class="trap"
              tabindex="-1" aria-hidden="true" autocomplete="off">
       <input type="hidden" name="locale" value="en">
-      <button type="submit">SUBSCRIBE</button>
+      <button type="submit">JOIN THE LESSONS</button>
       <p class="note">one friendly AI agent lesson in your inbox each week</p>
       <p class="thanks" role="status">you’re in — welcome!</p>
     </form>
