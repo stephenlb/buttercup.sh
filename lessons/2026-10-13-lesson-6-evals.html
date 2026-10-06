@@ -124,6 +124,36 @@
        an angry complaint as permission to move money. The recorded tool calls
        give plain old code everything it needs to catch them.</p>
 
+
+    <figure class="diag">
+      <div class="lanes">
+        <span class="cap">one run, then one grade</span>
+        <div class="lane t">
+          <b>the run</b>
+          <ol class="hops">
+            <li style="--i:0">user prompt</li>
+            <li style="--i:1">model + 3 tools</li>
+            <li style="--i:2">stubs answer</li>
+            <li class="ok" style="--i:3">trace: [{ name, input }]</li>
+          </ol>
+          <span class="who">&#8635; the loop from lesson 3, capped at 6 turns, nothing real touched</span>
+        </div>
+        <div class="lane d">
+          <b>the grade</b>
+          <ol class="hops">
+            <li style="--i:0">pass(calls)</li>
+            <li style="--i:1">true / false</li>
+            <li style="--i:2">+ - +</li>
+            <li class="ok" style="--i:3">27/30</li>
+          </ol>
+          <span class="who">plain code reads the trace, so the same run gets the same verdict</span>
+        </div>
+      </div>
+      <figcaption>Every run ends as a list of tool calls. The grader never
+        reads the model's prose; it checks which tools ran, in what order,
+        with which arguments.</figcaption>
+    </figure>
+
     <h2>Grade with code first</h2>
 
     <p>Use the simplest grader that can answer the question. Boring is good
@@ -142,6 +172,38 @@
     <p>Give each run a pass or fail. A tone score of 7 out of 10 sounds useful
        until you have to explain why the next answer got an 8. A yes-or-no
        check is easier to defend, and you can count it without squinting.</p>
+
+
+    <figure class="diag">
+      <div class="deal">
+        <span class="cap">who grades what</span>
+        <div class="cols">
+          <div class="col gets">
+            <b>code can check it</b>
+            <ul>
+              <li style="--i:0"><span>Which tools ran, and in what order</span></li>
+              <li style="--i:1"><span>The arguments: order id, email</span></li>
+              <li style="--i:2"><span>A file, a test, or a database row</span></li>
+              <li style="--i:3"><span>Whether the agent made no call at all</span></li>
+            </ul>
+          </div>
+          <div class="col owns">
+            <b>code can't, so ask a judge</b>
+            <ul>
+              <li style="--i:0"><span>Does the reply sound polite?</span></li>
+              <li style="--i:1"><span>Does the summary keep the key fact?</span></li>
+              <li style="--i:2"><span>Costs tokens, and can be wrong itself</span></li>
+            </ul>
+          </div>
+        </div>
+        <div class="legs">
+          <span class="l">&#8635; fast, free, same verdict every time</span>
+          <span class="r">&#10005; last resort, and check it against your own labels</span>
+        </div>
+      </div>
+      <figcaption>Start on the left. Reach for a judge only when a function
+        truly cannot answer the question.</figcaption>
+    </figure>
 
     <h2>Ten cases</h2>
 
@@ -199,6 +261,32 @@
       <li>Rerun a total that moves by 15 points or more. A repeat is cheap
           confirmation of a change that large.</li>
     </ul>
+
+
+    <figure class="diag">
+      <div class="tri">
+        <span class="cap">input tokens per eval &middot; drawn to scale against
+          90 runs</span>
+        <ol class="rows">
+          <li style="--w:11%;--i:0"><b>10 runs</b>
+            <span class="bar"><i></i></span>
+            <span class="t">&plusmn;13 pts &middot; 20k</span></li>
+          <li style="--w:33%;--i:1"><b>30 runs</b>
+            <span class="bar"><i></i></span>
+            <span class="t">&plusmn;7 pts &middot; 60k</span></li>
+          <li class="past" style="--w:100%;--i:2"><b>90 runs</b>
+            <span class="bar"><i></i></span>
+            <span class="t">&plusmn;4 pts &middot; 180k</span></li>
+        </ol>
+        <div class="legs">
+          <span class="l">30 runs: 10 cases x 3</span>
+          <span class="r">3x the tokens to shave about 3 points</span>
+        </div>
+      </div>
+      <figcaption>Error bars assume an 80% pass rate and about 2,000 input
+        tokens per run, as in the arithmetic above. Tripling the runs cuts the
+        noise by less than half.</figcaption>
+    </figure>
 
     <h2>Two sets of descriptions</h2>
 
@@ -525,6 +613,35 @@ Path(f"evals/{VARIANT}.json").write_text(json.dumps(
           strict and would reject many valid questions.</li>
     </ul>
 
+
+    <figure class="diag">
+      <div class="lanes">
+        <span class="cap">a failing run has two suspects</span>
+        <div class="lane t">
+          <b>the agent was wrong</b>
+          <ol class="hops">
+            <li style="--i:0">open the trace</li>
+            <li style="--i:1">wrong tool or argument</li>
+            <li class="ok" style="--i:2">fix the description</li>
+            <li class="ok" style="--i:3">rerun</li>
+          </ol>
+          <span class="who">the score was telling the truth</span>
+        </div>
+        <div class="lane d">
+          <b>the grader was wrong</b>
+          <ol class="hops">
+            <li style="--i:0">open the trace</li>
+            <li style="--i:1">valid behavior, marked -</li>
+            <li class="ok" style="--i:2">fix the grader</li>
+            <li class="ok" style="--i:3">rerun</li>
+          </ol>
+          <span class="who">the agent was fine all along; don't touch the prompt</span>
+        </div>
+      </div>
+      <figcaption>Read the trace before changing anything. Both suspects
+        produce the same minus sign.</figcaption>
+    </figure>
+
     <p>Read five failures by hand the first time you run a new eval. Sometimes
        the grader is wrong and the agent is fine. Finding that early can save
        you an afternoon of fixing the wrong thing, which is a lovely way to
@@ -572,6 +689,24 @@ const ok = verdict.content[0].text.trim().endsWith("PASS");</code></pre>
        ready to decide. If only the tuning set improves, you are probably
        overfitting. Move any useful held-out failure into the tuning set and
        replace it with a new case.</p>
+
+
+    <figure class="diag">
+      <div class="pair">
+        <div class="side">
+          <b>tune against &middot; 10 cases</b>
+<pre><code><span class="g" style="--i:0">edit a description</span><span class="g" style="--i:1">rerun these ten</span><span class="g" style="--i:2">score climbs</span></code></pre>
+        </div>
+        <div class="cross" aria-hidden="true">&rarr;</div>
+        <div class="side">
+          <b>held out &middot; 5 cases</b>
+<pre><code><span class="g" style="--i:0">untouched until the decision</span><span class="g" style="--i:1">run once, at the end</span><span class="g" style="--i:2">also climbs? it's real</span></code></pre>
+        </div>
+      </div>
+      <figcaption>If only the left side improves, you taught the agent your ten
+        prompts. A held-out failure moves to the tuning set, and a fresh case
+        takes its place.</figcaption>
+    </figure>
 
     <h2>Now test the whole little machine</h2>
 
